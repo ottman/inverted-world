@@ -11,7 +11,10 @@ export const RECURSIV_PROJECT_ID =
 export const RECURSIV_ORG_ID =
   process.env.RECURSIV_ORG_ID || process.env.NEXT_PUBLIC_RECURSIV_ORG_ID || ""
 
-export const RECURSIV_AGENT_ID = process.env.RECURSIV_AGENT_ID || ""
+export const RECURSIV_AGENT_ID =
+  process.env.RECURSIV_AGENT_ID ||
+  process.env.NEXT_PUBLIC_RECURSIV_AGENT_ID ||
+  "e260c5ff-b21e-4af2-a488-40da4c4fc61d"
 
 export const INVERTED_WORLD_DB = process.env.RECURSIV_DATABASE_NAME || "inverted_world_research"
 
@@ -43,9 +46,13 @@ export function getRecursivSdk() {
 }
 
 export function getRecursivStatus() {
+  const hasServerKey = Boolean(getServerApiKey())
+
   return {
-    configured: Boolean(getServerApiKey() && RECURSIV_PROJECT_ID),
-    hasAgent: Boolean(getServerApiKey() && RECURSIV_AGENT_ID),
+    configured: Boolean(hasServerKey && RECURSIV_PROJECT_ID),
+    hasServerKey,
+    hasAgent: Boolean(RECURSIV_AGENT_ID),
+    agentId: RECURSIV_AGENT_ID,
     baseUrl: RECURSIV_BASE_URL,
     orgId: RECURSIV_ORG_ID,
     projectId: RECURSIV_PROJECT_ID,
