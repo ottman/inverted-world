@@ -6,9 +6,11 @@ import {
   BadgeCheck,
   Brain,
   Database,
+  ExternalLink,
   FileSearch,
   Globe2,
   Newspaper,
+  PlayCircle,
   Radio,
   RefreshCw,
   Search,
@@ -16,6 +18,7 @@ import {
   ShieldQuestion,
   Sparkles,
   Video,
+  Youtube,
 } from "lucide-react"
 import Waves from "@/components/Waves"
 import {
@@ -28,6 +31,7 @@ import {
   researchDocuments,
   socialLinks,
   topics,
+  type ChannelVideo,
   type NewsCoverageItem,
 } from "@/data/inverted-world"
 import { cn } from "@/lib/utils"
@@ -71,6 +75,9 @@ const mediaFormats = [
     copy: "Competing models scored by evidence quality, explanatory power, and unknowns.",
   },
 ]
+
+const youtubeVideos = featuredVideos.filter((video) => video.source === "YouTube" && video.videoId)
+const latestYouTubeVideo = youtubeVideos[0]
 
 export function InvertedWorldResearchApp() {
   const [topicId, setTopicId] = useState(topics[0].id)
@@ -149,10 +156,10 @@ export function InvertedWorldResearchApp() {
   }
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#070706] text-[#f4efe2]">
-      <div className="pointer-events-none fixed inset-0 opacity-60">
+    <div className="relative min-h-screen overflow-x-hidden bg-[#070706] text-[#f4efe2]">
+      <div className="pointer-events-none fixed inset-0 z-0 opacity-75">
         <Waves
-          lineColor="rgba(232, 180, 92, 0.22)"
+          lineColor="rgba(232, 180, 92, 0.26)"
           backgroundColor="#070706"
           waveSpeedX={0.007}
           waveSpeedY={0.004}
@@ -165,15 +172,16 @@ export function InvertedWorldResearchApp() {
           maxCursorMove={70}
         />
       </div>
+      <div className="pointer-events-none fixed inset-0 z-[1] bg-[radial-gradient(circle_at_50%_0%,rgba(232,180,92,0.13),transparent_34%),linear-gradient(180deg,rgba(7,7,6,0.08),rgba(7,7,6,0.84)_62%,rgba(7,7,6,0.94))]" />
 
       <div className="relative z-10">
-        <header className="border-b border-[#f4efe2]/10 bg-[#070706]/82 backdrop-blur-xl">
-          <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-30 border-b border-[#f4efe2]/10 bg-transparent backdrop-blur-sm">
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-3 py-3 sm:px-6 sm:py-4 lg:px-8">
             <a className="flex min-w-0 items-center gap-3" href="/">
               <img
                 src="/images/inverted-world-banner-logo.png"
                 alt="Inverted World"
-                className="h-8 w-auto shrink-0 sm:h-10"
+                className="h-7 w-auto max-w-[58vw] shrink sm:h-10 sm:max-w-none"
               />
               <span className="hidden border-l border-[#f4efe2]/15 pl-3 text-xs uppercase tracking-[0.22em] text-[#e8b45c] md:block">
                 Research OS
@@ -197,39 +205,39 @@ export function InvertedWorldResearchApp() {
               href="https://www.youtube.com/@TalesfromtheInvertedWorld"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex h-10 items-center gap-2 rounded-md border border-[#e53935]/45 bg-[#e53935]/12 px-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#f4efe2] transition hover:bg-[#e53935]/22"
+              className="inline-flex h-10 shrink-0 items-center gap-2 rounded-md border border-[#e53935]/45 bg-[#e53935]/12 px-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#f4efe2] transition hover:bg-[#e53935]/22"
             >
               <Radio className="h-4 w-4" />
-              Live
+              <span className="hidden sm:inline">Live</span>
             </a>
           </div>
         </header>
 
         <main>
           <section className="border-b border-[#f4efe2]/10">
-            <div className="mx-auto grid min-h-[calc(100vh-73px)] max-w-7xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[minmax(0,1.08fr)_minmax(420px,0.92fr)] lg:px-8 lg:py-10">
-              <div className="flex min-h-[620px] flex-col justify-between">
-                <div className="max-w-4xl pt-4 lg:pt-14">
+            <div className="mx-auto grid min-h-[calc(100vh-65px)] max-w-7xl gap-6 px-3 py-6 sm:px-6 sm:py-8 lg:grid-cols-[minmax(0,1.08fr)_minmax(380px,0.92fr)] lg:gap-8 lg:px-8 lg:py-10">
+              <div className="flex min-h-[520px] flex-col justify-between sm:min-h-[620px]">
+                <div className="max-w-4xl pt-2 lg:pt-14">
                   <div className="mb-5 inline-flex items-center gap-2 border border-[#e8b45c]/35 bg-[#e8b45c]/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#e8b45c]">
                     <ShieldQuestion className="h-4 w-4" />
                     Wanting to believe. Built to verify.
                   </div>
-                  <h1 className="max-w-5xl text-5xl font-semibold leading-[0.95] tracking-0 text-[#fff8e6] sm:text-6xl lg:text-7xl">
+                  <h1 className="max-w-5xl text-4xl font-semibold leading-[1.02] tracking-normal text-[#fff8e6] sm:text-6xl lg:text-7xl">
                     Inverted World Intelligence Desk
                   </h1>
-                  <p className="mt-6 max-w-3xl text-lg leading-8 text-[#f4efe2]/72">
+                  <p className="mt-5 max-w-3xl text-base leading-7 text-[#f4efe2]/72 sm:mt-6 sm:text-lg sm:leading-8">
                     {channelProfile.operatingLine} The system turns episodes, public records, news coverage,
                     FOIA targets, and source criticism into research-ready media.
                   </p>
 
-                  <div className="mt-8 grid gap-3 sm:grid-cols-3">
+                  <div className="mt-6 grid gap-3 sm:mt-8 sm:grid-cols-3">
                     <Metric icon={Archive} label="Archive" value={channelProfile.archiveCountLabel} />
                     <Metric icon={Database} label="Backend" value="Recursiv SDK: auth, DB, storage, agents" />
                     <Metric icon={Globe2} label="Coverage" value="News outlets plus official and open data" />
                   </div>
                 </div>
 
-                <div className="mt-10 grid gap-3 lg:grid-cols-2">
+                <div className="mt-8 grid gap-3 sm:mt-10 lg:grid-cols-2">
                   {topics.slice(0, 4).map((item) => (
                     <button
                       key={item.id}
@@ -251,7 +259,7 @@ export function InvertedWorldResearchApp() {
                 </div>
               </div>
 
-              <aside className="flex min-h-[620px] flex-col border border-[#f4efe2]/12 bg-[#0c0b0a]/86 backdrop-blur-xl">
+              <aside className="flex min-h-[540px] flex-col border border-[#f4efe2]/12 bg-[#0c0b0a]/78 backdrop-blur-xl sm:min-h-[620px]">
                 <div className="border-b border-[#f4efe2]/10 p-4 sm:p-5">
                   <div className="flex items-center justify-between gap-4">
                     <div>
@@ -272,8 +280,8 @@ export function InvertedWorldResearchApp() {
                       className={cn(
                         "border p-4",
                         message.role === "user"
-                          ? "ml-8 border-[#e8b45c]/35 bg-[#21180d]"
-                          : "mr-8 border-[#f4efe2]/12 bg-[#11100e]",
+                          ? "border-[#e8b45c]/35 bg-[#21180d] sm:ml-8"
+                          : "border-[#f4efe2]/12 bg-[#11100e] sm:mr-8",
                       )}
                     >
                       <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#f4efe2]/50">
@@ -324,17 +332,54 @@ export function InvertedWorldResearchApp() {
             </div>
           </section>
 
-          <section id="archive" className="border-b border-[#f4efe2]/10 bg-[#0a0908]/92 py-14">
-            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <section id="archive" className="border-b border-[#f4efe2]/10 bg-[#0a0908]/78 py-10 sm:py-14">
+            <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
               <SectionHeader
                 eyebrow="Channel archive"
-                title="Every episode becomes a research object"
-                copy="The first sync target is the Timcast archive and YouTube handle. Each item can become a transcript, claim ledger, source graph, and media packet."
+                title="The videos are embedded, not just referenced"
+                copy="The full uploads playlist is live in the page, and the latest channel feed is exposed as playable research material for claim ledgers, transcript pulls, source graphs, and media packets."
               />
-              <div className="mt-8 grid gap-5 lg:grid-cols-[0.74fr_1.26fr]">
-                <div className="border border-[#f4efe2]/12 bg-[#11100e] p-5">
+
+              <div className="mt-8 grid gap-5 lg:grid-cols-[minmax(0,1.14fr)_minmax(320px,0.86fr)]">
+                <div className="border border-[#f4efe2]/12 bg-[#11100e]/82 p-3 backdrop-blur-md sm:p-4">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#e8b45c]">
+                        Full uploads playlist
+                      </p>
+                      <h3 className="mt-2 text-xl font-semibold text-[#fff8e6] sm:text-2xl">
+                        Tales From the Inverted World
+                      </h3>
+                    </div>
+                    <a
+                      href="https://www.youtube.com/@TalesfromtheInvertedWorld/videos"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex h-10 items-center gap-2 rounded-md border border-[#f4efe2]/12 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/70 transition hover:border-[#e8b45c]/50 hover:text-[#fff8e6]"
+                    >
+                      <Youtube className="h-4 w-4 text-[#e53935]" />
+                      YouTube
+                    </a>
+                  </div>
+                  <div className="relative aspect-video overflow-hidden border border-[#f4efe2]/10 bg-[#050504]">
+                    <iframe
+                      className="absolute inset-0 h-full w-full"
+                      src={channelProfile.youtubeUploadsEmbedUrl}
+                      title="Tales From the Inverted World full uploads playlist"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      allowFullScreen
+                    />
+                  </div>
+                  <p className="mt-3 text-xs leading-5 text-[#f4efe2]/52">
+                    This playlist embed follows the channel uploads feed, so the archive surface is not limited to a
+                    hand-picked card list.
+                  </p>
+                </div>
+
+                <div className="border border-[#f4efe2]/12 bg-[#11100e]/82 p-4 backdrop-blur-md sm:p-5">
                   <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#e8b45c]">Active lane</p>
-                  <h3 className="mt-3 text-3xl font-semibold text-[#fff8e6]">{topic.title}</h3>
+                  <h3 className="mt-3 text-2xl font-semibold text-[#fff8e6] sm:text-3xl">{topic.title}</h3>
                   <p className="mt-4 text-sm leading-7 text-[#f4efe2]/68">{topic.signal}</p>
                   <div className="mt-6 flex flex-wrap gap-2">
                     {topics.map((item) => (
@@ -352,30 +397,63 @@ export function InvertedWorldResearchApp() {
                       </button>
                     ))}
                   </div>
+                  <div className="mt-6 space-y-3">
+                    {(topicVideos.length ? topicVideos : youtubeVideos.slice(0, 3)).slice(0, 4).map((video) => (
+                      <a
+                        key={`topic-${video.title}-${video.date}`}
+                        href={video.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-start gap-3 border border-[#f4efe2]/12 bg-[#050504]/72 p-3 transition hover:border-[#e8b45c]/55 hover:bg-[#16130f]"
+                      >
+                        <PlayCircle className="mt-1 h-4 w-4 shrink-0 text-[#e8b45c]" />
+                        <span className="min-w-0">
+                          <span className="block text-sm font-semibold leading-5 text-[#fff8e6]">{video.title}</span>
+                          <span className="mt-1 block text-xs text-[#f4efe2]/44">
+                            {video.source} | {video.date}
+                          </span>
+                        </span>
+                      </a>
+                    ))}
+                  </div>
                 </div>
-                <div className="grid gap-3 md:grid-cols-2">
-                  {(topicVideos.length ? topicVideos : featuredVideos.slice(0, 6)).map((video) => (
+              </div>
+
+              {latestYouTubeVideo && (
+                <div className="mt-5 border border-[#f4efe2]/12 bg-[#11100e]/82 p-3 backdrop-blur-md sm:p-4">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#e8b45c]">
+                        Latest embedded upload
+                      </p>
+                      <h3 className="mt-2 text-xl font-semibold text-[#fff8e6] sm:text-2xl">
+                        {latestYouTubeVideo.title}
+                      </h3>
+                    </div>
                     <a
-                      key={`${video.title}-${video.date}`}
-                      href={video.href}
+                      href={latestYouTubeVideo.href}
                       target="_blank"
                       rel="noreferrer"
-                      className="min-h-[124px] border border-[#f4efe2]/12 bg-[#11100e] p-4 transition hover:border-[#e8b45c]/55 hover:bg-[#16130f]"
+                      className="inline-flex h-10 items-center gap-2 rounded-md border border-[#f4efe2]/12 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/70 transition hover:border-[#e8b45c]/50 hover:text-[#fff8e6]"
                     >
-                      <div className="mb-3 flex items-center justify-between gap-3 text-xs text-[#f4efe2]/48">
-                        <span>{video.source}</span>
-                        <span>{video.date}</span>
-                      </div>
-                      <h4 className="text-base font-semibold leading-6 text-[#fff8e6]">{video.title}</h4>
+                      Open
+                      <ExternalLink className="h-4 w-4" />
                     </a>
-                  ))}
+                  </div>
+                  <VideoEmbed video={latestYouTubeVideo} priority />
                 </div>
+              )}
+
+              <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {youtubeVideos.slice(1, 10).map((video) => (
+                  <VideoEmbed key={`${video.videoId}-${video.date}`} video={video} />
+                ))}
               </div>
             </div>
           </section>
 
-          <section id="coverage" className="border-b border-[#f4efe2]/10 py-14">
-            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <section id="coverage" className="border-b border-[#f4efe2]/10 py-10 sm:py-14">
+            <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
               <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
                 <SectionHeader
                   eyebrow="AI news generator"
@@ -428,8 +506,8 @@ export function InvertedWorldResearchApp() {
             </div>
           </section>
 
-          <section id="documents" className="border-b border-[#f4efe2]/10 bg-[#0a0908]/92 py-14">
-            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <section id="documents" className="border-b border-[#f4efe2]/10 bg-[#0a0908]/78 py-10 sm:py-14">
+            <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
               <SectionHeader
                 eyebrow="Primary-source layer"
                 title="Government documents and open-source data first"
@@ -456,8 +534,8 @@ export function InvertedWorldResearchApp() {
             </div>
           </section>
 
-          <section id="studio" className="py-14">
-            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <section id="studio" className="py-10 sm:py-14">
+            <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
               <SectionHeader
                 eyebrow="Media studio"
                 title="A whole AI-generated news system"
@@ -526,6 +604,56 @@ function Metric({
       <p className="mt-4 text-xs font-semibold uppercase tracking-[0.16em] text-[#f4efe2]/44">{label}</p>
       <p className="mt-2 text-sm leading-5 text-[#fff8e6]">{value}</p>
     </div>
+  )
+}
+
+function VideoEmbed({ video, priority = false }: { video: ChannelVideo; priority?: boolean }) {
+  if (!video.embedUrl) {
+    return (
+      <a
+        href={video.href}
+        target="_blank"
+        rel="noreferrer"
+        className="block min-h-[132px] border border-[#f4efe2]/12 bg-[#11100e] p-4 transition hover:border-[#e8b45c]/55 hover:bg-[#16130f]"
+      >
+        <div className="mb-3 flex items-center justify-between gap-3 text-xs text-[#f4efe2]/48">
+          <span>{video.source}</span>
+          <span>{video.date}</span>
+        </div>
+        <h4 className="text-base font-semibold leading-6 text-[#fff8e6]">{video.title}</h4>
+      </a>
+    )
+  }
+
+  return (
+    <article className="overflow-hidden border border-[#f4efe2]/12 bg-[#11100e]/82 backdrop-blur-md">
+      <div className="relative aspect-video bg-[#050504]">
+        <iframe
+          className="absolute inset-0 h-full w-full"
+          src={video.embedUrl}
+          title={video.title}
+          loading={priority ? "eager" : "lazy"}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          referrerPolicy="strict-origin-when-cross-origin"
+          allowFullScreen
+        />
+      </div>
+      <div className="p-4">
+        <div className="mb-2 flex items-center justify-between gap-3 text-xs text-[#f4efe2]/48">
+          <span>{video.kind === "short" ? "YouTube Short" : video.source}</span>
+          <span>{video.date}</span>
+        </div>
+        <a
+          href={video.href}
+          target="_blank"
+          rel="noreferrer"
+          className="group inline-flex items-start gap-2 text-base font-semibold leading-6 text-[#fff8e6] transition hover:text-[#e8b45c]"
+        >
+          <span>{video.title}</span>
+          <ExternalLink className="mt-1 h-3.5 w-3.5 shrink-0 opacity-60 transition group-hover:opacity-100" />
+        </a>
+      </div>
+    </article>
   )
 }
 

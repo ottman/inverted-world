@@ -3,7 +3,7 @@ import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://www.inverted.world'),
+  metadataBase: new URL('https://invertedworld.on.recursiv.io'),
   title: 'Inverted World Intelligence Desk',
   description:
     'A Recursiv-powered research, AI news, and document intelligence system for Tales From the Inverted World.',
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     title: 'Inverted World Intelligence Desk',
     description:
       'AI-assisted research across channel archives, news outlets, government documents, and open-source data.',
-    url: 'https://www.inverted.world',
+    url: 'https://invertedworld.on.recursiv.io',
     siteName: 'Inverted World',
     images: ['/images/inverted-world-logo.jpg'],
   },

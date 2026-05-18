@@ -23,15 +23,45 @@ type FederalRegisterDocument = {
   agencies?: Array<{ name?: string }>
 }
 
-async function fetchGdeltCoverage(query: string): Promise<NewsCoverageItem[]> {
+const SOURCE_TIMEOUT_MS = 6500
+
+function buildGdeltUrl(query: string, format: "json" | "html" = "json") {
   const url = new URL("https://api.gdeltproject.org/api/v2/doc/doc")
   url.searchParams.set("query", query)
   url.searchParams.set("mode", "artlist")
-  url.searchParams.set("format", "json")
+  url.searchParams.set("format", format)
   url.searchParams.set("maxrecords", "12")
   url.searchParams.set("sort", "hybridrel")
+  return url
+}
 
-  const response = await fetch(url, { next: { revalidate: 900 } })
+function buildCoverageFallbacks(query: string, topicTitle: string): NewsCoverageItem[] {
+  return [
+    {
+      title: `Open GDELT cross-outlet search for ${topicTitle}`,
+      outlet: "GDELT global news index",
+      url: buildGdeltUrl(query, "html").toString(),
+      lane: "news",
+    },
+    {
+      title: `Search archived broadcast coverage for ${topicTitle}`,
+      outlet: "Internet Archive TV News",
+      url: `https://archive.org/details/tv?q=${encodeURIComponent(query.replaceAll('"', ""))}`,
+      lane: "archive",
+    },
+  ]
+}
+
+async function fetchGdeltCoverage(query: string): Promise<NewsCoverageItem[]> {
+  const url = buildGdeltUrl(query, "json")
+
+  const response = await fetch(url, {
+    next: { revalidate: 900 },
+    signal: AbortSignal.timeout(SOURCE_TIMEOUT_MS),
+    headers: {
+      "user-agent": "InvertedWorldResearch/1.0",
+    },
+  })
   if (!response.ok) throw new Error(`GDELT returned ${response.status}`)
   const data = (await response.json()) as { articles?: GdeltArticle[] }
 
@@ -53,7 +83,13 @@ async function fetchFederalRegister(query: string): Promise<NewsCoverageItem[]> 
   url.searchParams.set("per_page", "6")
   url.searchParams.set("order", "newest")
 
-  const response = await fetch(url, { next: { revalidate: 3600 } })
+  const response = await fetch(url, {
+    next: { revalidate: 3600 },
+    signal: AbortSignal.timeout(SOURCE_TIMEOUT_MS),
+    headers: {
+      "user-agent": "InvertedWorldResearch/1.0",
+    },
+  })
   if (!response.ok) throw new Error(`Federal Register returned ${response.status}`)
   const data = (await response.json()) as { results?: FederalRegisterDocument[] }
 
@@ -72,6 +108,7 @@ export async function GET(request: NextRequest) {
   const topic = getTopic(request.nextUrl.searchParams.get("topic"))
   const query = request.nextUrl.searchParams.get("q") || topic.query
   const docs = getDocumentsForTopic(topic.id)
+  const fallbackSearches = buildCoverageFallbacks(query, topic.title)
   const officialDocs: NewsCoverageItem[] = docs.map((doc) => ({
     title: doc.title,
     outlet: doc.source,
@@ -85,9 +122,11 @@ export async function GET(request: NextRequest) {
       fetchFederalRegister(query),
     ])
 
+    const gdeltCoverage = gdelt.status === "fulfilled" ? gdelt.value : []
+    const federalCoverage = federal.status === "fulfilled" ? federal.value : []
     const coverage = [
-      ...(gdelt.status === "fulfilled" ? gdelt.value : []),
-      ...(federal.status === "fulfilled" ? federal.value : []),
+      ...(gdeltCoverage.length ? gdeltCoverage : fallbackSearches),
+      ...federalCoverage,
       ...officialDocs,
     ]
 
@@ -96,15 +135,17 @@ export async function GET(request: NextRequest) {
       query,
       coverage: coverage.length ? coverage : fallbackCoverage,
       warnings: [
-        gdelt.status === "rejected" ? gdelt.reason?.message || "GDELT lookup failed" : null,
-        federal.status === "rejected" ? federal.reason?.message || "Federal Register lookup failed" : null,
+        gdelt.status === "rejected" ? `GDELT lookup failed: ${gdelt.reason?.message || "unknown error"}` : null,
+        federal.status === "rejected"
+          ? `Federal Register lookup failed: ${federal.reason?.message || "unknown error"}`
+          : null,
       ].filter(Boolean),
     })
   } catch (error) {
     return NextResponse.json({
       topic,
       query,
-      coverage: [...fallbackCoverage, ...officialDocs],
+      coverage: [...fallbackSearches, ...fallbackCoverage, ...officialDocs],
       warnings: [error instanceof Error ? error.message : "News lookup failed"],
     })
   }
