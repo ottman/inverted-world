@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getTopic } from "@/data/inverted-world"
+import { callClaude } from "@/lib/claude"
 import { getRecursivSdk, RECURSIV_AGENT_ID } from "@/lib/recursiv"
 import { buildLocalResearchResponse, buildResearchPrompt } from "@/lib/research-prompt"
 
@@ -48,18 +49,30 @@ export async function POST(request: NextRequest) {
   const prompt = buildResearchPrompt(message, topic.id)
 
   try {
-    const recursiv = await callRecursivAgent(prompt)
+    const answer = await callClaude(prompt)
     return NextResponse.json({
-      mode: "recursiv-agent",
-      answer: recursiv.answer,
-      conversationId: recursiv.conversationId,
+      mode: "claude",
+      answer,
       citations: [],
     })
-  } catch (error) {
-    const fallback = buildLocalResearchResponse(message, topic)
-    return NextResponse.json({
-      ...fallback,
-      warning: error instanceof Error ? error.message : "Recursiv agent unavailable",
-    })
+  } catch (claudeError) {
+    try {
+      const recursiv = await callRecursivAgent(prompt)
+      return NextResponse.json({
+        mode: "recursiv-agent",
+        answer: recursiv.answer,
+        conversationId: recursiv.conversationId,
+        citations: [],
+      })
+    } catch (recursivError) {
+      const fallback = buildLocalResearchResponse(message, topic)
+      return NextResponse.json({
+        ...fallback,
+        warning: [
+          claudeError instanceof Error ? claudeError.message : "Claude unavailable",
+          recursivError instanceof Error ? recursivError.message : "Recursiv agent unavailable",
+        ].join(" | "),
+      })
+    }
   }
 }
