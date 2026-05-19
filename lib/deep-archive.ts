@@ -121,9 +121,11 @@ async function fetchYouTubeDataApi() {
 export async function getDeepArchive({
   limit = 100,
   offset = 0,
+  maxLimit = 100,
 }: {
   limit?: number
   offset?: number
+  maxLimit?: number
 } = {}): Promise<DeepArchiveResponse> {
   const warnings: string[] = []
   const seeded = featuredVideos.filter((video) => video.source === "YouTube" && video.videoId)
@@ -134,7 +136,8 @@ export async function getDeepArchive({
     extraWarnings: string[] = [],
   ): DeepArchiveResponse => {
     const totalCount = videos.length
-    const safeLimit = Math.min(Math.max(Math.trunc(limit) || 100, 1), 100)
+    const safeMaxLimit = Math.min(Math.max(Math.trunc(maxLimit) || 100, 1), 1000)
+    const safeLimit = Math.min(Math.max(Math.trunc(limit) || 100, 1), safeMaxLimit)
     const safeOffset = Math.min(Math.max(Math.trunc(offset) || 0, 0), totalCount)
 
     return {
@@ -173,4 +176,10 @@ export async function getDeepArchive({
     ...warnings,
     "Set YOUTUBE_API_KEY to unlock the complete uploads playlist history.",
   ])
+}
+
+export async function getArchiveVideo(videoId: string) {
+  if (!videoId) return null
+  const archive = await getDeepArchive({ limit: 1000, maxLimit: 1000 })
+  return archive.videos.find((video) => video.videoId === videoId) ?? null
 }
