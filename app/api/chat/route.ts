@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getTopic } from "@/data/inverted-world"
 import { readAuthCookies } from "@/lib/auth-cookies"
-import { callClaudeGateway } from "@/lib/claude"
 import { recordChatExchange } from "@/lib/inverted-database"
 import { createAuthedSdk, getRecursivSdk, RECURSIV_AGENT_ID } from "@/lib/recursiv"
-import { callRecursivAgentText } from "@/lib/recursiv-agent"
+import { callRecursivAgentText, ensureInvertedAgentConfig } from "@/lib/recursiv-agent"
 import { buildLocalResearchResponse, buildResearchPrompt, suggestFollowUps } from "@/lib/research-prompt"
 
 export const dynamic = "force-dynamic"
@@ -19,6 +18,7 @@ async function callRecursivAgent(request: NextRequest, prompt: string, conversat
   }
 
   const sdk = auth.apiKey ? createAuthedSdk(auth.apiKey) : getRecursivSdk()
+  await ensureInvertedAgentConfig(sdk, agentId).catch(() => null)
   const response = await callRecursivAgentText(sdk, {
     agentId,
     prompt,
@@ -35,15 +35,15 @@ async function callRecursivAgent(request: NextRequest, prompt: string, conversat
 
 function buildProviderOfflineResponse(message: string, errors: string[]) {
   return [
-    "The live model path is not currently reachable from this deployment.",
+    "The Recursiv managed agent path is not currently reachable from this deployment.",
     "",
     "What I can verify from the app path:",
     ...errors.map((error) => `- ${error}`),
     "",
     "Required fix:",
-    "- Repair the Recursiv managed agent provider first. Direct Anthropic/OpenRouter is only the emergency fallback.",
+    "- Repair the Recursiv managed agent provider. This site no longer bypasses Recursiv with direct OpenRouter calls.",
     "",
-    "Once that is done, this same box should answer freeform questions about conspiracies, paranormal claims, documents, networks, and open questions without filters.",
+    "Once that is done, this same box answers freeform questions about conspiracies, paranormal claims, documents, networks, and open questions without filters.",
     "",
     `Your prompt was: ${message}`,
   ].join("\n")
@@ -85,29 +85,15 @@ export async function POST(request: NextRequest) {
       followUps: suggestFollowUps(message, topic),
     })
   } catch (recursivError) {
-    try {
-      const llm = await callClaudeGateway(prompt)
-      return NextResponse.json({
-        mode: llm.mode,
-        answer: llm.answer,
-        conversationId,
-        citations: [],
-        followUps: suggestFollowUps(message, topic),
-      })
-    } catch (llmError) {
-      const fallback = buildLocalResearchResponse(message, topic)
-      const errors = [
-        recursivError instanceof Error ? recursivError.message : "Recursiv agent unavailable",
-        llmError instanceof Error ? llmError.message : "Claude/OpenRouter unavailable",
-      ]
-      return NextResponse.json({
-        mode: "provider-offline",
-        answer: buildProviderOfflineResponse(message, errors),
-        citations: fallback.citations,
-        followUps: fallback.followUps,
-        warning: errors.join(" | "),
-      })
-    }
+    const fallback = buildLocalResearchResponse(message, topic)
+    const errors = [recursivError instanceof Error ? recursivError.message : "Recursiv agent unavailable"]
+    return NextResponse.json({
+      mode: "provider-offline",
+      answer: buildProviderOfflineResponse(message, errors),
+      citations: fallback.citations,
+      followUps: fallback.followUps,
+      warning: errors.join(" | "),
+    })
   }
 }
 

@@ -3,7 +3,7 @@ import type { Recursiv } from "@recursiv/sdk"
 const MAX_RETRIES = 3
 const BACKOFF_BASE_MS = 800
 
-export const INVERTED_AGENT_MODEL = process.env.RECURSIV_AGENT_MODEL || "anthropic/claude-opus-4.6"
+export const INVERTED_AGENT_MODEL = process.env.RECURSIV_AGENT_MODEL || "google/gemini-3.1-pro-preview"
 
 export const INVERTED_AGENT_SYSTEM_PROMPT = [
   "You are the Inverted World research agent: a conspiracy, paranormal, hidden-network, anomalous-science, and document-research specialist.",
@@ -39,7 +39,20 @@ export async function ensureInvertedPersonalAgent(
     },
   })
 
+  await ensureInvertedAgentConfig(sdk, result.data.agent_id)
+
   return result.data.agent_id
+}
+
+export async function ensureInvertedAgentConfig(sdk: Recursiv, agentId: string) {
+  await sdk.agents.update(agentId, {
+    name: "Inverted World Research Agent",
+    model: INVERTED_AGENT_MODEL,
+    system_prompt: INVERTED_AGENT_SYSTEM_PROMPT,
+    social_mode: "chat_only",
+    post_frequency: "never",
+    tool_mode: "permission",
+  })
 }
 
 export async function callRecursivAgentText(

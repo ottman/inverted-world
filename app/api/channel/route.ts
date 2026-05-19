@@ -7,8 +7,8 @@ import {
   topics,
 } from "@/data/inverted-world"
 import { intelligenceArticles } from "@/data/intelligence-articles"
-import { getClaudeStatus } from "@/lib/claude"
 import { getRecursivStatus } from "@/lib/recursiv"
+import { INVERTED_AGENT_MODEL } from "@/lib/recursiv-agent"
 
 export const dynamic = "force-dynamic"
 
@@ -20,7 +20,11 @@ export async function GET() {
     featuredVideos,
     articleCount: intelligenceArticles.length,
     researchDocuments,
-    claude: getClaudeStatus(),
+    ai: {
+      provider: "recursiv-managed-agent",
+      model: INVERTED_AGENT_MODEL,
+      directOpenRouter: false,
+    },
     recursiv: getRecursivStatus(),
   })
 }

@@ -547,7 +547,7 @@ function TruthEngine({
       <div className="iw-engine-head">
         <span className="iw-engine-sig">truth engine</span>
         <span className="iw-engine-status">
-          Claude-backed when provider keys are live. Open field, no filters.
+          Recursiv-managed agent. Open field, no filters.
         </span>
       </div>
       <form
