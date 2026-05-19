@@ -31,6 +31,13 @@ export async function GET(request: NextRequest) {
     product: "inverted-world",
     status: "ready-for-autopost",
     cadence: "daily",
+    editorialContract: {
+      inventoryTarget: 100,
+      dailyIssue: ["6 lead stories", "12 secondary links", "source-of-the-day", "skeptical correction", "weird unresolved thread"],
+      requiredFrame: ["documented", "reported", "alleged", "speculative", "unknown"],
+      bothSides: ["strongest weird read", "strongest skeptical read", "what would verify it", "what would falsify it"],
+      sourcePriority: ["primary documents", "court records", "agency records", "raw datasets", "archived original media", "cross-outlet coverage"],
+    },
     articles: leadArticles.map((article, index) => ({
       rank: index + 1,
       id: article.id,
@@ -41,6 +48,10 @@ export async function GET(request: NextRequest) {
       sourceUrl: article.sourceUrl,
       imagePrompt: article.thumbnailPrompt,
       xHook: `${article.title}.\n\nWhat is documented, what is alleged, and what still does not add up:`,
+      bothSides: {
+        weirdRead: article.body.find((paragraph) => paragraph.toLowerCase().startsWith("weird read")) || article.body[2],
+        skepticalRead: article.body.find((paragraph) => paragraph.toLowerCase().startsWith("skeptical read")) || article.body[3],
+      },
       sourcePack: article.body,
     })),
     distribution: {

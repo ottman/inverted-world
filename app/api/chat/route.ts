@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getTopic } from "@/data/inverted-world"
 import { callClaudeGateway } from "@/lib/claude"
 import { getRecursivSdk, RECURSIV_AGENT_ID } from "@/lib/recursiv"
-import { buildLocalResearchResponse, buildResearchPrompt } from "@/lib/research-prompt"
+import { buildLocalResearchResponse, buildResearchPrompt, suggestFollowUps } from "@/lib/research-prompt"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -13,24 +13,28 @@ async function callRecursivAgent(prompt: string) {
   }
 
   const sdk = getRecursivSdk()
-  const stream = sdk.agents.chatStream(RECURSIV_AGENT_ID, { message: prompt })
-  let answer = ""
-  let conversationId = ""
+  const { content, conversationId } = await sdk.agents.chatStreamText(RECURSIV_AGENT_ID, { message: prompt })
+  const answer = content.trim()
 
-  for await (const chunk of stream as AsyncIterable<{
-    delta?: string
-    content?: string
-    conversation_id?: string
-  }>) {
-    answer += chunk.delta ?? chunk.content ?? ""
-    if (chunk.conversation_id) conversationId = chunk.conversation_id
-  }
-
-  if (!answer.trim()) {
-    throw new Error("Recursiv agent returned an empty response")
-  }
+  if (!answer) throw new Error("Recursiv agent returned an empty response")
 
   return { answer, conversationId }
+}
+
+function buildProviderOfflineResponse(message: string, errors: string[]) {
+  return [
+    "Claude is not currently reachable from this deployment.",
+    "",
+    "What I can verify from the app path:",
+    ...errors.map((error) => `- ${error}`),
+    "",
+    "Required fix:",
+    "- Fund the OpenRouter key used by this project, or attach a valid Anthropic key, or repair the Recursiv agent provider key.",
+    "",
+    "Once that is done, this same box should answer freeform questions about conspiracies, paranormal claims, documents, networks, and open questions without filters.",
+    "",
+    `Your prompt was: ${message}`,
+  ].join("\n")
 }
 
 export async function POST(request: NextRequest) {
@@ -55,6 +59,7 @@ export async function POST(request: NextRequest) {
       answer: recursiv.answer,
       conversationId: recursiv.conversationId,
       citations: [],
+      followUps: suggestFollowUps(message, topic),
     })
   } catch (recursivError) {
     try {
@@ -63,15 +68,20 @@ export async function POST(request: NextRequest) {
         mode: llm.mode,
         answer: llm.answer,
         citations: [],
+        followUps: suggestFollowUps(message, topic),
       })
     } catch (llmError) {
       const fallback = buildLocalResearchResponse(message, topic)
+      const errors = [
+        recursivError instanceof Error ? recursivError.message : "Recursiv agent unavailable",
+        llmError instanceof Error ? llmError.message : "Claude/OpenRouter unavailable",
+      ]
       return NextResponse.json({
-        ...fallback,
-        warning: [
-          recursivError instanceof Error ? recursivError.message : "Recursiv agent unavailable",
-          llmError instanceof Error ? llmError.message : "Claude/OpenRouter unavailable",
-        ].join(" | "),
+        mode: "provider-offline",
+        answer: buildProviderOfflineResponse(message, errors),
+        citations: fallback.citations,
+        followUps: fallback.followUps,
+        warning: errors.join(" | "),
       })
     }
   }

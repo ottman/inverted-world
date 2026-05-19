@@ -16,6 +16,7 @@ export type ChannelVideo = {
   videoId?: string
   embedUrl?: string
   thumbnail?: string
+  description?: string
   kind?: "episode" | "short"
 }
 

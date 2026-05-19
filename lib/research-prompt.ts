@@ -38,9 +38,37 @@ export function buildResearchPrompt(message: string, topicId?: string) {
     "Primary-source lanes:",
     ...docs.map((doc) => `- ${doc.source}: ${doc.title} (${doc.url})`),
     "The user may ask about anything. Answer directly first, then attach receipts, caveats, contradictions, and searches.",
-    "Respond in a compact but useful format: signal, record, weird read, skeptical read, what to verify next.",
+    "Respond in a compact but useful format with these exact sections: direct answer, record, weird read, skeptical read, source path, next questions.",
+    "Be proactive: end by asking the user one sharp follow-up question that opens a deeper investigation.",
     `User request: ${message}`,
   ].join("\n")
+}
+
+export function suggestFollowUps(message: string, topic: ContentTopic) {
+  const normalized = message.toLowerCase()
+  const base = [
+    `Build a claim ledger for ${message}`,
+    `Give me the strongest skeptical case against this`,
+    `Find the weirdest document trail connected to this`,
+  ]
+
+  if (normalized.includes("epstein")) {
+    return ["Separate court-record facts from allegations", "Map the institution and donor network", "What names are confirmed vs merely rumored?"]
+  }
+  if (normalized.includes("ufo") || normalized.includes("uap") || normalized.includes("alien")) {
+    return ["Compare AARO, NASA, and witness claims", "What would prove a retrieval program?", "Which official denials are narrow or evasive?"]
+  }
+  if (normalized.includes("mkultra") || normalized.includes("cia") || normalized.includes("psyop")) {
+    return ["Show the declassified program record", "Where do continuity claims get weak?", "What FOIA searches should I run next?"]
+  }
+  if (normalized.includes("ai") || normalized.includes("surveillance") || normalized.includes("palantir")) {
+    return ["Map the deployed surveillance stack", "What is documented policy vs speculation?", "Who benefits from automated governance?"]
+  }
+  if (topic.id !== "all") {
+    return [`Go deeper on ${topic.title}`, ...base.slice(1)]
+  }
+
+  return base
 }
 
 export function buildLocalResearchResponse(message: string, topic: ContentTopic) {
@@ -87,5 +115,6 @@ export function buildLocalResearchResponse(message: string, topic: ContentTopic)
       source: doc.source,
       url: doc.url,
     })),
+    followUps: suggestFollowUps(message, topic),
   }
 }

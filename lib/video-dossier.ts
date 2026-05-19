@@ -112,12 +112,127 @@ function referencesForVideo(video: ChannelVideo, topic: ContentTopic) {
   ])
 }
 
+function compactDescription(video: ChannelVideo) {
+  const clean = video.description?.replace(/\s+/g, " ").trim()
+  if (!clean) return ""
+  return clean.length > 420 ? `${clean.slice(0, 417)}...` : clean
+}
+
+function videoAngle(video: ChannelVideo, topic: ContentTopic) {
+  const title = video.title
+  const normalized = title.toLowerCase()
+  const isShort = normalized.includes("#shorts") || video.kind === "short"
+
+  if (normalized.includes("trump") && (normalized.includes("ufo") || normalized.includes("retrieval"))) {
+    return {
+      subject: "a claim that presidential-level briefings touched UFO retrieval programs",
+      centralQuestion:
+        "If a retrieval program was real enough to brief a president, where would the budget, contractor, congressional, or classification trail show up?",
+      weirdRead:
+        "The weird read is that official language around UAP may be narrower than the underlying programs, leaving retrieval, exploitation, or contractor custody outside the public answer.",
+      skepticRead:
+        "The skeptical read is that political names can inflate a secondhand claim; the story needs a document trail beyond a dramatic briefing headline.",
+      evidenceTargets: ["AARO statements", "congressional testimony", "appropriations language", "contractor records"],
+    }
+  }
+
+  if (normalized.includes("bermuda")) {
+    return {
+      subject: "the Bermuda Triangle as a collision point between folklore, maritime risk, weather, navigation, and anomaly culture",
+      centralQuestion:
+        "Does the mystery require a hidden force, or can incident clustering, weather, traffic density, and retold media accounts explain most of the signal?",
+      weirdRead:
+        "The weird read is that the Triangle persists because some cases have unresolved timing, communication, or wreckage questions that never fully collapse into ordinary explanations.",
+      skepticRead:
+        "The skeptical read is that a famous boundary drawn after the fact makes normal ocean risk look statistically uncanny.",
+      evidenceTargets: ["NOAA ocean records", "Coast Guard incident history", "aviation reports", "archived newspaper accounts"],
+    }
+  }
+
+  if (normalized.includes("covid") || normalized.includes("coverup")) {
+    return {
+      subject: "COVID origin, response, and institutional-trust claims framed through documents rather than vibes",
+      centralQuestion:
+        "Which parts of the alleged coverup are documented policy reversals, which are unresolved origin questions, and which are unsupported narrative compression?",
+      weirdRead:
+        "The weird read is that funding chains, lab oversight, platform moderation, and public-health messaging may reveal coordination that was not obvious in real time.",
+      skepticRead:
+        "The skeptical read is that crisis uncertainty, bureaucratic self-protection, and changing evidence can look like a unified plot after the fact.",
+      evidenceTargets: ["NIH records", "congressional reports", "FOIA releases", "peer-reviewed origin literature"],
+    }
+  }
+
+  if (normalized.includes("epstein")) {
+    return {
+      subject: "Epstein network claims split between court records, institutional access, sealed gaps, and rumor",
+      centralQuestion:
+        "What is actually in the docket, what is alleged by witnesses or media, and what remains sealed or structurally protected?",
+      weirdRead:
+        "The weird read is that the network matters less as one man's crimes and more as a map of elite access, institutional silence, and protected logistics.",
+      skepticRead:
+        "The skeptical read is that proximity, money, and social access do not automatically prove participation in criminal conduct.",
+      evidenceTargets: ["court filings", "deposition exhibits", "DOJ releases", "flight-log and corporate-record context"],
+    }
+  }
+
+  if (normalized.includes("mkultra") || normalized.includes("cia") || normalized.includes("remote viewing")) {
+    return {
+      subject: "declassified intelligence programs and the modern temptation to extend them past the documents",
+      centralQuestion:
+        "Where does the proven archive end, and where do continuity claims begin relying on inference?",
+      weirdRead:
+        "The weird read is that old programs prove the state explored stranger territory than official culture likes to admit, so present-day dismissals deserve pressure.",
+      skepticRead:
+        "The skeptical read is that a real historical program does not prove every modern claim that borrows its aura.",
+      evidenceTargets: ["CIA Reading Room", "National Security Archive", "FOIA logs", "congressional investigations"],
+    }
+  }
+
+  if (normalized.includes("ai") || normalized.includes("data center") || normalized.includes("surveillance") || normalized.includes("tracking")) {
+    return {
+      subject: "AI infrastructure and surveillance power moving from speculation into procurement, policy, and physical buildout",
+      centralQuestion:
+        "Which control systems are actually being deployed, who governs them, and where does public accountability disappear?",
+      weirdRead:
+        "The weird read is that the machinery of technocracy is not a future event; it is arriving through boring procurement, data centers, cameras, and model-governance language.",
+      skepticRead:
+        "The skeptical read is that not every data center or AI policy document is a social-control blueprint; many are capacity, compliance, or security work.",
+      evidenceTargets: ["NIST AI documents", "Federal Register notices", "CISA guidance", "municipal surveillance contracts"],
+    }
+  }
+
+  if (normalized.includes("sasquatch") || normalized.includes("baba") || normalized.includes("paranormal") || normalized.includes("ark")) {
+    return {
+      subject: "paranormal and fringe-history claims where witness culture, folklore, faith, and document trails overlap",
+      centralQuestion:
+        "What part of the story is a witness claim, what part is a historical record, and what part is mythic interpretation?",
+      weirdRead:
+        "The weird read is that persistent stories can preserve real anomalies, suppressed history, or misread evidence that deserves patient investigation.",
+      skepticRead:
+        "The skeptical read is that folklore, prediction markets, and religious pattern-matching can turn ambiguity into false certainty.",
+      evidenceTargets: ["local archives", "Library of Congress folklore collections", "field reports", "primary historical texts"],
+    }
+  }
+
+  return {
+    subject: `${topic.title.toLowerCase()} through the specific media hook "${title}"`,
+    centralQuestion:
+      "What has to be true in the record for this claim to hold, and what ordinary explanation would create the same public signal?",
+    weirdRead: `The weird read follows the unresolved edge: ${topic.stance}`,
+    skepticRead:
+      "The skeptical read is that a title can compress too much. The claim needs dates, named records, and falsifiable source paths before it earns belief.",
+    evidenceTargets: topic.documents,
+  }
+}
+
 export function buildVideoDossier(video: ChannelVideo): VideoDossier {
   const topic = getTopic(inferTopicId(video))
   const references = referencesForVideo(video, topic)
   const published = video.date || "unknown date"
+  const angle = videoAngle(video, topic)
+  const description = compactDescription(video)
   const title = `${video.title} | Inverted World dossier`
-  const dek = `AI-generated research brief for "${video.title}", grounded in the episode, public records, government documents, archive indexes, and skeptical counterreads.`
+  const dek = `Research dossier on ${angle.subject}, grounded in the episode, primary-source lanes, cross-outlet coverage, and the strongest skeptical counterread.`
   const primaryRefs = references.slice(1, 4).map((reference) => reference.source).join(", ")
   const querySeed = topic.query.replaceAll('"', "")
 
@@ -136,29 +251,32 @@ export function buildVideoDossier(video: ChannelVideo): VideoDossier {
     ],
     article: [
       {
-        heading: "What this episode is really about",
+        heading: "The claim on the table",
         body:
-          `${video.title} sits in the ${topic.title.toLowerCase()} lane of the Inverted World archive. The useful way into it is not to decide instantly whether the claim is true or false. The useful way is to identify what would have to exist in the record if the story is real, what would look similar if the story is noise, and which institutions have documents worth pulling first.`,
+          `"${video.title}" is not just a headline in the archive. It is a test case for ${angle.subject}. The central question is: ${angle.centralQuestion}${description ? ` The episode metadata adds this working context: ${description}` : ""}`,
       },
       {
-        heading: "The evidence trail",
+        heading: "The evidence trail to pull first",
         body:
-          `Start with the original upload from ${published}, then move outward into primary records. For this topic, the first source lane is ${primaryRefs || "government and archive records"}. The goal is to build a chain from media claim to document, from document to agency or court context, and from there to conflicts, omissions, or corroboration.`,
+          `Start with the original upload from ${published}, then move outward into ${primaryRefs || "government and archive records"}. The first evidence targets are ${angle.evidenceTargets.join(", ")}. The goal is to build a chain from episode claim to document, from document to institution, and from institution to contradictions, omissions, or corroboration.`,
       },
       {
         heading: "The skeptical read",
-        body:
-          `A strong skeptical read treats the episode as a lead, not proof. Old documents can be reframed as new, agencies can use ambiguous language, witnesses can be sincere and wrong, and social-media heat can make disconnected facts look coordinated. The skeptical pass should reduce the claim to the smallest documented version that still survives contact with the record.`,
+        body: `${angle.skepticRead} A serious skeptical pass should strip the story down to the smallest documented claim, then ask what evidence would change the conclusion.`,
       },
       {
         heading: "The strange read",
+        body: `${angle.weirdRead} The strange read does not mean "believe it." It means the unresolved portions deserve source pressure: redactions, missing records, narrow denials, sealed filings, broken timelines, or language that changes between agencies.`,
+      },
+      {
+        heading: "Both-sides research brief",
         body:
-          `The strange read keeps the door open. ${topic.stance} If the official trail is incomplete, the missing piece is itself a research object: redactions, vanished links, sealed filings, contractor boundaries, broken timelines, or a sudden change in institutional language.`,
+          `The pro-case should collect the strongest primary source, the most specific witness or media claim, and the clearest unexplained gap. The counter-case should collect the best mundane explanation, the weakest link in the claim chain, and any incentive that could turn uncertainty into hype. A publishable article should show both side by side before making a call.`,
       },
       {
         heading: "What to research next",
         body:
-          `The next move is to search for the exact title, then run the topic query against government, court, science, and broadcast indexes. Save the best primary document, the best mainstream counterread, and the strongest weird read. A useful dossier should make all three visible at once.`,
+          `Search the exact title, then run "${querySeed}" through government, court, science, and broadcast indexes. Save one primary record, one mainstream counterread, one hostile counterread, one archival lead, and one unanswered question. That is the minimum viable dossier.`,
       },
     ],
   }

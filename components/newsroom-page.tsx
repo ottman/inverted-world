@@ -76,6 +76,12 @@ export function NewsroomPage() {
                 <p className="mt-3 line-clamp-3 text-sm leading-6 text-[#f4efe2]/58">{article.deck}</p>
               </div>
             </button>
+            <a
+              href={`/news/${article.id}`}
+              className="block border-t border-[#f4efe2]/10 px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#dff7ff] transition hover:text-[#e8b45c]"
+            >
+              Index page
+            </a>
           </article>
         ))}
       </div>

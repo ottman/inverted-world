@@ -3,6 +3,7 @@ import { channelProfile, featuredVideos, type ChannelVideo } from "@/data/invert
 type YouTubePlaylistItem = {
   snippet?: {
     title?: string
+    description?: string
     publishedAt?: string
     resourceId?: { videoId?: string }
     thumbnails?: { high?: { url?: string }; medium?: { url?: string }; default?: { url?: string } }
@@ -39,7 +40,7 @@ function decodeXml(value: string) {
     .replaceAll("&gt;", ">")
 }
 
-function buildVideo(videoId: string, title: string, publishedAt?: string): ChannelVideo {
+function buildVideo(videoId: string, title: string, publishedAt?: string, description?: string): ChannelVideo {
   return {
     title: title || "Untitled upload",
     date: publishedAt ? publishedAt.slice(0, 10) : "",
@@ -49,6 +50,7 @@ function buildVideo(videoId: string, title: string, publishedAt?: string): Chann
     videoId,
     embedUrl: `https://www.youtube.com/embed/${videoId}?rel=0`,
     thumbnail: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+    description: description?.trim() || undefined,
     kind: "episode",
   }
 }
@@ -108,7 +110,14 @@ async function fetchYouTubeDataApi() {
     for (const item of data.items ?? []) {
       const videoId = item.contentDetails?.videoId || item.snippet?.resourceId?.videoId
       if (!videoId) continue
-      videos.push(buildVideo(videoId, item.snippet?.title || "Untitled upload", item.contentDetails?.videoPublishedAt || item.snippet?.publishedAt))
+      videos.push(
+        buildVideo(
+          videoId,
+          item.snippet?.title || "Untitled upload",
+          item.contentDetails?.videoPublishedAt || item.snippet?.publishedAt,
+          item.snippet?.description,
+        ),
+      )
     }
 
     if (!data.nextPageToken) break

@@ -19,6 +19,7 @@ type ChatMessage = {
   role: "user" | "assistant"
   content: string
   mode?: string
+  followUps?: string[]
 }
 
 type ArticlesResponse = {
@@ -27,11 +28,12 @@ type ArticlesResponse = {
 }
 
 const starterPrompts = [
+  "What conspiracy should we investigate first?",
   "What is the strongest conspiracy case that still lacks the missing proof?",
   "Map the Epstein claims by evidence quality.",
-  "What is the strangest true document in the archive?",
+  "What is the strangest true document in government archives?",
   "What are people missing about AI control systems?",
-  "Which AARO denials are more specific than the questions?",
+  "Ask me a question that starts a deep investigation.",
 ]
 
 const laneMeta = {
@@ -59,8 +61,14 @@ export function InvertedWorldEditorialApp() {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: "assistant",
-      content: "Ask anything. I will separate receipts, rumor, weird read, skeptic read, and what to verify next.",
+      content:
+        "What rabbit hole are we opening first: UAP retrieval claims, Epstein networks, MKULTRA continuities, AI surveillance, cryptids, ancient anomalies, or something stranger?",
       mode: "truth-engine",
+      followUps: [
+        "Start with UAP retrieval programs",
+        "Start with Epstein network evidence",
+        "Start with MKULTRA and modern psyops",
+      ],
     },
   ])
   const [asking, setAsking] = useState(false)
@@ -116,13 +124,14 @@ export function InvertedWorldEditorialApp() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message }),
       })
-      const data = (await response.json()) as { answer?: string; mode?: string; error?: string }
+      const data = (await response.json()) as { answer?: string; mode?: string; error?: string; followUps?: string[] }
       setMessages((current) => [
         ...current,
         {
           role: "assistant",
           content: data.answer || data.error || "No response returned.",
           mode: data.mode,
+          followUps: data.followUps,
         },
       ])
     } catch (error) {
@@ -475,7 +484,7 @@ function TruthEngine({
       <div className="iw-engine-head">
         <span className="iw-engine-sig">truth engine</span>
         <span className="iw-engine-status">
-          Ask anything. Receipts, rumor, weird read, skeptic read, and verify next.
+          Claude-backed when provider keys are live. Open field, no filters.
         </span>
       </div>
       <form
@@ -490,7 +499,7 @@ function TruthEngine({
           className="iw-engine-input"
           value={prompt}
           onChange={(event) => setPrompt(event.target.value)}
-          placeholder="What is the strongest case still missing a receipt?"
+          placeholder="Ask about any conspiracy, anomaly, network, or weird document"
         />
         <button type="submit" className="iw-engine-send" disabled={asking}>
           {asking ? "running..." : "ask"}
@@ -506,6 +515,15 @@ function TruthEngine({
       {latestAnswer && (
         <div className="iw-engine-out">
           <Stripe label={latestAnswer.mode || "answer"} color="#e8b45c" text={latestAnswer.content} />
+          {latestAnswer.followUps?.length ? (
+            <div className="iw-engine-chips iw-engine-followups">
+              {latestAnswer.followUps.map((followUp) => (
+                <button key={followUp} className="iw-chip" onClick={() => void askResearchAgent(followUp)}>
+                  {followUp}
+                </button>
+              ))}
+            </div>
+          ) : null}
           {messages.filter((message) => message.role === "user").length > 0 && (
             <Stripe
               label="last ask"

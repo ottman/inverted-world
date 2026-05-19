@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { intelligenceArticles } from "@/data/intelligence-articles"
 import { getDeepArchive } from "@/lib/deep-archive"
 
 const baseUrl = "https://invertedworld.on.recursiv.io"
@@ -19,6 +20,9 @@ export async function GET() {
     `${baseUrl}/news`,
     `${baseUrl}/documents`,
     `${baseUrl}/sitemap.xml`,
+    "",
+    "## Article Inventory",
+    ...intelligenceArticles.map((article) => `- ${article.title} (${article.publishedAt}): ${baseUrl}/news/${article.id}`),
     "",
     "## Video Dossiers",
     ...archive.videos

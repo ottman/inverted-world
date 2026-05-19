@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next"
+import { intelligenceArticles } from "@/data/intelligence-articles"
 import { getDeepArchive } from "@/lib/deep-archive"
 
 const baseUrl = "https://invertedworld.on.recursiv.io"
@@ -13,6 +14,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   try {
     const archive = await getDeepArchive({ limit: 1000, maxLimit: 1000 })
+    const articleRoutes: MetadataRoute.Sitemap = intelligenceArticles.map((article) => ({
+      url: `${baseUrl}/news/${article.id}`,
+      lastModified: new Date(article.publishedAt),
+      changeFrequency: "weekly",
+      priority: 0.7,
+    }))
     const videoRoutes: MetadataRoute.Sitemap = archive.videos
       .filter((video) => video.videoId)
       .map((video) => ({
@@ -22,8 +29,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.72,
       }))
 
-    return [...staticRoutes, ...videoRoutes]
+    return [...staticRoutes, ...articleRoutes, ...videoRoutes]
   } catch {
-    return staticRoutes
+    const articleRoutes: MetadataRoute.Sitemap = intelligenceArticles.map((article) => ({
+      url: `${baseUrl}/news/${article.id}`,
+      lastModified: new Date(article.publishedAt),
+      changeFrequency: "weekly",
+      priority: 0.7,
+    }))
+    return [...staticRoutes, ...articleRoutes]
   }
 }
