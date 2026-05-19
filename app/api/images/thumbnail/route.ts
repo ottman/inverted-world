@@ -4,9 +4,16 @@ import { getRecursivSdk } from "@/lib/recursiv"
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
+function normalizeOpenAiSize(size: "1024x1024" | "1024x1792" | "1792x1024") {
+  if (size === "1024x1792") return "1024x1536"
+  if (size === "1792x1024") return "1536x1024"
+  return size
+}
+
 async function generateWithOpenAi(prompt: string, size: "1024x1024" | "1024x1792" | "1792x1024") {
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) throw new Error("OPENAI_API_KEY is not configured")
+  const model = process.env.OPENAI_IMAGE_MODEL || "gpt-image-1"
 
   const response = await fetch("https://api.openai.com/v1/images/generations", {
     method: "POST",
@@ -15,10 +22,10 @@ async function generateWithOpenAi(prompt: string, size: "1024x1024" | "1024x1792
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "dall-e-3",
+      model,
       prompt,
       n: 1,
-      size,
+      size: model === "gpt-image-1" ? normalizeOpenAiSize(size) : size,
     }),
     signal: AbortSignal.timeout(45_000),
   })
@@ -34,7 +41,7 @@ async function generateWithOpenAi(prompt: string, size: "1024x1024" | "1024x1792
 
   return {
     url: image.url || `data:image/png;base64,${image.b64_json}`,
-    provider: "openai-direct",
+    provider: model,
     prompt,
   }
 }
