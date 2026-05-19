@@ -775,7 +775,7 @@ function AccessModal({
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               className="iw-auth-input"
-              placeholder="12+ chars, letter + number"
+              placeholder="12+ chars, Aa1!"
               type="password"
               autoComplete={authMode === "login" ? "current-password" : "new-password"}
               required

@@ -60,8 +60,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Valid email required" }, { status: 400 })
   }
 
-  if (!password || password.length < 12 || !/[a-z]/i.test(password) || !/\d/.test(password)) {
-    return NextResponse.json({ error: "Password must be 12+ characters with at least one letter and one number." }, { status: 400 })
+  if (
+    !password ||
+    password.length < 12 ||
+    password.length > 128 ||
+    !/[a-z]/.test(password) ||
+    !/[A-Z]/.test(password) ||
+    !/\d/.test(password) ||
+    !/[^A-Za-z0-9]/.test(password)
+  ) {
+    return NextResponse.json(
+      { error: "Password must be 12-128 characters with uppercase, lowercase, number, and symbol." },
+      { status: 400 },
+    )
   }
 
   try {
