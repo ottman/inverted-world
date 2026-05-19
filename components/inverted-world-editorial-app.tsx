@@ -27,6 +27,20 @@ type ArticlesResponse = {
   warnings?: string[]
 }
 
+type AccessResponse = {
+  authenticated?: boolean
+  ok?: boolean
+  error?: string
+  message?: string
+  warnings?: string[]
+  member?: {
+    id?: string
+    email?: string
+    name?: string
+    agentId?: string
+  }
+}
+
 const starterPrompts = [
   "What conspiracy should we investigate first?",
   "What is the strongest conspiracy case that still lacks the missing proof?",
@@ -71,11 +85,15 @@ export function InvertedWorldEditorialApp() {
       ],
     },
   ])
+  const [conversationId, setConversationId] = useState<string | null>(null)
   const [asking, setAsking] = useState(false)
   const [authOpen, setAuthOpen] = useState(false)
   const [authMode, setAuthMode] = useState<"login" | "signup">("signup")
+  const [name, setName] = useState("")
   const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
   const [authMessage, setAuthMessage] = useState("")
+  const [authBusy, setAuthBusy] = useState(false)
   const [memberEmail, setMemberEmail] = useState("")
 
   const leadArticles = useMemo(() => articles.slice(0, 12), [articles])
@@ -105,10 +123,26 @@ export function InvertedWorldEditorialApp() {
     }
   }, [])
 
+  const loadSession = useCallback(async () => {
+    const response = await fetch("/api/access").catch(() => null)
+    if (!response?.ok) return
+    const data = (await response.json().catch(() => ({}))) as AccessResponse
+    if (data.authenticated && data.member?.email) {
+      window.localStorage.setItem("inverted-world-member-email", data.member.email)
+      setMemberEmail(data.member.email)
+      if (data.member.name) setName(data.member.name)
+      return
+    }
+    window.localStorage.removeItem("inverted-world-member-email")
+    setMemberEmail("")
+  }, [])
+
   useEffect(() => {
-    setMemberEmail(window.localStorage.getItem("inverted-world-member-email") || "")
+    const storedEmail = window.localStorage.getItem("inverted-world-member-email") || ""
+    setMemberEmail(storedEmail)
+    void loadSession()
     void loadArticles()
-  }, [loadArticles])
+  }, [loadArticles, loadSession])
 
   async function askResearchAgent(customPrompt?: string) {
     const message = (customPrompt ?? prompt).trim()
@@ -122,9 +156,16 @@ export function InvertedWorldEditorialApp() {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ message, conversationId }),
       })
-      const data = (await response.json()) as { answer?: string; mode?: string; error?: string; followUps?: string[] }
+      const data = (await response.json()) as {
+        answer?: string
+        mode?: string
+        error?: string
+        followUps?: string[]
+        conversationId?: string
+      }
+      if (data.conversationId) setConversationId(data.conversationId)
       setMessages((current) => [
         ...current,
         {
@@ -150,22 +191,37 @@ export function InvertedWorldEditorialApp() {
 
   async function submitAccess(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (authBusy) return
+    setAuthBusy(true)
     setAuthMessage("")
-    const response = await fetch("/api/access", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, mode: authMode }),
-    })
-    const data = (await response.json().catch(() => ({}))) as { error?: string; message?: string; member?: { email?: string } }
-    if (response.ok) {
-      const nextEmail = data.member?.email || email.trim().toLowerCase()
-      window.localStorage.setItem("inverted-world-member-email", nextEmail)
-      setMemberEmail(nextEmail)
-      setAuthMessage(data.message || "Desk unlocked.")
-      window.setTimeout(() => setAuthOpen(false), 650)
-      return
+    try {
+      const response = await fetch("/api/access", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, name, mode: authMode }),
+      })
+      const data = (await response.json().catch(() => ({}))) as AccessResponse
+      if (response.ok) {
+        const nextEmail = data.member?.email || email.trim().toLowerCase()
+        window.localStorage.setItem("inverted-world-member-email", nextEmail)
+        setMemberEmail(nextEmail)
+        setName(data.member?.name || name)
+        setAuthMessage(data.warnings?.length ? `Signed in. ${data.warnings[0]}` : data.message || "Research desk unlocked.")
+        window.setTimeout(() => setAuthOpen(false), data.warnings?.length ? 1400 : 650)
+        return
+      }
+      setAuthMessage(data.error || "Recursiv auth failed.")
+    } finally {
+      setAuthBusy(false)
     }
-    setAuthMessage(data.error || "Try another email.")
+  }
+
+  async function signOut() {
+    await fetch("/api/access", { method: "DELETE" }).catch(() => null)
+    window.localStorage.removeItem("inverted-world-member-email")
+    setMemberEmail("")
+    setConversationId(null)
+    setAuthOpen(false)
   }
 
   function openAuth(mode: "login" | "signup") {
@@ -324,10 +380,17 @@ export function InvertedWorldEditorialApp() {
         <AccessModal
           authMode={authMode}
           email={email}
+          name={name}
+          password={password}
           authMessage={authMessage}
+          authBusy={authBusy}
+          memberEmail={memberEmail}
           setEmail={setEmail}
+          setName={setName}
+          setPassword={setPassword}
           setAuthOpen={setAuthOpen}
           submitAccess={submitAccess}
+          signOut={signOut}
         />
       )}
       {selectedArticle && <BriefModal article={selectedArticle} onClose={() => setSelectedArticle(null)} />}
@@ -647,17 +710,31 @@ function BriefModal({ article, onClose }: { article: IntelligenceArticle; onClos
 function AccessModal({
   authMode,
   email,
+  name,
+  password,
   authMessage,
+  authBusy,
+  memberEmail,
   setEmail,
+  setName,
+  setPassword,
   setAuthOpen,
   submitAccess,
+  signOut,
 }: {
   authMode: "login" | "signup"
   email: string
+  name: string
+  password: string
   authMessage: string
+  authBusy: boolean
+  memberEmail: string
   setEmail: (value: string) => void
+  setName: (value: string) => void
+  setPassword: (value: string) => void
   setAuthOpen: (value: boolean) => void
   submitAccess: (event: React.FormEvent<HTMLFormElement>) => Promise<void>
+  signOut: () => Promise<void>
 }) {
   return (
     <div className="iw-modal" onClick={() => setAuthOpen(false)}>
@@ -666,18 +743,56 @@ function AccessModal({
           x
         </button>
         <div className="iw-engine-sig">{authMode === "login" ? "enter desk" : "join desk"}</div>
-        <h2 className="iw-modal-title iw-hero-serif">Save investigations. Build receipts.</h2>
-        <form onSubmit={submitAccess} className="iw-engine-form iw-auth-form">
-          <span className="iw-engine-caret">&gt;</span>
-          <input
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            className="iw-engine-input"
-            placeholder="you@proton.me"
-            type="email"
-          />
-          <button className="iw-engine-send">enter</button>
+        <h2 className="iw-modal-title iw-hero-serif">Save investigations.</h2>
+        <form onSubmit={submitAccess} className="iw-auth-fields">
+          {authMode === "signup" && (
+            <label className="iw-auth-label">
+              name
+              <input
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                className="iw-auth-input"
+                placeholder="research handle"
+                autoComplete="name"
+              />
+            </label>
+          )}
+          <label className="iw-auth-label">
+            email
+            <input
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              className="iw-auth-input"
+              placeholder="you@proton.me"
+              type="email"
+              autoComplete="email"
+              required
+            />
+          </label>
+          <label className="iw-auth-label">
+            password
+            <input
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              className="iw-auth-input"
+              placeholder="12+ chars, letter + number"
+              type="password"
+              autoComplete={authMode === "login" ? "current-password" : "new-password"}
+              required
+            />
+          </label>
+          <button className="iw-engine-send iw-auth-submit" disabled={authBusy}>
+            {authBusy ? "checking..." : authMode === "login" ? "sign in" : "create desk"}
+          </button>
         </form>
+        {memberEmail && (
+          <button className="iw-auth-secondary" onClick={() => void signOut()}>
+            sign out {memberEmail}
+          </button>
+        )}
+        <p className="iw-auth-note">
+          Recursiv account. Project-scoped research key. Personal agent when available.
+        </p>
         {authMessage && <p className="iw-warning">{authMessage}</p>}
       </article>
     </div>

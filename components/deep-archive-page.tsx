@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 import type { DeepArchiveResponse } from "@/lib/deep-archive"
 
 type ArchiveResponse = {
-  sourceMode?: string
+  sourceMode?: DeepArchiveResponse["sourceMode"]
   completeHistoryAvailable?: boolean
   videos?: ChannelVideo[]
   totalCount?: number
@@ -40,7 +40,7 @@ export function DeepArchivePage({ initialArchive }: { initialArchive?: DeepArchi
   const [videos, setVideos] = useState<ChannelVideo[]>(initialVideos)
   const [selectedVideo, setSelectedVideo] = useState<ChannelVideo | undefined>(initialVideos[0])
   const [query, setQuery] = useState("")
-  const [mode, setMode] = useState(initialArchive?.sourceMode || "seed")
+  const [mode, setMode] = useState<DeepArchiveResponse["sourceMode"]>(initialArchive?.sourceMode || "seed")
   const [warnings, setWarnings] = useState<string[]>(initialArchive?.warnings ?? [])
   const [loading, setLoading] = useState(false)
   const [totalCount, setTotalCount] = useState(initialArchive?.totalCount ?? initialVideos.length)

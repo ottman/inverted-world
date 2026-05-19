@@ -20,6 +20,17 @@ export const INVERTED_WORLD_DB = process.env.RECURSIV_DATABASE_NAME || "inverted
 
 let sdk: Recursiv | null = null
 
+export const INVERTED_WORLD_AUTH_SCOPES = [
+  "users:read",
+  "chat:read",
+  "chat:write",
+  "agents:read",
+  "agents:write",
+  "databases:read",
+  "databases:write",
+  "projects:read",
+] as const
+
 function getServerApiKey() {
   return (
     process.env.RECURSIV_SERVER_API_KEY ||
@@ -43,6 +54,22 @@ export function getRecursivSdk() {
   }
 
   return sdk
+}
+
+export function createAnonymousSdk() {
+  return new Recursiv({
+    anonymous: true,
+    baseUrl: RECURSIV_BASE_URL,
+    timeout: 180_000,
+  })
+}
+
+export function createAuthedSdk(apiKey: string) {
+  return new Recursiv({
+    apiKey,
+    baseUrl: RECURSIV_BASE_URL,
+    timeout: 180_000,
+  })
 }
 
 export function getRecursivStatus() {

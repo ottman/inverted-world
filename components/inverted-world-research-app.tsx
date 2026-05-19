@@ -469,8 +469,8 @@ export function InvertedWorldResearchApp() {
               />
               <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 {[...coverage.slice(0, 8), ...researchDocuments.slice(0, 4)].map((item, index) => {
-                  const url = "url" in item ? item.url : item.url
-                  const title = "title" in item ? item.title : "Untitled"
+                  const url = item.url
+                  const title = item.title
                   const source = "outlet" in item ? item.outlet : item.source
                   const lane = "lane" in item ? item.lane : item.kind
                   return (
