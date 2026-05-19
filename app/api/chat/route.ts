@@ -49,28 +49,28 @@ export async function POST(request: NextRequest) {
   const prompt = buildResearchPrompt(message, topic.id)
 
   try {
-    const llm = await callClaudeGateway(prompt)
+    const recursiv = await callRecursivAgent(prompt)
     return NextResponse.json({
-      mode: llm.mode,
-      answer: llm.answer,
+      mode: "recursiv-agent",
+      answer: recursiv.answer,
+      conversationId: recursiv.conversationId,
       citations: [],
     })
-  } catch (llmError) {
+  } catch (recursivError) {
     try {
-      const recursiv = await callRecursivAgent(prompt)
+      const llm = await callClaudeGateway(prompt)
       return NextResponse.json({
-        mode: "recursiv-agent",
-        answer: recursiv.answer,
-        conversationId: recursiv.conversationId,
+        mode: llm.mode,
+        answer: llm.answer,
         citations: [],
       })
-    } catch (recursivError) {
+    } catch (llmError) {
       const fallback = buildLocalResearchResponse(message, topic)
       return NextResponse.json({
         ...fallback,
         warning: [
-          llmError instanceof Error ? llmError.message : "Claude/OpenRouter unavailable",
           recursivError instanceof Error ? recursivError.message : "Recursiv agent unavailable",
+          llmError instanceof Error ? llmError.message : "Claude/OpenRouter unavailable",
         ].join(" | "),
       })
     }
