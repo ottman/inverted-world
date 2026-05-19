@@ -97,6 +97,7 @@ export function InvertedWorldEditorialApp() {
   const [memberEmail, setMemberEmail] = useState("")
 
   const leadArticles = useMemo(() => articles.slice(0, 12), [articles])
+  const heroArticles = useMemo(() => leadArticles.slice(0, 3), [leadArticles])
   const tickerItems = useMemo(
     () =>
       leadArticles.slice(0, 8).map((article) => {
@@ -236,30 +237,54 @@ export function InvertedWorldEditorialApp() {
       <div className="iw-shell">
         <Ticker items={tickerItems} />
         <Masthead memberEmail={memberEmail} openAuth={openAuth} />
+        {memberEmail && (
+          <div className="iw-member-banner">
+            <span>desk unlocked</span>
+            <strong>{memberEmail}</strong>
+            <button onClick={() => void signOut()}>sign out</button>
+          </div>
+        )}
 
-        <section className="iw-hero" id="engine">
+        <section className="iw-hero iw-command-hero" id="engine">
           <div className="iw-hero-grid">
             <div className="iw-hero-left">
               <div className="iw-hero-kicker">
                 <span className="iw-hot-dot" />
-                live anomaly desk / {leadArticles.length} open signals
+                live ai research desk / {leadArticles.length} open signals
               </div>
               <h1 className="iw-hero-headline iw-hero-serif">
-                <span>Believe</span> <span className="iw-accent-text">nothing.</span>
-                {" "}
+                <span>Ask the</span>
                 <br />
-                <span>Follow </span>
-                <span className="iw-hero-amp">everything</span>
-                <span>.</span>
+                <span className="iw-accent-text">weird question.</span>
               </h1>
               <p className="iw-hero-deck">
-                Receipts, rumor, weird read, skeptic read, and what to verify next, separated and traced to source.
+                A fast Claude/OpenRouter research desk for conspiracies, paranormal claims, classified history, and the open-source record.
+                It separates claim, receipt, counter-read, and next verification step.
               </p>
+              <div className="iw-hero-actions">
+                <button
+                  className="iw-command-primary"
+                  onClick={() => void askResearchAgent("Ask me one provocative investigation question about the hidden structure of the week.")}
+                >
+                  start a case
+                </button>
+                <a className="iw-command-secondary" href="/news">
+                  live news map
+                </a>
+                <a className="iw-command-secondary" href="/archive">
+                  video archive
+                </a>
+              </div>
               <div className="iw-hero-stats">
                 <Stat label="briefs" value={String(articles.length)} />
                 <Stat label="archive" value="LIVE" />
                 <Stat label="sources" value={String(researchDocuments.length)} />
                 <Stat label="desk" value={memberEmail ? "OPEN" : "JOIN"} />
+              </div>
+              <div className="iw-live-strip" aria-label="Live research signals">
+                {heroArticles.map((article) => (
+                  <LiveSignalCard key={article.id} article={article} onOpen={() => setSelectedArticle(article)} />
+                ))}
               </div>
             </div>
 
@@ -273,6 +298,12 @@ export function InvertedWorldEditorialApp() {
                 askResearchAgent={askResearchAgent}
               />
             </aside>
+          </div>
+          <div className="iw-method-rail" aria-label="Research method">
+            <MethodRailItem step="01" title="Ask anything" text="No filter menu. Start with the claim." />
+            <MethodRailItem step="02" title="Split signal" text="Receipts, rumor, counter-read, missing proof." />
+            <MethodRailItem step="03" title="Follow sources" text="News, government docs, archives." />
+            <MethodRailItem step="04" title="Build media" text="Article, thumbnail, dossier, next questions." />
           </div>
         </section>
 
@@ -556,9 +587,9 @@ function TruthEngine({
   return (
     <div className="iw-engine">
       <div className="iw-engine-head">
-        <span className="iw-engine-sig">truth engine</span>
+        <span className="iw-engine-sig">talk to the desk</span>
         <span className="iw-engine-status">
-          Recursiv-managed agent. Open field, no filters.
+          Fast Claude/OpenRouter path. Recursiv logs the research trail.
         </span>
       </div>
       <form
@@ -573,7 +604,7 @@ function TruthEngine({
           className="iw-engine-input"
           value={prompt}
           onChange={(event) => setPrompt(event.target.value)}
-          placeholder="Ask about any conspiracy, anomaly, network, or weird document"
+          placeholder="Ask anything: UAP, Epstein, MKULTRA, AI surveillance, occult history..."
         />
         <button type="submit" className="iw-engine-send" disabled={asking}>
           {asking ? "running..." : "ask"}
@@ -586,6 +617,12 @@ function TruthEngine({
           </button>
         ))}
       </div>
+      {asking && (
+        <div className="iw-thinking">
+          <span className="iw-thinking-dot" />
+          <span>reading the claim, source trail, and counter-read...</span>
+        </div>
+      )}
       {latestAnswer && (
         <div className="iw-engine-out">
           <Stripe label={latestAnswer.mode || "answer"} color="#e8b45c" text={latestAnswer.content} />
@@ -630,6 +667,30 @@ function SectionHeader({
         {sub && <div className="iw-secthead-sub">{sub}</div>}
       </div>
       {right && <div className="iw-secthead-r">{right}</div>}
+    </div>
+  )
+}
+
+function LiveSignalCard({ article, onOpen }: { article: IntelligenceArticle; onOpen: () => void }) {
+  const lane = getLane(article)
+  return (
+    <button className="iw-live-card" type="button" onClick={onOpen}>
+      <span className="iw-live-card-top">
+        <Sigil lane={lane} />
+        <span>{article.heat}</span>
+      </span>
+      <span className="iw-live-card-title">{article.title}</span>
+      <span className="iw-live-card-source">{article.source}</span>
+    </button>
+  )
+}
+
+function MethodRailItem({ step, title, text }: { step: string; title: string; text: string }) {
+  return (
+    <div className="iw-method-item">
+      <span>{step}</span>
+      <strong>{title}</strong>
+      <p>{text}</p>
     </div>
   )
 }

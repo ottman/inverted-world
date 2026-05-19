@@ -59,6 +59,7 @@ export async function callClaude(prompt: string) {
         },
       ],
     }),
+    signal: AbortSignal.timeout(25_000),
   })
 
   if (!response.ok) {
@@ -110,6 +111,7 @@ export async function callClaudeViaOpenRouter(prompt: string) {
         },
       ],
     }),
+    signal: AbortSignal.timeout(25_000),
   })
 
   if (!response.ok) {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getTopic } from "@/data/inverted-world"
 import { readAuthCookies } from "@/lib/auth-cookies"
+import { callClaudeGateway } from "@/lib/claude"
 import { recordChatExchange } from "@/lib/inverted-database"
 import { createAuthedSdk, getRecursivSdk, RECURSIV_AGENT_ID } from "@/lib/recursiv"
 import { callRecursivAgentText, ensureInvertedAgentConfig } from "@/lib/recursiv-agent"
@@ -60,33 +61,62 @@ export async function POST(request: NextRequest) {
   const prompt = buildResearchPrompt(message, topic.id)
 
   try {
-    const recursiv = await callRecursivAgent(request, prompt, conversationId)
-    await recordChatExchange(getDatabaseWriteSdk(recursiv.sdk), {
-      userId: recursiv.userId,
-      conversationId: recursiv.conversationId,
-      topicId: topic.id,
-      userMessage: message,
-      assistantMessage: recursiv.answer,
-      mode: "recursiv-agent",
-    }).catch(() => null)
+    const claude = await callClaudeGateway(prompt)
+    const conversation = conversationId || `iw-${Date.now()}`
+    try {
+      await recordChatExchange(getRecursivSdk(), {
+        userId: readAuthCookies(request).userId,
+        conversationId: conversation,
+        topicId: topic.id,
+        userMessage: message,
+        assistantMessage: claude.answer,
+        mode: claude.mode,
+      })
+    } catch {
+      // Chat must not fail because durable logging is unavailable.
+    }
 
     return NextResponse.json({
-      mode: "recursiv-agent",
-      answer: recursiv.answer,
-      conversationId: recursiv.conversationId,
+      mode: claude.mode,
+      answer: claude.answer,
+      conversationId: conversation,
       citations: [],
       followUps: suggestFollowUps(message, topic),
     })
-  } catch (recursivError) {
-    const fallback = buildLocalResearchResponse(message, topic)
-    const errors = [recursivError instanceof Error ? recursivError.message : "Recursiv agent unavailable"]
-    return NextResponse.json({
-      mode: "provider-offline",
-      answer: buildProviderOfflineResponse(fallback.answer, errors),
-      citations: fallback.citations,
-      followUps: fallback.followUps,
-      warning: errors.join(" | "),
-    })
+  } catch (claudeError) {
+    const claudeMessage = claudeError instanceof Error ? claudeError.message : "Claude gateway unavailable"
+    try {
+      const recursiv = await callRecursivAgent(request, prompt, conversationId)
+      await recordChatExchange(getDatabaseWriteSdk(recursiv.sdk), {
+        userId: recursiv.userId,
+        conversationId: recursiv.conversationId,
+        topicId: topic.id,
+        userMessage: message,
+        assistantMessage: recursiv.answer,
+        mode: "recursiv-agent",
+      }).catch(() => null)
+
+      return NextResponse.json({
+        mode: "recursiv-agent",
+        answer: recursiv.answer,
+        conversationId: recursiv.conversationId,
+        citations: [],
+        followUps: suggestFollowUps(message, topic),
+      })
+    } catch (recursivError) {
+      const fallback = buildLocalResearchResponse(message, topic)
+      const errors = [
+        claudeMessage,
+        recursivError instanceof Error ? recursivError.message : "Recursiv agent unavailable",
+      ]
+      return NextResponse.json({
+        mode: "provider-offline",
+        answer: buildProviderOfflineResponse(fallback.answer, errors),
+        citations: fallback.citations,
+        followUps: fallback.followUps,
+        warning: errors.join(" | "),
+      })
+    }
   }
 }
 
