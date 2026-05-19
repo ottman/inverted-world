@@ -19,7 +19,6 @@ async function generateWithOpenAi(prompt: string, size: "1024x1024" | "1024x1792
       prompt,
       n: 1,
       size,
-      style: "vivid",
       response_format: "b64_json",
     }),
     signal: AbortSignal.timeout(45_000),
