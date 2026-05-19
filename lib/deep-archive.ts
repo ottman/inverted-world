@@ -20,6 +20,10 @@ export type DeepArchiveResponse = {
   sourceMode: "youtube-data-api" | "rss-plus-seed" | "seed"
   completeHistoryAvailable: boolean
   videos: ChannelVideo[]
+  totalCount: number
+  offset: number
+  limit: number
+  hasMore: boolean
   warnings: string[]
 }
 
@@ -114,20 +118,42 @@ async function fetchYouTubeDataApi() {
   return videos
 }
 
-export async function getDeepArchive(): Promise<DeepArchiveResponse> {
+export async function getDeepArchive({
+  limit = 100,
+  offset = 0,
+}: {
+  limit?: number
+  offset?: number
+} = {}): Promise<DeepArchiveResponse> {
   const warnings: string[] = []
   const seeded = featuredVideos.filter((video) => video.source === "YouTube" && video.videoId)
+  const sliceArchive = (
+    videos: ChannelVideo[],
+    sourceMode: DeepArchiveResponse["sourceMode"],
+    completeHistoryAvailable: boolean,
+    extraWarnings: string[] = [],
+  ): DeepArchiveResponse => {
+    const totalCount = videos.length
+    const safeLimit = Math.min(Math.max(Math.trunc(limit) || 100, 1), 100)
+    const safeOffset = Math.min(Math.max(Math.trunc(offset) || 0, 0), totalCount)
+
+    return {
+      generatedAt: new Date().toISOString(),
+      sourceMode,
+      completeHistoryAvailable,
+      videos: videos.slice(safeOffset, safeOffset + safeLimit),
+      totalCount,
+      offset: safeOffset,
+      limit: safeLimit,
+      hasMore: safeOffset + safeLimit < totalCount,
+      warnings: extraWarnings,
+    }
+  }
 
   try {
     const apiVideos = await fetchYouTubeDataApi()
     if (apiVideos?.length) {
-      return {
-        generatedAt: new Date().toISOString(),
-        sourceMode: "youtube-data-api",
-        completeHistoryAvailable: true,
-        videos: dedupeVideos([...apiVideos, ...seeded]),
-        warnings,
-      }
+      return sliceArchive(dedupeVideos([...apiVideos, ...seeded]), "youtube-data-api", true, warnings)
     }
   } catch (error) {
     warnings.push(error instanceof Error ? error.message : "YouTube Data API archive failed")
@@ -135,22 +161,16 @@ export async function getDeepArchive(): Promise<DeepArchiveResponse> {
 
   try {
     const rssVideos = await fetchYouTubeRss()
-    return {
-      generatedAt: new Date().toISOString(),
-      sourceMode: "rss-plus-seed",
-      completeHistoryAvailable: false,
-      videos: dedupeVideos([...rssVideos, ...seeded]),
-      warnings: [...warnings, "Set YOUTUBE_API_KEY to paginate the full channel history."],
-    }
+    return sliceArchive(dedupeVideos([...rssVideos, ...seeded]), "rss-plus-seed", false, [
+      ...warnings,
+      "Set YOUTUBE_API_KEY to paginate the full channel history.",
+    ])
   } catch (error) {
     warnings.push(error instanceof Error ? error.message : "YouTube RSS archive failed")
   }
 
-  return {
-    generatedAt: new Date().toISOString(),
-    sourceMode: "seed",
-    completeHistoryAvailable: false,
-    videos: dedupeVideos(seeded),
-    warnings: [...warnings, "Set YOUTUBE_API_KEY to unlock the complete uploads playlist history."],
-  }
+  return sliceArchive(dedupeVideos(seeded), "seed", false, [
+    ...warnings,
+    "Set YOUTUBE_API_KEY to unlock the complete uploads playlist history.",
+  ])
 }
