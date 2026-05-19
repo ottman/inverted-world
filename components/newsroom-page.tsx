@@ -60,11 +60,7 @@ export function NewsroomPage() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {articles.map((article) => (
           <article key={article.id} className={cn("overflow-hidden transition hover:border-[#e8b45c]/55", archiveSurface)}>
-            <button
-              onClick={() => setSelected(article)}
-              className="block w-full text-left"
-              aria-label={`Preview brief: ${article.title}`}
-            >
+            <div>
               <div className="relative h-36 border-b border-[#f4efe2]/10 bg-[#120d07] p-4">
                 <Zap className="h-5 w-5 text-[#e8b45c]" />
                 <div className="absolute bottom-4 left-4 text-4xl font-extrabold uppercase tracking-normal text-[#fff8e6]">
@@ -84,13 +80,20 @@ export function NewsroomPage() {
                   <span className="border border-[#7dd3fc]/24 px-2 py-1 text-[#7dd3fc]">counter</span>
                 </div>
               </div>
-            </button>
-            <a
-              href={`/news/${article.id}`}
-              className="block border-t border-[#f4efe2]/10 px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#dff7ff] transition hover:text-[#e8b45c]"
-            >
-              Open article
-            </a>
+            </div>
+            <div className="grid grid-cols-2 border-t border-[#f4efe2]/10 text-xs font-semibold uppercase tracking-[0.12em]">
+              <button
+                type="button"
+                onClick={() => setSelected(article)}
+                className="px-4 py-3 text-left text-[#e8b45c] transition hover:bg-[#e8b45c]/10"
+                aria-label={`Preview brief: ${article.title}`}
+              >
+                Preview
+              </button>
+              <a href={`/news/${article.id}`} className="border-l border-[#f4efe2]/10 px-4 py-3 text-[#dff7ff] transition hover:text-[#e8b45c]">
+                Open article
+              </a>
+            </div>
           </article>
         ))}
       </div>
