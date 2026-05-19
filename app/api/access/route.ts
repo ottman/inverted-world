@@ -4,6 +4,7 @@ import { ensureInvertedWorldDatabase, upsertMember } from "@/lib/inverted-databa
 import {
   createAnonymousSdk,
   createAuthedSdk,
+  getRecursivSdk,
   INVERTED_WORLD_AUTH_SCOPES,
   RECURSIV_AGENT_ID,
   RECURSIV_PROJECT_ID,
@@ -101,8 +102,9 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      await ensureInvertedWorldDatabase(authedSdk)
-      await upsertMember(authedSdk, {
+      const databaseSdk = getDatabaseWriteSdk(authedSdk)
+      await ensureInvertedWorldDatabase(databaseSdk)
+      await upsertMember(databaseSdk, {
         userId: result.user.id,
         email: result.user.email || email,
         name: result.user.name || name,
@@ -152,4 +154,12 @@ export async function DELETE(request: NextRequest) {
   const response = NextResponse.json({ ok: true })
   clearAuthCookies(response)
   return response
+}
+
+function getDatabaseWriteSdk(fallback: ReturnType<typeof createAuthedSdk>) {
+  try {
+    return getRecursivSdk()
+  } catch {
+    return fallback
+  }
 }

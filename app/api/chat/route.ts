@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const recursiv = await callRecursivAgent(request, prompt, conversationId)
-    await recordChatExchange(recursiv.sdk, {
+    await recordChatExchange(getDatabaseWriteSdk(recursiv.sdk), {
       userId: recursiv.userId,
       conversationId: recursiv.conversationId,
       topicId: topic.id,
@@ -108,5 +108,13 @@ export async function POST(request: NextRequest) {
         warning: errors.join(" | "),
       })
     }
+  }
+}
+
+function getDatabaseWriteSdk<T>(fallback: T) {
+  try {
+    return getRecursivSdk()
+  } catch {
+    return fallback
   }
 }
