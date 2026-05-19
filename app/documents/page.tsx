@@ -14,13 +14,12 @@ export default function DocumentsPage() {
 
       <div className="mb-5 flex gap-2 overflow-x-auto pb-1">
         {topics.map((topic) => (
-          <a
+          <span
             key={topic.id}
-            href={`/api/documents?topic=${topic.id}`}
             className="shrink-0 rounded-md border border-[#f4efe2]/12 bg-[#070706]/24 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/62 transition hover:border-[#e8b45c]/45 hover:text-[#fff8e6]"
           >
             {topic.title}
-          </a>
+          </span>
         ))}
       </div>
 
