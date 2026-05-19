@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { clearAuthCookies, readAuthCookies, setAuthCookies } from "@/lib/auth-cookies"
-import { ensureInvertedWorldDatabase, upsertMember } from "@/lib/inverted-database"
 import {
   createAnonymousSdk,
   createAuthedSdk,
-  getRecursivSdk,
   INVERTED_WORLD_AUTH_SCOPES,
   RECURSIV_AGENT_ID,
   RECURSIV_PROJECT_ID,
 } from "@/lib/recursiv"
-import { ensureInvertedPersonalAgent } from "@/lib/recursiv-agent"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -88,31 +85,8 @@ export async function POST(request: NextRequest) {
         ? await anonSdk.auth.signInAndCreateKey({ email, password }, keyInput)
         : await anonSdk.auth.signUpAndCreateKey({ email, password, name }, keyInput)
 
-    const authedSdk = createAuthedSdk(result.apiKey)
     const warnings: string[] = []
-    let agentId = RECURSIV_AGENT_ID
-
-    try {
-      agentId = await ensureInvertedPersonalAgent(authedSdk, {
-        email,
-        interests: ["conspiracies", "paranormal", "government documents", "open-source intelligence"],
-      })
-    } catch (error) {
-      warnings.push(error instanceof Error ? `Personal agent: ${error.message}` : "Personal agent was not provisioned")
-    }
-
-    try {
-      const databaseSdk = getDatabaseWriteSdk(authedSdk)
-      await ensureInvertedWorldDatabase(databaseSdk)
-      await upsertMember(databaseSdk, {
-        userId: result.user.id,
-        email: result.user.email || email,
-        name: result.user.name || name,
-        agentId,
-      })
-    } catch (error) {
-      warnings.push(error instanceof Error ? `Database: ${error.message}` : "Database setup failed")
-    }
+    const agentId = RECURSIV_AGENT_ID
 
     const response = NextResponse.json({
       ok: true,
@@ -154,12 +128,4 @@ export async function DELETE(request: NextRequest) {
   const response = NextResponse.json({ ok: true })
   clearAuthCookies(response)
   return response
-}
-
-function getDatabaseWriteSdk(fallback: ReturnType<typeof createAuthedSdk>) {
-  try {
-    return getRecursivSdk()
-  } catch {
-    return fallback
-  }
 }
