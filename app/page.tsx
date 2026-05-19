@@ -1,5 +1,5 @@
-import { InvertedWorldResearchApp } from "@/components/inverted-world-research-app"
+import { InvertedWorldEditorialApp } from "@/components/inverted-world-editorial-app"
 
 export default function Page() {
-  return <InvertedWorldResearchApp />
+  return <InvertedWorldEditorialApp />
 }
