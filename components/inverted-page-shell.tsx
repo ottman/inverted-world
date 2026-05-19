@@ -40,8 +40,8 @@ export function InvertedPageShell({
 
       <div className="relative z-10">
         <header className="sticky top-0 z-30 border-b border-[#f4efe2]/10 bg-transparent backdrop-blur-[2px]">
-          <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-3 py-3 sm:px-6 lg:px-8">
-            <a className="flex min-w-0 items-center gap-3" href="/">
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-3 py-3 sm:px-6 lg:px-8">
+            <a className="flex min-w-0 items-center gap-3" href="/" aria-label="Inverted World home">
               <Image
                 src="/images/inverted-world-banner-logo.png"
                 alt="Inverted World"
@@ -51,7 +51,7 @@ export function InvertedPageShell({
                 className="h-7 w-auto max-w-[54vw] shrink sm:h-10 sm:max-w-none"
               />
             </a>
-            <nav className="hidden items-center gap-6 text-xs font-semibold uppercase tracking-[0.18em] text-[#f4efe2]/64 md:flex">
+            <nav className="order-3 flex w-full items-center justify-center gap-4 overflow-x-auto text-xs font-semibold uppercase tracking-[0.14em] text-[#f4efe2]/64 md:order-none md:w-auto md:gap-6 md:tracking-[0.18em]">
               <a className="transition hover:text-[#e8b45c]" href="/news">
                 News
               </a>

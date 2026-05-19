@@ -246,6 +246,7 @@ export function InvertedWorldEditorialApp() {
               </div>
               <h1 className="iw-hero-headline iw-hero-serif">
                 <span>Believe</span> <span className="iw-accent-text">nothing.</span>
+                {" "}
                 <br />
                 <span>Follow </span>
                 <span className="iw-hero-amp">everything</span>
@@ -330,7 +331,16 @@ export function InvertedWorldEditorialApp() {
                 <li
                   key={video.videoId}
                   onClick={() => setActiveVideo(video)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault()
+                      setActiveVideo(video)
+                    }
+                  }}
                   className={cn("iw-watch-item", video.videoId === activeVideo.videoId && "iw-watch-item-active")}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Play ${video.title}`}
                 >
                   <span className="iw-watch-rank">{String(index + 1).padStart(2, "0")}</span>
                   <span className="iw-watch-thumb">
@@ -627,7 +637,19 @@ function SectionHeader({
 function DossierItem({ article, index, onOpen }: { article: IntelligenceArticle; index: number; onOpen: () => void }) {
   const lane = getLane(article)
   return (
-    <li className="iw-doss-item" onClick={onOpen}>
+    <li
+      className="iw-doss-item"
+      onClick={onOpen}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault()
+          onOpen()
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      aria-label={`Open brief: ${article.title}`}
+    >
       <div className="iw-doss-num">No. {String(index + 1).padStart(2, "0")}</div>
       <div className="iw-doss-body">
         <div className="iw-doss-meta">

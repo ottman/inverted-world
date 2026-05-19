@@ -609,6 +609,12 @@
   padding-left: 8px;
 }
 
+.iw-doss-item:focus-visible {
+  outline: 1px solid var(--iw-accent);
+  outline-offset: -1px;
+  background: rgba(232, 180, 92, 0.06);
+}
+
 .iw-doss-item:last-child {
   border-bottom: 1px solid var(--iw-rule-strong);
 }
@@ -836,6 +842,12 @@
 
 .iw-watch-item:hover {
   background: rgba(18, 13, 7, 0.8);
+}
+
+.iw-watch-item:focus-visible {
+  outline: 1px solid var(--iw-accent);
+  outline-offset: -1px;
+  background: rgba(232, 180, 92, 0.08);
 }
 
 .iw-watch-item-active {
