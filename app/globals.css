@@ -479,6 +479,19 @@
   text-transform: uppercase;
 }
 
+.iw-live-card-action {
+  width: fit-content;
+  margin-top: 14px;
+  border: 1px solid var(--iw-accent);
+  background: rgba(232, 180, 92, 0.1);
+  color: var(--iw-accent);
+  padding: 7px 10px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
 .iw-method-rail {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
