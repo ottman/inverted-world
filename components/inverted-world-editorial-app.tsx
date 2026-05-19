@@ -252,7 +252,7 @@ export function InvertedWorldEditorialApp() {
                 <span className="iw-hot-dot" />
                 live ai research desk / {leadArticles.length} open signals
               </div>
-              <h1 className="iw-hero-headline iw-hero-serif">
+              <h1 className="iw-hero-headline iw-hero-serif" aria-label="Ask the weird question.">
                 <span>Ask the</span>
                 <br />
                 <span className="iw-accent-text">weird question.</span>
@@ -674,7 +674,7 @@ function SectionHeader({
 function LiveSignalCard({ article, onOpen }: { article: IntelligenceArticle; onOpen: () => void }) {
   const lane = getLane(article)
   return (
-    <button className="iw-live-card" type="button" onClick={onOpen}>
+    <button className="iw-live-card" type="button" onClick={onOpen} aria-label={`Open signal: ${article.title}`}>
       <span className="iw-live-card-top">
         <Sigil lane={lane} />
         <span>{article.heat}</span>
