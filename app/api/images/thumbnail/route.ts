@@ -19,7 +19,6 @@ async function generateWithOpenAi(prompt: string, size: "1024x1024" | "1024x1792
       prompt,
       n: 1,
       size,
-      response_format: "b64_json",
     }),
     signal: AbortSignal.timeout(45_000),
   })
@@ -29,12 +28,12 @@ async function generateWithOpenAi(prompt: string, size: "1024x1024" | "1024x1792
     throw new Error(error?.error?.message || `OpenAI image generation returned ${response.status}`)
   }
 
-  const data = (await response.json()) as { data?: Array<{ b64_json?: string }> }
-  const image = data.data?.[0]?.b64_json
-  if (!image) throw new Error("OpenAI returned no image")
+  const data = (await response.json()) as { data?: Array<{ b64_json?: string; url?: string }> }
+  const image = data.data?.[0]
+  if (!image?.url && !image?.b64_json) throw new Error("OpenAI returned no image")
 
   return {
-    url: `data:image/png;base64,${image}`,
+    url: image.url || `data:image/png;base64,${image.b64_json}`,
     provider: "openai-direct",
     prompt,
   }
