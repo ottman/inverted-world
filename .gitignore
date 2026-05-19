@@ -1,7 +1,25 @@
-.vercel
-.next
-node_modules
+# Expo
+.expo/
+dist/
+web-build/
+.next/
+.vercel/
+.turbo/
+
+# Dependencies
+node_modules/
+
+# Local env
 .env
-.env.local
-.env*.local
-data/generated
+.env.*
+!.env.example
+
+# Native build output
+android/
+ios/
+
+# System
+.DS_Store
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
