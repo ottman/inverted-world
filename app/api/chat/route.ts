@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getTopic } from "@/data/inverted-world"
-import { callClaude } from "@/lib/claude"
+import { callClaudeGateway } from "@/lib/claude"
 import { getRecursivSdk, RECURSIV_AGENT_ID } from "@/lib/recursiv"
 import { buildLocalResearchResponse, buildResearchPrompt } from "@/lib/research-prompt"
 
@@ -49,13 +49,13 @@ export async function POST(request: NextRequest) {
   const prompt = buildResearchPrompt(message, topic.id)
 
   try {
-    const answer = await callClaude(prompt)
+    const llm = await callClaudeGateway(prompt)
     return NextResponse.json({
-      mode: "claude",
-      answer,
+      mode: llm.mode,
+      answer: llm.answer,
       citations: [],
     })
-  } catch (claudeError) {
+  } catch (llmError) {
     try {
       const recursiv = await callRecursivAgent(prompt)
       return NextResponse.json({
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         ...fallback,
         warning: [
-          claudeError instanceof Error ? claudeError.message : "Claude unavailable",
+          llmError instanceof Error ? llmError.message : "Claude/OpenRouter unavailable",
           recursivError instanceof Error ? recursivError.message : "Recursiv agent unavailable",
         ].join(" | "),
       })
