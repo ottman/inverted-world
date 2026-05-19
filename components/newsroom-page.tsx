@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { ExternalLink, RefreshCw, Zap } from "lucide-react"
+import { ExternalLink, RefreshCw, X, Zap } from "lucide-react"
 import { intelligenceArticles, type IntelligenceArticle } from "@/data/intelligence-articles"
 import { archiveSurface, InvertedPageShell } from "@/components/inverted-page-shell"
 import { cn } from "@/lib/utils"
@@ -51,9 +51,9 @@ export function NewsroomPage() {
       }
     >
       <div className={cn("mb-5 grid gap-3 p-4 sm:grid-cols-3", archiveSurface)}>
-        <Metric label="daily issue" value="autopost-ready" />
-        <Metric label="sources" value="news + docs" />
-        <Metric label="format" value="viral brief" />
+        <Metric label="clusters" value={String(articles.length)} />
+        <Metric label="source split" value="media + records" />
+        <Metric label="pages" value="indexable" />
       </div>
       {warnings.length > 0 && <p className="mb-4 text-xs text-[#e8b45c]/72">{warnings.slice(0, 2).join(" | ")}</p>}
 
@@ -74,13 +74,18 @@ export function NewsroomPage() {
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f4efe2]/42">{article.topic}</p>
                 <h2 className="mt-3 line-clamp-3 text-base font-semibold leading-6 text-[#fff8e6]">{article.title}</h2>
                 <p className="mt-3 line-clamp-3 text-sm leading-6 text-[#f4efe2]/58">{article.deck}</p>
+                <div className="mt-4 grid grid-cols-3 gap-1 text-[10px] font-semibold uppercase tracking-[0.1em]">
+                  <span className="border border-[#e8b45c]/28 px-2 py-1 text-[#e8b45c]">live</span>
+                  <span className="border border-[#8ee6a8]/24 px-2 py-1 text-[#8ee6a8]">records</span>
+                  <span className="border border-[#7dd3fc]/24 px-2 py-1 text-[#7dd3fc]">counter</span>
+                </div>
               </div>
             </button>
             <a
               href={`/news/${article.id}`}
               className="block border-t border-[#f4efe2]/10 px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#dff7ff] transition hover:text-[#e8b45c]"
             >
-              Index page
+              Open article
             </a>
           </article>
         ))}
@@ -90,9 +95,26 @@ export function NewsroomPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#050504]/55 p-3 backdrop-blur-[3px]">
           <button className="absolute inset-0 cursor-default" aria-label="Close article" onClick={() => setSelected(null)} />
           <article className={cn("relative max-h-[92vh] w-full max-w-4xl overflow-y-auto p-5 sm:p-6", archiveSurface)}>
+            <button
+              className="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center border border-[#f4efe2]/12 text-[#f4efe2]/64 transition hover:border-[#e8b45c]/45 hover:text-[#fff8e6]"
+              onClick={() => setSelected(null)}
+              aria-label="Close brief"
+            >
+              <X className="h-4 w-4" />
+            </button>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#e8b45c]">{selected.topic}</p>
             <h2 className="mt-3 text-3xl font-semibold leading-tight text-[#fff8e6] sm:text-4xl">{selected.title}</h2>
             <p className="mt-4 text-base leading-7 text-[#f4efe2]/70">{selected.deck}</p>
+            <div className="mt-5 grid gap-2 sm:grid-cols-4">
+              {["original", "primary", "archive", "counter"].map((label) => (
+                <div key={label} className="border border-[#f4efe2]/10 bg-[#050504]/24 p-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#f4efe2]/42">{label}</p>
+                  <p className="mt-2 text-xs font-semibold uppercase tracking-[0.1em] text-[#fff8e6]">
+                    {label === "original" ? selected.source : label === "counter" ? "needed" : "linked"}
+                  </p>
+                </div>
+              ))}
+            </div>
             <div className="mt-6 grid gap-3">
               {selected.body.map((paragraph) => (
                 <p key={paragraph} className="border border-[#f4efe2]/12 bg-[#070706]/24 p-4 text-sm leading-6 text-[#f4efe2]/78">

@@ -22,7 +22,7 @@ export type IntelligenceArticle = {
 const lanes = [
   {
     topicId: "uap-disclosure",
-    topic: "UAP",
+    topic: "SKYWATCH",
     glyph: "AARO",
     sigil: "UAP-221",
     source: "AARO / NASA",
@@ -37,7 +37,7 @@ const lanes = [
   },
   {
     topicId: "secret-programs",
-    topic: "BLACK FILES",
+    topic: "BLACK VAULT",
     glyph: "FOIA",
     sigil: "MK-Δ",
     source: "CIA Reading Room",
@@ -52,7 +52,7 @@ const lanes = [
   },
   {
     topicId: "epstein-networks",
-    topic: "NETWORKS",
+    topic: "POWER WEB",
     glyph: "DOCKET",
     sigil: "E-172",
     source: "CourtListener",
@@ -67,7 +67,7 @@ const lanes = [
   },
   {
     topicId: "cryptids-paranormal",
-    topic: "FIELD NOTES",
+    topic: "HIGH STRANGENESS",
     glyph: "SIGHT",
     sigil: "CR-08",
     source: "Local archives",
@@ -82,7 +82,7 @@ const lanes = [
   },
   {
     topicId: "ai-technocracy",
-    topic: "TECHNOCRACY",
+    topic: "MACHINE STATE",
     glyph: "AI",
     sigil: "PAL",
     source: "NIST / Federal Register",
@@ -97,7 +97,7 @@ const lanes = [
   },
   {
     topicId: "space-anomalies",
-    topic: "SPACE",
+    topic: "OFF-WORLD",
     glyph: "NASA",
     sigil: "SOL",
     source: "NASA / NOAA",
@@ -112,7 +112,7 @@ const lanes = [
   },
   {
     topicId: "secret-programs",
-    topic: "BIOSECURITY",
+    topic: "BIO VAULT",
     glyph: "LAB",
     sigil: "CV-19",
     source: "NIH / Congress",
@@ -127,7 +127,7 @@ const lanes = [
   },
   {
     topicId: "ai-technocracy",
-    topic: "FLOATING INFRA",
+    topic: "HIDDEN GRID",
     glyph: "NODE",
     sigil: "DC-24",
     source: "Federal Register",
@@ -142,7 +142,7 @@ const lanes = [
   },
   {
     topicId: "epstein-networks",
-    topic: "ELITE MAPS",
+    topic: "POWER WEB",
     glyph: "MAP",
     sigil: "NET",
     source: "Open records",
@@ -157,7 +157,7 @@ const lanes = [
   },
   {
     topicId: "uap-disclosure",
-    topic: "DISCLOSURE WAR",
+    topic: "SKYWATCH",
     glyph: "FILE",
     sigil: "UFO",
     source: "Congress / AARO",

@@ -318,7 +318,7 @@
   color: #fff8e6;
   font-size: clamp(54px, 7.5vw, 116px);
   line-height: 0.92;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .iw-hero-amp {
@@ -357,7 +357,7 @@
   font-family: "Instrument Serif", ui-serif, Georgia, "Times New Roman", serif;
   font-size: 34px;
   line-height: 1;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .iw-stat-label {
@@ -618,7 +618,7 @@
   font-family: "Instrument Serif", ui-serif, Georgia, "Times New Roman", serif;
   font-size: 34px;
   line-height: 1;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .iw-doss-meta {
@@ -802,7 +802,7 @@
   font-family: "Instrument Serif", ui-serif, Georgia, "Times New Roman", serif;
   font-size: 42px;
   line-height: 1;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .iw-watch-title {
@@ -1117,6 +1117,31 @@
   margin-top: 22px;
 }
 
+.iw-auth-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  margin-top: 18px;
+  border: 1px solid var(--iw-rule-strong);
+  background: var(--iw-rule);
+}
+
+.iw-auth-toggle button {
+  border: 0;
+  background: rgba(7, 7, 6, 0.72);
+  color: var(--iw-fg-3);
+  padding: 11px 12px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.iw-auth-toggle .iw-auth-toggle-active {
+  background: rgba(232, 180, 92, 0.14);
+  color: var(--iw-accent);
+}
+
 .iw-auth-label {
   display: grid;
   gap: 8px;
@@ -1151,6 +1176,13 @@
   margin-top: 4px;
 }
 
+.iw-auth-actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  margin-top: 22px;
+}
+
 .iw-auth-secondary {
   margin-top: 12px;
   border: 1px solid var(--iw-rule-strong);
@@ -1163,6 +1195,10 @@
   text-transform: uppercase;
 }
 
+.iw-auth-actions .iw-auth-secondary {
+  margin-top: 0;
+}
+
 .iw-auth-secondary:hover {
   border-color: var(--iw-accent);
   color: var(--iw-fg);
@@ -1173,6 +1209,12 @@
   color: var(--iw-fg-3);
   font-size: 11px;
   line-height: 1.6;
+}
+
+.iw-auth-note-strong {
+  color: var(--iw-accent);
+  font-weight: 800;
+  letter-spacing: 0.08em;
 }
 
 @media (max-width: 1200px) {
@@ -1264,6 +1306,10 @@
   .iw-engine-send {
     grid-column: 1 / -1;
     min-height: 44px;
+  }
+
+  .iw-auth-actions {
+    grid-template-columns: 1fr;
   }
 
   .iw-stripe {

@@ -33,19 +33,12 @@ async function callRecursivAgent(request: NextRequest, prompt: string, conversat
   }
 }
 
-function buildProviderOfflineResponse(message: string, errors: string[]) {
+function buildProviderOfflineResponse(localAnswer: string, errors: string[]) {
   return [
-    "The Recursiv managed agent path is not currently reachable from this deployment.",
+    localAnswer,
     "",
-    "What I can verify from the app path:",
-    ...errors.map((error) => `- ${error}`),
-    "",
-    "Required fix:",
-    "- Repair the Recursiv managed agent provider. This site no longer bypasses Recursiv with direct OpenRouter calls.",
-    "",
-    "Once that is done, this same box answers freeform questions about conspiracies, paranormal claims, documents, networks, and open questions without filters.",
-    "",
-    `Your prompt was: ${message}`,
+    "Agent note: live Recursiv synthesis is temporarily unreachable, so this response is a local source scaffold. Use it as a starting map, not a final answer.",
+    ...errors.slice(0, 1).map((error) => `Status: ${error}`),
   ].join("\n")
 }
 
@@ -89,7 +82,7 @@ export async function POST(request: NextRequest) {
     const errors = [recursivError instanceof Error ? recursivError.message : "Recursiv agent unavailable"]
     return NextResponse.json({
       mode: "provider-offline",
-      answer: buildProviderOfflineResponse(message, errors),
+      answer: buildProviderOfflineResponse(fallback.answer, errors),
       citations: fallback.citations,
       followUps: fallback.followUps,
       warning: errors.join(" | "),

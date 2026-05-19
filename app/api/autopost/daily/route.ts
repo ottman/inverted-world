@@ -56,7 +56,8 @@ export async function GET(request: NextRequest) {
     })),
     distribution: {
       publishTargets: ["site", "x-thread", "newsletter", "short-form-script"],
-      nextIntegrations: ["X_API_BEARER_TOKEN", "XAI_API_KEY", "YOUTUBE_API_KEY", "IMAGE_GENERATION_API_KEY"],
+      nextIntegrations: ["X_API_BEARER_TOKEN", "EXA_API_KEY", "FIRECRAWL_API_KEY", "JINA_API_KEY", "OPENAI_API_KEY"],
+      imageEndpoint: "/api/images/thumbnail",
     },
   })
 }

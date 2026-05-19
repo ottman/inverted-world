@@ -64,7 +64,7 @@ export const channelProfile = {
 export const topics: ContentTopic[] = [
   {
     id: "uap-disclosure",
-    title: "UAP disclosure",
+    title: "Skywatch",
     signal: "Pentagon files, NASA panels, anomalous aerospace claims",
     query: '"UAP" OR "UFO" Pentagon NASA disclosure AARO',
     stance: "Treat witness testimony as a lead, official denials as evidence, and missing records as a research object.",
@@ -72,7 +72,7 @@ export const topics: ContentTopic[] = [
   },
   {
     id: "secret-programs",
-    title: "Secret programs",
+    title: "Black Vault",
     signal: "FOIA, intelligence history, mind-control and black-budget claims",
     query: '"MKULTRA" OR "CIA" "FOIA" "declassified" "secret program"',
     stance: "Separate proven historical programs from speculative continuity claims.",
@@ -80,7 +80,7 @@ export const topics: ContentTopic[] = [
   },
   {
     id: "epstein-networks",
-    title: "Epstein networks",
+    title: "Power Web",
     signal: "Court records, travel logs, institutional ties, unresolved names",
     query: '"Jeffrey Epstein" court records documents network',
     stance: "Use court filings and primary records before narratives. Flag allegations, sealed gaps, and confirmed facts separately.",
@@ -88,7 +88,7 @@ export const topics: ContentTopic[] = [
   },
   {
     id: "cryptids-paranormal",
-    title: "Cryptids and paranormal",
+    title: "High Strangeness",
     signal: "Bigfoot, ghosts, caller reports, folklore, field records",
     query: '"cryptid" OR "Bigfoot" OR "paranormal" sightings research',
     stance: "Respect witnesses, preserve context, and avoid upgrading anecdote into proof.",
@@ -96,7 +96,7 @@ export const topics: ContentTopic[] = [
   },
   {
     id: "ai-technocracy",
-    title: "AI and technocracy",
+    title: "Machine State",
     signal: "AI control systems, surveillance, synthetic media, autonomous governance",
     query: '"AI" surveillance autonomous systems governance technocracy',
     stance: "Track what is deployed, what is proposed, and what is feared as three different lanes.",
@@ -104,7 +104,7 @@ export const topics: ContentTopic[] = [
   },
   {
     id: "space-anomalies",
-    title: "Space anomalies",
+    title: "Off-World Signals",
     signal: "NASA, meteor events, Mars rocks, solar storms, lost satellites",
     query: 'NASA anomaly meteor solar storm Mars "space weather"',
     stance: "Start from instrument data, then compare official interpretation against independent analysis.",
@@ -114,7 +114,7 @@ export const topics: ContentTopic[] = [
 
 export const universalTopic: ContentTopic = {
   id: "all",
-  title: "Truth desk",
+  title: "The Inverted Index",
   signal: "Conspiracies, paranormal events, hidden networks, anomalous science, and the unanswered edges of reality",
   query:
     '("UAP" OR "UFO" OR "MKULTRA" OR "Jeffrey Epstein" OR "cryptid" OR "paranormal" OR "AI surveillance" OR "NASA anomaly" OR "classified program")',

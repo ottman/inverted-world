@@ -46,19 +46,19 @@ const starterPrompts = [
   "What is the strongest conspiracy case that still lacks the missing proof?",
   "Map the Epstein claims by evidence quality.",
   "What is the strangest true document in government archives?",
-  "What are people missing about AI control systems?",
+  "What is the Machine State hiding in plain sight?",
   "Ask me a question that starts a deep investigation.",
 ]
 
 const laneMeta = {
-  UAP: { code: "UAP-221", color: "#e8b45c", label: "Disclosure" },
-  BLACK: { code: "MK-D", color: "#e8b45c", label: "Black files" },
-  NET: { code: "E-172", color: "#e53935", label: "Networks" },
-  FIELD: { code: "CR-08", color: "#f4efe2", label: "Field notes" },
-  TECH: { code: "PAL", color: "#7dd3fc", label: "Technocracy" },
-  SPACE: { code: "SOL", color: "#7dd3fc", label: "Space" },
-  BIO: { code: "CV-19", color: "#e53935", label: "Biosecurity" },
-  INFRA: { code: "DC-24", color: "#7dd3fc", label: "Infrastructure" },
+  UAP: { code: "SKY-221", color: "#e8b45c", label: "Skywatch" },
+  BLACK: { code: "VAULT-D", color: "#e8b45c", label: "Black Vault" },
+  NET: { code: "WEB-172", color: "#e53935", label: "Power Web" },
+  FIELD: { code: "STR-08", color: "#f4efe2", label: "High Strangeness" },
+  TECH: { code: "MS-PAL", color: "#7dd3fc", label: "Machine State" },
+  SPACE: { code: "OW-SOL", color: "#7dd3fc", label: "Off-World" },
+  BIO: { code: "BIO-19", color: "#e53935", label: "Bio Vault" },
+  INFRA: { code: "GRID-24", color: "#7dd3fc", label: "Hidden Grid" },
 } as const
 
 type LaneKey = keyof typeof laneMeta
@@ -76,11 +76,11 @@ export function InvertedWorldEditorialApp() {
     {
       role: "assistant",
       content:
-        "What rabbit hole are we opening first: UAP retrieval claims, Epstein networks, MKULTRA continuities, AI surveillance, cryptids, ancient anomalies, or something stranger?",
+        "What door are we opening first: Skywatch, the Black Vault, the Power Web, the Machine State, High Strangeness, Off-World Signals, or something stranger?",
       mode: "truth-engine",
       followUps: [
-        "Start with UAP retrieval programs",
-        "Start with Epstein network evidence",
+        "Open Skywatch retrieval claims",
+        "Map the Power Web evidence",
         "Start with MKULTRA and modern psyops",
       ],
     },
@@ -388,6 +388,7 @@ export function InvertedWorldEditorialApp() {
           setEmail={setEmail}
           setName={setName}
           setPassword={setPassword}
+          setAuthMode={setAuthMode}
           setAuthOpen={setAuthOpen}
           submitAccess={submitAccess}
           signOut={signOut}
@@ -656,8 +657,6 @@ function DocumentCard({ doc, index }: { doc: ResearchDocument; index: number }) 
       <div className="iw-doc-foot">
         <span>{doc.source}</span>
         <span className="iw-dot" />
-        <span>open</span>
-        <span className="iw-flex" />
         <span className="iw-accent-text">open ↗</span>
       </div>
     </a>
@@ -718,6 +717,7 @@ function AccessModal({
   setEmail,
   setName,
   setPassword,
+  setAuthMode,
   setAuthOpen,
   submitAccess,
   signOut,
@@ -732,10 +732,34 @@ function AccessModal({
   setEmail: (value: string) => void
   setName: (value: string) => void
   setPassword: (value: string) => void
+  setAuthMode: (value: "login" | "signup") => void
   setAuthOpen: (value: boolean) => void
   submitAccess: (event: React.FormEvent<HTMLFormElement>) => Promise<void>
   signOut: () => Promise<void>
 }) {
+  if (memberEmail) {
+    return (
+      <div className="iw-modal" onClick={() => setAuthOpen(false)}>
+        <article className="iw-modal-card iw-auth-card" onClick={(event) => event.stopPropagation()}>
+          <button className="iw-modal-x" onClick={() => setAuthOpen(false)} aria-label="Close">
+            x
+          </button>
+          <div className="iw-engine-sig">desk unlocked</div>
+          <h2 className="iw-modal-title iw-hero-serif">Your investigations are live.</h2>
+          <p className="iw-auth-note iw-auth-note-strong">{memberEmail}</p>
+          <div className="iw-auth-actions">
+            <button className="iw-engine-send iw-auth-submit" onClick={() => setAuthOpen(false)}>
+              continue
+            </button>
+            <button className="iw-auth-secondary" onClick={() => void signOut()}>
+              sign out
+            </button>
+          </div>
+        </article>
+      </div>
+    )
+  }
+
   return (
     <div className="iw-modal" onClick={() => setAuthOpen(false)}>
       <article className="iw-modal-card iw-auth-card" onClick={(event) => event.stopPropagation()}>
@@ -744,6 +768,14 @@ function AccessModal({
         </button>
         <div className="iw-engine-sig">{authMode === "login" ? "enter desk" : "join desk"}</div>
         <h2 className="iw-modal-title iw-hero-serif">Save investigations.</h2>
+        <div className="iw-auth-toggle" aria-label="Access mode">
+          <button className={cn(authMode === "signup" && "iw-auth-toggle-active")} onClick={() => setAuthMode("signup")} type="button">
+            create
+          </button>
+          <button className={cn(authMode === "login" && "iw-auth-toggle-active")} onClick={() => setAuthMode("login")} type="button">
+            sign in
+          </button>
+        </div>
         <form onSubmit={submitAccess} className="iw-auth-fields">
           {authMode === "signup" && (
             <label className="iw-auth-label">
@@ -785,13 +817,8 @@ function AccessModal({
             {authBusy ? "checking..." : authMode === "login" ? "sign in" : "create desk"}
           </button>
         </form>
-        {memberEmail && (
-          <button className="iw-auth-secondary" onClick={() => void signOut()}>
-            sign out {memberEmail}
-          </button>
-        )}
         <p className="iw-auth-note">
-          Recursiv account. Project-scoped research key. Personal agent when available.
+          Recursiv account. Saved rooms, personal agent, daily brief queue.
         </p>
         {authMessage && <p className="iw-warning">{authMessage}</p>}
       </article>

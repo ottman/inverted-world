@@ -52,7 +52,7 @@ const starterPrompts = [
   "What is the strongest conspiracy case that still lacks the missing proof?",
   "Map the Epstein claims by evidence quality.",
   "What is the strangest true document in the archive?",
-  "What are people missing about AI control systems?",
+  "What is the Machine State hiding in plain sight?",
 ]
 
 const youtubeVideos = featuredVideos.filter((video) => video.source === "YouTube" && video.videoId)
