@@ -31,6 +31,14 @@ Server-side agent calls use `RECURSIV_SERVER_API_KEY` so this standalone app doe
 - Official records: Federal Register, AARO, NASA, NOAA, FBI Vault, CIA Reading Room.
 - Legal records: CourtListener and direct court dockets where available.
 - Science/open data: NASA NTRS, NOAA SWPC, arXiv/Crossref where relevant.
+- X/Grok pulse: X API for live narrative movement, Grok for X-native synthesis and memetic framing.
+
+## Live Routes
+
+- `/archive`: embedded channel archive. Uses YouTube RSS now and full uploads pagination when `YOUTUBE_API_KEY` is configured.
+- `/news`: daily brief surface backed by `/api/articles`.
+- `/documents`: browsable source database backed by `/api/documents`.
+- `/api/autopost/daily`: autopost-ready daily packet with X hooks, source packs, and thumbnail prompts.
 
 ## First Tables
 

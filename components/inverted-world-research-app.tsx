@@ -14,7 +14,6 @@ import {
   PlayCircle,
   Radio,
   RefreshCw,
-  Search,
   Send,
   Sparkles,
   UserPlus,
@@ -27,11 +26,7 @@ import {
   channelProfile,
   fallbackCoverage,
   featuredVideos,
-  getDocumentsForTopic,
-  getTopic,
-  getVideosForTopic,
   researchDocuments,
-  topics,
   type ChannelVideo,
   type NewsCoverageItem,
 } from "@/data/inverted-world"
@@ -54,10 +49,10 @@ type ArticlesResponse = {
 }
 
 const starterPrompts = [
-  "What is the strongest case that UAP retrieval rumors are real?",
-  "Map Epstein network claims by evidence quality.",
-  "What are the strangest AI control stories this week?",
-  "Give me a skeptical read on Bermuda Triangle claims.",
+  "What is the strongest conspiracy case that still lacks the missing proof?",
+  "Map the Epstein claims by evidence quality.",
+  "What is the strangest true document in the archive?",
+  "What are people missing about AI control systems?",
 ]
 
 const youtubeVideos = featuredVideos.filter((video) => video.source === "YouTube" && video.videoId)
@@ -75,12 +70,11 @@ const thumbPalettes = [
 ]
 
 export function InvertedWorldResearchApp() {
-  const [topicId, setTopicId] = useState(topics[0].id)
-  const [prompt, setPrompt] = useState("Ask anything: UFOs, elite networks, AI control, cryptids, occult history...")
+  const [prompt, setPrompt] = useState("")
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: "assistant",
-      content: "Ask anything. I will split record, rumor, weird read, skeptical read, and next searches.",
+      content: "Ask anything. I will separate receipts, rumor, weird read, skeptical read, and what to verify next.",
       mode: "claude-ready",
     },
   ])
@@ -95,20 +89,15 @@ export function InvertedWorldResearchApp() {
   const [authMode, setAuthMode] = useState<"login" | "signup">("signup")
   const [email, setEmail] = useState("")
   const [authMessage, setAuthMessage] = useState("")
+  const [memberEmail, setMemberEmail] = useState("")
   const [selectedArticle, setSelectedArticle] = useState<IntelligenceArticle | null>(null)
 
-  const topic = useMemo(() => getTopic(topicId), [topicId])
-  const topicVideos = useMemo(() => getVideosForTopic(topicId), [topicId])
-  const topicDocs = useMemo(() => getDocumentsForTopic(topicId), [topicId])
-  const featuredArticles = useMemo(
-    () => articles.filter((article) => article.topicId === topicId).slice(0, 16),
-    [articles, topicId],
-  )
+  const featuredArticles = useMemo(() => articles.slice(0, 16), [articles])
 
-  const loadCoverage = useCallback(async (nextTopicId = topicId) => {
+  const loadCoverage = useCallback(async () => {
     setLoadingCoverage(true)
     try {
-      const response = await fetch(`/api/news?topic=${encodeURIComponent(nextTopicId)}`)
+      const response = await fetch("/api/news")
       const data = (await response.json()) as NewsResponse
       setCoverage(data.coverage?.length ? data.coverage : fallbackCoverage)
       setCoverageWarnings(data.warnings ?? [])
@@ -118,7 +107,7 @@ export function InvertedWorldResearchApp() {
     } finally {
       setLoadingCoverage(false)
     }
-  }, [topicId])
+  }, [])
 
   const loadArticles = useCallback(async () => {
     setLoadingArticles(true)
@@ -136,8 +125,12 @@ export function InvertedWorldResearchApp() {
   }, [])
 
   useEffect(() => {
-    void loadCoverage(topicId)
-  }, [loadCoverage, topicId])
+    setMemberEmail(window.localStorage.getItem("inverted-world-member-email") || "")
+  }, [])
+
+  useEffect(() => {
+    void loadCoverage()
+  }, [loadCoverage])
 
   useEffect(() => {
     void loadArticles()
@@ -155,7 +148,7 @@ export function InvertedWorldResearchApp() {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message, topicId }),
+        body: JSON.stringify({ message }),
       })
       const data = (await response.json()) as { answer?: string; mode?: string; error?: string }
       setMessages((current) => [
@@ -188,8 +181,16 @@ export function InvertedWorldResearchApp() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, mode: authMode }),
     })
-    const data = (await response.json().catch(() => ({}))) as { error?: string; message?: string }
-    setAuthMessage(response.ok ? data.message || "Access request received." : data.error || "Try another email.")
+    const data = (await response.json().catch(() => ({}))) as { error?: string; message?: string; member?: { email?: string } }
+    if (response.ok) {
+      const nextEmail = data.member?.email || email.trim().toLowerCase()
+      window.localStorage.setItem("inverted-world-member-email", nextEmail)
+      setMemberEmail(nextEmail)
+      setAuthMessage(data.message || "Desk unlocked.")
+      window.setTimeout(() => setAuthOpen(false), 650)
+      return
+    }
+    setAuthMessage(data.error || "Try another email.")
   }
 
   function openAuth(mode: "login" | "signup") {
@@ -231,14 +232,14 @@ export function InvertedWorldResearchApp() {
               />
             </a>
             <nav className="hidden items-center gap-6 text-xs font-semibold uppercase tracking-[0.18em] text-[#f4efe2]/64 lg:flex">
-              <a className="transition hover:text-[#e8b45c]" href="#intel">
-                Intel
+              <a className="transition hover:text-[#e8b45c]" href="/news">
+                News
               </a>
-              <a className="transition hover:text-[#e8b45c]" href="#archive">
+              <a className="transition hover:text-[#e8b45c]" href="/archive">
                 Archive
               </a>
-              <a className="transition hover:text-[#e8b45c]" href="#sources">
-                Sources
+              <a className="transition hover:text-[#e8b45c]" href="/documents">
+                Documents
               </a>
             </nav>
             <div className="flex items-center gap-2">
@@ -247,14 +248,14 @@ export function InvertedWorldResearchApp() {
                 className="hidden h-10 items-center gap-2 rounded-md border border-[#f4efe2]/12 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/72 transition hover:border-[#e8b45c]/45 hover:text-[#fff8e6] sm:inline-flex"
               >
                 <LockKeyhole className="h-4 w-4" />
-                Login
+                {memberEmail ? "Desk" : "Login"}
               </button>
               <button
                 onClick={() => openAuth("signup")}
                 className="inline-flex h-10 items-center gap-2 rounded-md border border-[#e8b45c]/45 bg-[#e8b45c]/14 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-[#e8b45c]/24"
               >
                 <UserPlus className="h-4 w-4" />
-                Join
+                {memberEmail ? "Joined" : "Join"}
               </button>
             </div>
           </div>
@@ -279,21 +280,15 @@ export function InvertedWorldResearchApp() {
                   <div className="mt-7 grid grid-cols-3 gap-2 sm:gap-3">
                     <Stat icon={Archive} label="briefs" value={String(articles.length)} />
                     <Stat icon={Video} label="archive" value="live" />
-                    <Stat icon={BadgeCheck} label="agent" value="Claude path" />
+                    <Stat icon={BadgeCheck} label="sources" value={String(researchDocuments.length)} />
                   </div>
-                </div>
-
-                <div className="mt-8 hidden gap-3 lg:grid lg:grid-cols-2">
-                  {topics.slice(0, 6).map((item) => (
-                    <TopicButton key={item.id} item={item} active={item.id === topicId} onClick={() => setTopicId(item.id)} />
-                  ))}
                 </div>
               </div>
 
               <aside className={cn("flex min-h-[480px] flex-col lg:min-h-[560px]", hotSurface)}>
                 <div className="border-b border-[#f4efe2]/10 p-4 sm:p-5">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#e8b45c]">Ask anything</p>
-                  <h2 className="mt-2 text-2xl font-semibold text-[#fff8e6]">{topic.title}</h2>
+                  <h2 className="mt-2 text-2xl font-semibold text-[#fff8e6]">Truth engine</h2>
                 </div>
 
                 <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 sm:p-5">
@@ -339,7 +334,7 @@ export function InvertedWorldResearchApp() {
                       value={prompt}
                       onChange={(event) => setPrompt(event.target.value)}
                       className="min-h-12 flex-1 resize-none border border-[#f4efe2]/14 bg-[#050504]/58 px-3 py-3 text-sm text-[#fff8e6] outline-none transition placeholder:text-[#f4efe2]/30 focus:border-[#e8b45c]/70"
-                      placeholder="Ask the agent..."
+                      placeholder="Ask about anything..."
                     />
                     <button
                       type="submit"
@@ -352,12 +347,6 @@ export function InvertedWorldResearchApp() {
                   </form>
                 </div>
               </aside>
-
-              <div className="grid gap-3 lg:hidden">
-                {topics.slice(0, 6).map((item) => (
-                  <TopicButton key={item.id} item={item} active={item.id === topicId} onClick={() => setTopicId(item.id)} />
-                ))}
-              </div>
             </div>
           </section>
 
@@ -365,15 +354,23 @@ export function InvertedWorldResearchApp() {
             <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
               <SectionBar
                 kicker="Intel"
-                title="100 briefs"
+                title="News briefs"
                 action={
-                  <button
-                    onClick={() => void loadArticles()}
-                    className="inline-flex h-10 items-center gap-2 rounded-md border border-[#7dd3fc]/35 bg-[#070706]/22 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#dff7ff] transition hover:bg-[#7dd3fc]/12"
-                  >
-                    <RefreshCw className={cn("h-4 w-4", loadingArticles && "animate-spin")} />
-                    Refresh
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => void loadArticles()}
+                      className="inline-flex h-10 items-center gap-2 rounded-md border border-[#7dd3fc]/35 bg-[#070706]/22 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#dff7ff] transition hover:bg-[#7dd3fc]/12"
+                    >
+                      <RefreshCw className={cn("h-4 w-4", loadingArticles && "animate-spin")} />
+                      Refresh
+                    </button>
+                    <a
+                      href="/news"
+                      className="inline-flex h-10 items-center gap-2 rounded-md border border-[#e8b45c]/35 bg-[#070706]/22 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-[#e8b45c]/12"
+                    >
+                      Newsroom
+                    </a>
+                  </div>
                 }
               />
               <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -394,13 +391,11 @@ export function InvertedWorldResearchApp() {
                 title="Watch"
                 action={
                   <a
-                    href="https://www.youtube.com/@TalesfromtheInvertedWorld/videos"
-                    target="_blank"
-                    rel="noreferrer"
+                    href="/archive"
                     className="inline-flex h-10 items-center gap-2 rounded-md border border-[#e53935]/35 bg-[#070706]/22 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-[#e53935]/12"
                   >
                     <Radio className="h-4 w-4" />
-                    YouTube
+                    Deep archive
                   </a>
                 }
               />
@@ -419,7 +414,7 @@ export function InvertedWorldResearchApp() {
                   </div>
                 </div>
                 <div className="grid gap-3">
-                  {(topicVideos.length ? topicVideos : youtubeVideos.slice(0, 4)).slice(0, 4).map((video) => (
+                  {youtubeVideos.slice(0, 4).map((video) => (
                     <a
                       key={`topic-${video.title}-${video.date}`}
                       href={video.href}
@@ -453,19 +448,27 @@ export function InvertedWorldResearchApp() {
             <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
               <SectionBar
                 kicker="Sources"
-                title="Records"
+                title="Documents"
                 action={
-                  <button
-                    onClick={() => void loadCoverage()}
-                    className="inline-flex h-10 items-center gap-2 rounded-md border border-[#7dd3fc]/35 bg-[#070706]/22 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#dff7ff] transition hover:bg-[#7dd3fc]/12"
-                  >
-                    <RefreshCw className={cn("h-4 w-4", loadingCoverage && "animate-spin")} />
-                    Scan
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => void loadCoverage()}
+                      className="inline-flex h-10 items-center gap-2 rounded-md border border-[#7dd3fc]/35 bg-[#070706]/22 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#dff7ff] transition hover:bg-[#7dd3fc]/12"
+                    >
+                      <RefreshCw className={cn("h-4 w-4", loadingCoverage && "animate-spin")} />
+                      Scan
+                    </button>
+                    <a
+                      href="/documents"
+                      className="inline-flex h-10 items-center gap-2 rounded-md border border-[#e8b45c]/35 bg-[#070706]/22 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-[#e8b45c]/12"
+                    >
+                      Database
+                    </a>
+                  </div>
                 }
               />
               <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                {[...coverage.slice(0, 8), ...(topicDocs.length ? topicDocs : researchDocuments).slice(0, 4)].map((item, index) => {
+                {[...coverage.slice(0, 8), ...researchDocuments.slice(0, 4)].map((item, index) => {
                   const url = "url" in item ? item.url : item.url
                   const title = "title" in item ? item.title : "Untitled"
                   const source = "outlet" in item ? item.outlet : item.source
@@ -509,7 +512,7 @@ export function InvertedWorldResearchApp() {
             </button>
             <KeyRound className="h-6 w-6 text-[#e8b45c]" />
             <h2 className="mt-4 text-2xl font-semibold text-[#fff8e6]">
-              {authMode === "login" ? "Login" : "Join the desk"}
+              {authMode === "login" ? "Enter the desk" : "Join the desk"}
             </h2>
             <form onSubmit={submitAccess} className="mt-5 space-y-3">
               <label className="block text-xs font-semibold uppercase tracking-[0.14em] text-[#f4efe2]/50">
@@ -527,7 +530,7 @@ export function InvertedWorldResearchApp() {
                   />
                 </div>
                 <button className="h-12 rounded-md bg-[#e8b45c] px-4 text-sm font-semibold text-[#120d07] transition hover:bg-[#ffd17a]">
-                  Send
+                  Enter
                 </button>
               </div>
               {authMessage && <p className="text-sm text-[#e8b45c]">{authMessage}</p>}
@@ -550,34 +553,6 @@ function Stat({ icon: Icon, label, value }: { icon: typeof Archive; label: strin
       </p>
       <p className="mt-2 text-sm font-semibold leading-5 text-[#fff8e6] sm:text-lg">{value}</p>
     </div>
-  )
-}
-
-function TopicButton({
-  item,
-  active,
-  onClick,
-}: {
-  item: (typeof topics)[number]
-  active: boolean
-  onClick: () => void
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "group min-h-[86px] border p-4 text-left transition backdrop-blur-[2px] lg:min-h-[92px]",
-        active
-          ? "border-[#e8b45c]/70 bg-[#e8b45c]/13"
-          : "border-[#f4efe2]/12 bg-[#070706]/24 hover:border-[#e8b45c]/45 hover:bg-[#070706]/34",
-      )}
-    >
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-sm font-semibold uppercase tracking-[0.1em] text-[#fff8e6]">{item.title}</span>
-        <Search className="h-4 w-4 text-[#e8b45c]" />
-      </div>
-      <p className="mt-3 line-clamp-1 text-sm text-[#f4efe2]/58">{item.signal}</p>
-    </button>
   )
 }
 

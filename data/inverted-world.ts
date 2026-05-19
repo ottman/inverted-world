@@ -111,6 +111,25 @@ export const topics: ContentTopic[] = [
   },
 ]
 
+export const universalTopic: ContentTopic = {
+  id: "all",
+  title: "Truth desk",
+  signal: "Conspiracies, paranormal events, hidden networks, anomalous science, and the unanswered edges of reality",
+  query:
+    '("UAP" OR "UFO" OR "MKULTRA" OR "Jeffrey Epstein" OR "cryptid" OR "paranormal" OR "AI surveillance" OR "NASA anomaly" OR "classified program")',
+  stance:
+    "Start from records, respect anomalies, separate proof from possibility, and keep the door open where the record is incomplete.",
+  documents: [
+    "government records",
+    "court dockets",
+    "declassified archives",
+    "science datasets",
+    "cross-outlet news coverage",
+  ],
+}
+
+export const truthSearchQuery = universalTopic.query
+
 export const featuredVideos: ChannelVideo[] = [
   {
     title: "TRUMP BRIEFED ON UFO RETRIEVAL PROGRAM",
@@ -351,6 +370,20 @@ export const researchDocuments: ResearchDocument[] = [
     topicIds: ["uap-disclosure"],
   },
   {
+    title: "ODNI UAP and national intelligence report library",
+    source: "ODNI",
+    url: "https://www.dni.gov/index.php/newsroom/reports-publications",
+    kind: "government",
+    topicIds: ["uap-disclosure", "secret-programs"],
+  },
+  {
+    title: "Congress.gov UAP search",
+    source: "Congress.gov",
+    url: "https://www.congress.gov/search?q=%7B%22search%22%3A%22UAP%22%7D",
+    kind: "government",
+    topicIds: ["uap-disclosure", "secret-programs"],
+  },
+  {
     title: "NASA UAP Independent Study",
     source: "NASA",
     url: "https://science.nasa.gov/uap/",
@@ -365,11 +398,60 @@ export const researchDocuments: ResearchDocument[] = [
     topicIds: ["secret-programs", "uap-disclosure"],
   },
   {
+    title: "CIA Reading Room MKULTRA search",
+    source: "CIA",
+    url: "https://www.cia.gov/readingroom/search/site/MKULTRA",
+    kind: "archive",
+    topicIds: ["secret-programs"],
+  },
+  {
     title: "The FBI Vault",
     source: "FBI",
     url: "https://vault.fbi.gov/",
     kind: "archive",
     topicIds: ["secret-programs", "epstein-networks"],
+  },
+  {
+    title: "FBI Vault Jeffrey Epstein files",
+    source: "FBI",
+    url: "https://vault.fbi.gov/jeffrey-epstein",
+    kind: "archive",
+    topicIds: ["epstein-networks"],
+  },
+  {
+    title: "FOIA.gov request and agency records portal",
+    source: "FOIA.gov",
+    url: "https://www.foia.gov/",
+    kind: "government",
+    topicIds: ["secret-programs", "epstein-networks", "ai-technocracy"],
+  },
+  {
+    title: "National Security Archive declassified collections",
+    source: "National Security Archive",
+    url: "https://nsarchive.gwu.edu/",
+    kind: "archive",
+    topicIds: ["secret-programs", "uap-disclosure"],
+  },
+  {
+    title: "National Archives research catalog",
+    source: "National Archives",
+    url: "https://catalog.archives.gov/",
+    kind: "archive",
+    topicIds: ["secret-programs", "uap-disclosure", "space-anomalies"],
+  },
+  {
+    title: "GovInfo congressional and federal records",
+    source: "GovInfo",
+    url: "https://www.govinfo.gov/",
+    kind: "government",
+    topicIds: ["secret-programs", "ai-technocracy", "uap-disclosure"],
+  },
+  {
+    title: "MuckRock FOIA archive",
+    source: "MuckRock",
+    url: "https://www.muckrock.com/foi/",
+    kind: "archive",
+    topicIds: ["secret-programs", "epstein-networks", "ai-technocracy"],
   },
   {
     title: "Federal Register document search",
@@ -379,11 +461,74 @@ export const researchDocuments: ResearchDocument[] = [
     topicIds: ["ai-technocracy", "secret-programs", "space-anomalies"],
   },
   {
+    title: "Regulations.gov public docket search",
+    source: "Regulations.gov",
+    url: "https://www.regulations.gov/",
+    kind: "government",
+    topicIds: ["ai-technocracy", "secret-programs"],
+  },
+  {
     title: "CourtListener opinion and docket search",
     source: "Free Law Project",
     url: "https://www.courtlistener.com/",
     kind: "legal",
     topicIds: ["epstein-networks", "secret-programs"],
+  },
+  {
+    title: "PACER federal court records",
+    source: "U.S. Courts",
+    url: "https://pacer.uscourts.gov/",
+    kind: "legal",
+    topicIds: ["epstein-networks", "secret-programs"],
+  },
+  {
+    title: "Southern District of New York public releases",
+    source: "DOJ SDNY",
+    url: "https://www.justice.gov/usao-sdny",
+    kind: "legal",
+    topicIds: ["epstein-networks", "secret-programs"],
+  },
+  {
+    title: "DOJ FOIA reference guide",
+    source: "DOJ",
+    url: "https://www.justice.gov/oip/doj-reference-guide",
+    kind: "government",
+    topicIds: ["epstein-networks", "secret-programs"],
+  },
+  {
+    title: "SEC EDGAR company and institution filings",
+    source: "SEC",
+    url: "https://www.sec.gov/edgar/search/",
+    kind: "legal",
+    topicIds: ["epstein-networks", "ai-technocracy"],
+  },
+  {
+    title: "NIST AI Risk Management Framework",
+    source: "NIST",
+    url: "https://www.nist.gov/itl/ai-risk-management-framework",
+    kind: "government",
+    topicIds: ["ai-technocracy"],
+  },
+  {
+    title: "CISA artificial intelligence security resources",
+    source: "CISA",
+    url: "https://www.cisa.gov/ai",
+    kind: "government",
+    topicIds: ["ai-technocracy"],
+  },
+  {
+    title: "NIST publications search",
+    source: "NIST",
+    url: "https://www.nist.gov/publications",
+    kind: "science",
+    topicIds: ["ai-technocracy", "secret-programs"],
+  },
+  {
+    title: "NIH PubMed biomedical literature",
+    source: "NIH",
+    url: "https://pubmed.ncbi.nlm.nih.gov/",
+    kind: "science",
+    topicIds: ["secret-programs", "ai-technocracy"],
   },
   {
     title: "NASA Technical Reports Server",
@@ -393,11 +538,67 @@ export const researchDocuments: ResearchDocument[] = [
     topicIds: ["space-anomalies", "ai-technocracy"],
   },
   {
+    title: "NASA ADS astrophysics literature",
+    source: "NASA ADS",
+    url: "https://ui.adsabs.harvard.edu/",
+    kind: "science",
+    topicIds: ["space-anomalies"],
+  },
+  {
+    title: "NASA Center for Near Earth Object Studies fireball data",
+    source: "NASA CNEOS",
+    url: "https://cneos.jpl.nasa.gov/fireballs/",
+    kind: "science",
+    topicIds: ["space-anomalies"],
+  },
+  {
+    title: "NASA Exoplanet Archive",
+    source: "NASA",
+    url: "https://exoplanetarchive.ipac.caltech.edu/",
+    kind: "science",
+    topicIds: ["space-anomalies"],
+  },
+  {
     title: "NOAA Space Weather Prediction Center",
     source: "NOAA",
     url: "https://www.swpc.noaa.gov/",
     kind: "science",
     topicIds: ["space-anomalies"],
+  },
+  {
+    title: "USGS earthquake and hazard data",
+    source: "USGS",
+    url: "https://earthquake.usgs.gov/",
+    kind: "science",
+    topicIds: ["space-anomalies"],
+  },
+  {
+    title: "Library of Congress Folklife collections",
+    source: "Library of Congress",
+    url: "https://www.loc.gov/folklife/",
+    kind: "archive",
+    topicIds: ["cryptids-paranormal"],
+  },
+  {
+    title: "Smithsonian collections search",
+    source: "Smithsonian",
+    url: "https://www.si.edu/search/collection-images",
+    kind: "archive",
+    topicIds: ["cryptids-paranormal", "space-anomalies"],
+  },
+  {
+    title: "Internet Archive TV News Search",
+    source: "Internet Archive",
+    url: "https://archive.org/details/tv",
+    kind: "news-index",
+    topicIds: topics.map((topic) => topic.id),
+  },
+  {
+    title: "Common Crawl open web corpus",
+    source: "Common Crawl",
+    url: "https://commoncrawl.org/",
+    kind: "archive",
+    topicIds: topics.map((topic) => topic.id),
   },
   {
     title: "GDELT global news index",
@@ -430,13 +631,15 @@ export const fallbackCoverage: NewsCoverageItem[] = [
 ]
 
 export function getTopic(topicId: string | null | undefined) {
-  return topics.find((topic) => topic.id === topicId) ?? topics[0]
+  return topics.find((topic) => topic.id === topicId) ?? universalTopic
 }
 
 export function getDocumentsForTopic(topicId: string) {
+  if (topicId === universalTopic.id) return researchDocuments
   return researchDocuments.filter((doc) => doc.topicIds.includes(topicId))
 }
 
 export function getVideosForTopic(topicId: string) {
+  if (topicId === universalTopic.id) return featuredVideos
   return featuredVideos.filter((video) => video.topicId === topicId)
 }

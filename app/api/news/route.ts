@@ -3,6 +3,9 @@ import {
   fallbackCoverage,
   getDocumentsForTopic,
   getTopic,
+  researchDocuments,
+  truthSearchQuery,
+  universalTopic,
   type NewsCoverageItem,
 } from "@/data/inverted-world"
 
@@ -105,9 +108,10 @@ async function fetchFederalRegister(query: string): Promise<NewsCoverageItem[]> 
 }
 
 export async function GET(request: NextRequest) {
-  const topic = getTopic(request.nextUrl.searchParams.get("topic"))
-  const query = request.nextUrl.searchParams.get("q") || topic.query
-  const docs = getDocumentsForTopic(topic.id)
+  const topicParam = request.nextUrl.searchParams.get("topic")
+  const topic = topicParam ? getTopic(topicParam) : universalTopic
+  const query = request.nextUrl.searchParams.get("q") || topic.query || truthSearchQuery
+  const docs = topic.id === universalTopic.id ? researchDocuments : getDocumentsForTopic(topic.id)
   const fallbackSearches = buildCoverageFallbacks(query, topic.title)
   const officialDocs: NewsCoverageItem[] = docs.map((doc) => ({
     title: doc.title,

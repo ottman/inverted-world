@@ -1,8 +1,10 @@
 import {
   channelProfile,
+  featuredVideos,
   getDocumentsForTopic,
   getTopic,
   getVideosForTopic,
+  researchDocuments,
   type ContentTopic,
 } from "@/data/inverted-world"
 
@@ -17,35 +19,47 @@ export const aiEditorialPolicy = [
 
 export function buildResearchPrompt(message: string, topicId?: string) {
   const topic = getTopic(topicId)
-  const videos = getVideosForTopic(topic.id)
-  const docs = getDocumentsForTopic(topic.id)
+  const universal = !topicId || topic.id === "all"
+  const videos = universal ? featuredVideos.filter((video) => video.source === "YouTube").slice(0, 14) : getVideosForTopic(topic.id)
+  const docs = universal ? researchDocuments.slice(0, 18) : getDocumentsForTopic(topic.id)
 
   return [
     `You are the research intelligence layer for ${channelProfile.name}.`,
     "Voice: critical-thinking, document-grounded, open to anomalies, and willing to say we do not know.",
-    `Topic lane: ${topic.title}.`,
-    `Topic signal: ${topic.signal}.`,
-    `Topic stance: ${topic.stance}.`,
+    universal
+      ? "Default mode: open-field truth desk. The user can ask about any conspiracy, paranormal claim, strange pattern, occult history, hidden network, UAP story, or philosophical question about reality."
+      : `Topic lane: ${topic.title}.`,
+    `Signal: ${topic.signal}.`,
+    `Stance: ${topic.stance}.`,
     "Editorial rules:",
     ...aiEditorialPolicy.map((rule) => `- ${rule}`),
     "Relevant channel items:",
     ...videos.map((video) => `- ${video.title} (${video.date})`),
     "Primary-source lanes:",
     ...docs.map((doc) => `- ${doc.source}: ${doc.title} (${doc.url})`),
-    "The user may ask about any conspiracy or anomaly, not only the selected lane. If the ask is outside this lane, answer it directly and use the lane only as optional style/context.",
-    "Respond in a compact format: signal, record, weird read, skeptical read, next searches.",
+    "The user may ask about anything. Answer directly first, then attach receipts, caveats, contradictions, and searches.",
+    "Respond in a compact but useful format: signal, record, weird read, skeptical read, what to verify next.",
     `User request: ${message}`,
   ].join("\n")
 }
 
 export function buildLocalResearchResponse(message: string, topic: ContentTopic) {
-  const docs = getDocumentsForTopic(topic.id)
-  const videos = getVideosForTopic(topic.id)
+  const terms = message
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((term) => term.length > 2)
+  const score = (value: string) => terms.reduce((total, term) => total + (value.toLowerCase().includes(term) ? 1 : 0), 0)
+  const docs = [...getDocumentsForTopic(topic.id)].sort(
+    (a, b) => score(`${b.title} ${b.source} ${b.topicIds.join(" ")}`) - score(`${a.title} ${a.source} ${a.topicIds.join(" ")}`),
+  )
+  const videos = [...getVideosForTopic(topic.id)].sort(
+    (a, b) => score(`${b.title} ${b.topicId}`) - score(`${a.title} ${a.topicId}`),
+  )
   const searches = [
-    `${topic.query} site:.gov`,
-    `${topic.query} filetype:pdf`,
-    `${topic.query} court records OR docket`,
-    `${topic.query} GDELT media coverage`,
+    `"${message}" site:.gov`,
+    `"${message}" filetype:pdf`,
+    `"${message}" court records OR docket`,
+    `"${message}" GDELT media coverage`,
   ]
 
   return {

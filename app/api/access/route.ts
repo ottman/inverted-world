@@ -29,7 +29,11 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     ok: true,
     mode: body.mode || "signup",
-    message: "Access request received.",
+    message: body.mode === "login" ? "Desk unlocked." : "You are in.",
+    member: {
+      email,
+      role: "researcher",
+      product: "inverted-world",
+    },
   })
 }
-
