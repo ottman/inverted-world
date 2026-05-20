@@ -1,10 +1,9 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Animated, StyleSheet, View } from 'react-native';
 import { Brand } from '@/constants/theme';
 
 export function SignalBackground() {
-  const { width, height } = useWindowDimensions();
   const drift = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -20,10 +19,10 @@ export function SignalBackground() {
   }, [drift]);
 
   const translateY = drift.interpolate({ inputRange: [0, 1], outputRange: [0, -90] });
-  const rows = Math.max(16, Math.ceil(height / 52));
+  const rows = 28;
 
   return (
-    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+    <View pointerEvents="none" style={styles.background}>
       <LinearGradient
         colors={['#030303', '#090704', '#050505', '#071014']}
         locations={[0, 0.38, 0.72, 1]}
@@ -37,8 +36,6 @@ export function SignalBackground() {
               styles.line,
               {
                 top: index * 58,
-                width: width * 1.3,
-                left: -width * 0.14,
                 borderColor:
                   index % 5 === 0
                     ? 'rgba(125,211,252,0.24)'
@@ -59,8 +56,15 @@ export function SignalBackground() {
 const styles = StyleSheet.create({
   line: {
     position: 'absolute',
+    left: '-6%',
+    width: '112%',
     height: 1,
     borderTopWidth: 1,
+  },
+  background: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: 'hidden',
+    backgroundColor: Brand.bg,
   },
   vignette: {
     ...StyleSheet.absoluteFillObject,

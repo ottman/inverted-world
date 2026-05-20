@@ -9,7 +9,6 @@ import {
   Text,
   TextInput,
   View,
-  useWindowDimensions,
 } from 'react-native';
 import { YoutubeEmbed } from '@/components/YoutubeEmbed';
 import { Brand } from '@/constants/theme';
@@ -23,9 +22,7 @@ const starters = [
 
 export default function HomeScreen() {
   const [query, setQuery] = React.useState('');
-  const { width } = useWindowDimensions();
   const latest = videos[0];
-  const twoColumn = width >= 960;
 
   const openResearch = (value?: string) => {
     const text = (value ?? query).trim();
@@ -40,7 +37,7 @@ export default function HomeScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <View style={[styles.hero, twoColumn && styles.heroWide]}>
+        <View style={styles.hero}>
           <View style={styles.heroCopy}>
             <Image
               source={require('../assets/images/inverted-world-banner-logo.png')}
@@ -133,14 +130,13 @@ const styles = StyleSheet.create({
     gap: 26,
   },
   hero: {
-    gap: 22,
-  },
-  heroWide: {
     flexDirection: 'row',
-    alignItems: 'stretch',
+    flexWrap: 'wrap',
+    gap: 22,
   },
   heroCopy: {
     flex: 1.1,
+    minWidth: 300,
     borderWidth: 1,
     borderColor: Brand.line,
     backgroundColor: 'rgba(5,5,5,0.34)',
@@ -212,14 +208,19 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.28)',
     paddingHorizontal: 10,
     paddingVertical: 8,
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 220,
   },
   starterText: {
     color: Brand.muted,
     fontFamily: Brand.mono,
     fontSize: 10,
+    lineHeight: 15,
   },
   videoPanel: {
     flex: 0.9,
+    minWidth: 300,
     borderWidth: 1,
     borderColor: Brand.line,
     backgroundColor: 'rgba(5,5,5,0.34)',

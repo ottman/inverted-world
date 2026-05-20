@@ -1,21 +1,18 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Link, router } from 'expo-router';
 import React from 'react';
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Brand } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 
 export function Chrome({ children }: { children: React.ReactNode }) {
   const { user, signOut } = useAuth();
-  const { width } = useWindowDimensions();
-  const compact = width < 720;
 
   return (
     <View style={styles.shell}>
       <View style={styles.topbar}>
         <Pressable onPress={() => router.push('/')} style={styles.logo}>
           <Text style={styles.mark}>IW</Text>
-          {!compact && <Text style={styles.logoText}>Inverted World</Text>}
         </Pressable>
         <View style={styles.nav}>
           <Link href="/archive" asChild>
@@ -47,8 +44,12 @@ export function Chrome({ children }: { children: React.ReactNode }) {
 const styles = StyleSheet.create({
   shell: {
     flex: 1,
+    width: '100%',
+    maxWidth: 1440,
+    alignSelf: 'center',
     paddingHorizontal: 18,
     paddingTop: 18,
+    overflow: 'hidden',
   },
   topbar: {
     minHeight: 52,
@@ -76,12 +77,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 30,
     textAlign: 'center',
-  },
-  logoText: {
-    color: Brand.text,
-    fontFamily: Brand.mono,
-    fontSize: 13,
-    textTransform: 'uppercase',
   },
   nav: {
     flexDirection: 'row',
