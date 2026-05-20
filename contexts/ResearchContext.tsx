@@ -51,7 +51,7 @@ export function ResearchProvider({ children }: { children: ReactNode }) {
       await ensureDatabase(sdk);
       const agent = await (sdk.agents as any).create({
         name: 'Inverted World Research Desk',
-        username: `inverted_world_research_${Date.now()}`,
+        username: `iw_${Date.now().toString(36)}`,
         model: 'anthropic/claude-sonnet-4.6',
         system_prompt: researchSystemPrompt(),
         organization_id: orgId,
