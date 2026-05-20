@@ -1,646 +1,350 @@
-export type ContentTopic = {
-  id: string
-  title: string
-  signal: string
-  query: string
-  stance: string
-  documents: string[]
-}
+export type Topic = {
+  id: string;
+  label: string;
+  code: string;
+  signal: string;
+  sources: string[];
+  color: string;
+};
 
-export type ChannelVideo = {
-  title: string
-  date: string
-  href: string
-  topicId: string
-  source: "Timcast" | "YouTube"
-  videoId?: string
-  embedUrl?: string
-  thumbnail?: string
-  description?: string
-  kind?: "episode" | "short"
-}
+export type Video = {
+  id: string;
+  title: string;
+  date: string;
+  topicId: string;
+  type: 'episode' | 'short';
+  youtubeUrl: string;
+  embedUrl: string;
+  thumbnailUrl: string;
+  dossier: string;
+  references: Array<{ label: string; url: string }>;
+};
 
-export type ResearchDocument = {
-  title: string
-  source: string
-  url: string
-  kind: "government" | "science" | "archive" | "legal" | "news-index"
-  topicIds: string[]
-}
+export const profile = {
+  name: 'Inverted World',
+  channel: 'Tales From the Inverted World',
+  handle: '@TalesfromtheInvertedWorld',
+  youtube: 'https://www.youtube.com/@TalesfromtheInvertedWorld',
+  x: 'https://x.com/InvertedTales',
+  instagram: 'https://www.instagram.com/invertedtales',
+  facebook: 'https://www.facebook.com/invertedtales',
+  shane: 'https://x.com/ShaneCashman',
+};
 
-export type NewsCoverageItem = {
-  title: string
-  outlet: string
-  url: string
-  publishedAt?: string
-  sourceCountry?: string
-  lane: "news" | "official" | "science" | "archive"
-}
+export const topics: Topic[] = [
+  {
+    id: 'skywatch',
+    label: 'Skywatch',
+    code: 'SKY-221',
+    signal: 'UAP records, aerospace anomalies, hearings, retrieval claims.',
+    sources: ['AARO', 'NASA UAP study', 'Congress'],
+    color: '#e8b45c',
+  },
+  {
+    id: 'black-vault',
+    label: 'Black Vault',
+    code: 'VAULT-D',
+    signal: 'FOIA, declassified programs, intelligence history.',
+    sources: ['CIA Reading Room', 'FBI Vault', 'National Security Archive'],
+    color: '#e8b45c',
+  },
+  {
+    id: 'power-web',
+    label: 'Power Web',
+    code: 'WEB-172',
+    signal: 'Courts, sealed gaps, institutional networks, missing names.',
+    sources: ['CourtListener', 'DOJ', 'Federal dockets'],
+    color: '#ef4444',
+  },
+  {
+    id: 'high-strangeness',
+    label: 'High Strangeness',
+    code: 'STR-08',
+    signal: 'Paranormal reports, folklore, cryptids, witness chains.',
+    sources: ['Local archives', 'Field reports', 'Historical societies'],
+    color: '#f4efe2',
+  },
+  {
+    id: 'machine-state',
+    label: 'Machine State',
+    code: 'MS-PAL',
+    signal: 'AI control systems, surveillance, synthetic influence.',
+    sources: ['NIST', 'Congress', 'Executive orders'],
+    color: '#7dd3fc',
+  },
+  {
+    id: 'off-world',
+    label: 'Off-World Signals',
+    code: 'OW-SOL',
+    signal: 'NASA anomalies, space weather, lost satellites, instrument data.',
+    sources: ['NASA NTRS', 'NOAA SWPC', 'Exoplanet Archive'],
+    color: '#7dd3fc',
+  },
+];
 
-export const socialLinks = [
-  { label: "YouTube", href: "https://www.youtube.com/@TalesfromtheInvertedWorld" },
-  { label: "Facebook", href: "https://www.facebook.com/invertedtales" },
-  { label: "Instagram", href: "https://www.instagram.com/invertedtales" },
-  { label: "X", href: "https://x.com/InvertedTales" },
-  { label: "Shane Cashman", href: "https://x.com/ShaneCashman" },
-] as const
-
-export const channelProfile = {
-  name: "Tales From the Inverted World",
-  liveName: "Inverted World Live",
-  youtubeHandle: "@TalesfromtheInvertedWorld",
-  youtubeChannelId: "UC7qGeFv85Oyct3xlKq-pedw",
-  youtubeUploadsPlaylistId: "UU7qGeFv85Oyct3xlKq-pedw",
-  youtubeUploadsEmbedUrl:
-    "https://www.youtube.com/embed/videoseries?list=UU7qGeFv85Oyct3xlKq-pedw&rel=0",
-  youtubeRssUrl: "https://www.youtube.com/feeds/videos.xml?channel_id=UC7qGeFv85Oyct3xlKq-pedw",
-  timcastChannelId: "ef7a7c4c-d491-11ed-9f19-b07b25f8c291",
-  timcastArchiveUrl: "https://timcast.com/channel/ef7a7c4c-d491-11ed-9f19-b07b25f8c291",
-  operatingLine:
-    "An evidence-first research room for the strange, unexplained, classified, misreported, and not-yet-understood.",
-  archiveCountLabel: "Full YouTube uploads playlist plus 860+ Timcast archive videos",
-}
-
-export const topics: ContentTopic[] = [
+export const videos: Video[] = [
   {
-    id: "uap-disclosure",
-    title: "Skywatch",
-    signal: "Pentagon files, NASA panels, anomalous aerospace claims",
-    query: '"UAP" OR "UFO" Pentagon NASA disclosure AARO',
-    stance: "Treat witness testimony as a lead, official denials as evidence, and missing records as a research object.",
-    documents: ["AARO public releases", "NASA UAP Independent Study", "Congressional hearing records"],
+    id: 'N1t2XSzrnfk',
+    title: 'TRUMP BRIEFED ON UFO RETRIEVAL PROGRAM',
+    date: '2026-05-18',
+    topicId: 'skywatch',
+    type: 'episode',
+    youtubeUrl: 'https://www.youtube.com/watch?v=N1t2XSzrnfk',
+    embedUrl: 'https://www.youtube.com/embed/N1t2XSzrnfk?rel=0',
+    thumbnailUrl: 'https://i3.ytimg.com/vi/N1t2XSzrnfk/hqdefault.jpg',
+    dossier:
+      'Treat retrieval claims as leads, not conclusions. Start with hearing testimony, AARO language, NASA scope limits, and the exact gap between classified assertions and public evidence.',
+    references: [
+      { label: 'AARO', url: 'https://www.aaro.mil/' },
+      { label: 'NASA UAP Study', url: 'https://science.nasa.gov/uap/' },
+      { label: 'Congress', url: 'https://www.congress.gov/' },
+    ],
   },
   {
-    id: "secret-programs",
-    title: "Black Vault",
-    signal: "FOIA, intelligence history, mind-control and black-budget claims",
-    query: '"MKULTRA" OR "CIA" "FOIA" "declassified" "secret program"',
-    stance: "Separate proven historical programs from speculative continuity claims.",
-    documents: ["CIA Reading Room", "National Security Archive", "FBI Vault"],
+    id: 'buV734vffR0',
+    title: 'BERMUDA TRIANGLE MYSTERY SOLVED',
+    date: '2026-05-18',
+    topicId: 'off-world',
+    type: 'episode',
+    youtubeUrl: 'https://www.youtube.com/watch?v=buV734vffR0',
+    embedUrl: 'https://www.youtube.com/embed/buV734vffR0?rel=0',
+    thumbnailUrl: 'https://i3.ytimg.com/vi/buV734vffR0/hqdefault.jpg',
+    dossier:
+      'The useful research path is less legend and more incident chain: weather, navigation, insurance records, Coast Guard history, archived newspapers, and the claims that survive after mundane causes are exhausted.',
+    references: [
+      { label: 'NOAA Ocean Service', url: 'https://oceanservice.noaa.gov/' },
+      { label: 'US Coast Guard', url: 'https://www.uscg.mil/' },
+      { label: 'Archive.org TV', url: 'https://archive.org/details/tv' },
+    ],
   },
   {
-    id: "epstein-networks",
-    title: "Power Web",
-    signal: "Court records, travel logs, institutional ties, unresolved names",
-    query: '"Jeffrey Epstein" court records documents network',
-    stance: "Use court filings and primary records before narratives. Flag allegations, sealed gaps, and confirmed facts separately.",
-    documents: ["CourtListener", "DOJ releases", "Federal court dockets"],
+    id: '8cSaStj158I',
+    title: 'COVID COVERUP',
+    date: '2026-05-18',
+    topicId: 'black-vault',
+    type: 'episode',
+    youtubeUrl: 'https://www.youtube.com/watch?v=8cSaStj158I',
+    embedUrl: 'https://www.youtube.com/embed/8cSaStj158I?rel=0',
+    thumbnailUrl: 'https://i1.ytimg.com/vi/8cSaStj158I/hqdefault.jpg',
+    dossier:
+      'Use primary documents first: agency releases, grant records, emails, hearing transcripts, and timeline conflicts. Separate lab-origin debate, policy failures, and censorship claims into distinct evidence lanes.',
+    references: [
+      { label: 'NIH RePORTER', url: 'https://reporter.nih.gov/' },
+      { label: 'Congressional Record', url: 'https://www.congress.gov/congressional-record' },
+      { label: 'WHO Publications', url: 'https://www.who.int/publications' },
+    ],
   },
   {
-    id: "cryptids-paranormal",
-    title: "High Strangeness",
-    signal: "Bigfoot, ghosts, caller reports, folklore, field records",
-    query: '"cryptid" OR "Bigfoot" OR "paranormal" sightings research',
-    stance: "Respect witnesses, preserve context, and avoid upgrading anecdote into proof.",
-    documents: ["Local archives", "State historical societies", "Folklore databases"],
+    id: 'ApaRfQOuUO4',
+    title: 'APOCALYPTIC',
+    date: '2026-05-18',
+    topicId: 'high-strangeness',
+    type: 'episode',
+    youtubeUrl: 'https://www.youtube.com/watch?v=ApaRfQOuUO4',
+    embedUrl: 'https://www.youtube.com/embed/ApaRfQOuUO4?rel=0',
+    thumbnailUrl: 'https://i2.ytimg.com/vi/ApaRfQOuUO4/hqdefault.jpg',
+    dossier:
+      'Apocalyptic narratives need timeline discipline: what was predicted, what happened, what was reinterpreted, and what institutions or incentives amplified the fear.',
+    references: [
+      { label: 'Library of Congress', url: 'https://www.loc.gov/' },
+      { label: 'Internet Archive', url: 'https://archive.org/' },
+      { label: 'Google News', url: 'https://news.google.com/' },
+    ],
   },
   {
-    id: "ai-technocracy",
-    title: "Machine State",
-    signal: "AI control systems, surveillance, synthetic media, autonomous governance",
-    query: '"AI" surveillance autonomous systems governance technocracy',
-    stance: "Track what is deployed, what is proposed, and what is feared as three different lanes.",
-    documents: ["NIST AI RMF", "Executive orders", "Congressional reports"],
+    id: 'oiMLnd_4aHY',
+    title: 'THEY WANT YOU TO FEEL INSANE',
+    date: '2026-05-15',
+    topicId: 'machine-state',
+    type: 'episode',
+    youtubeUrl: 'https://www.youtube.com/watch?v=oiMLnd_4aHY',
+    embedUrl: 'https://www.youtube.com/embed/oiMLnd_4aHY?rel=0',
+    thumbnailUrl: 'https://i4.ytimg.com/vi/oiMLnd_4aHY/hqdefault.jpg',
+    dossier:
+      'The serious version is a map of perception management: state messaging, platform incentives, psychiatric language, moderation policy, and the boundary between manipulation and ordinary chaos.',
+    references: [
+      { label: 'NIST AI RMF', url: 'https://www.nist.gov/itl/ai-risk-management-framework' },
+      { label: 'FBI Vault', url: 'https://vault.fbi.gov/' },
+      { label: 'GDELT', url: 'https://www.gdeltproject.org/' },
+    ],
   },
   {
-    id: "space-anomalies",
-    title: "Off-World Signals",
-    signal: "NASA, meteor events, Mars rocks, solar storms, lost satellites",
-    query: 'NASA anomaly meteor solar storm Mars "space weather"',
-    stance: "Start from instrument data, then compare official interpretation against independent analysis.",
-    documents: ["NASA NTRS", "NOAA SWPC", "NASA Exoplanet Archive"],
-  },
-]
-
-export const universalTopic: ContentTopic = {
-  id: "all",
-  title: "The Inverted Index",
-  signal: "Conspiracies, paranormal events, hidden networks, anomalous science, and the unanswered edges of reality",
-  query:
-    '("UAP" OR "UFO" OR "MKULTRA" OR "Jeffrey Epstein" OR "cryptid" OR "paranormal" OR "AI surveillance" OR "NASA anomaly" OR "classified program")',
-  stance:
-    "Start from records, respect anomalies, separate proof from possibility, and keep the door open where the record is incomplete.",
-  documents: [
-    "government records",
-    "court dockets",
-    "declassified archives",
-    "science datasets",
-    "cross-outlet news coverage",
-  ],
-}
-
-export const truthSearchQuery = universalTopic.query
-
-export const featuredVideos: ChannelVideo[] = [
-  {
-    title: "TRUMP BRIEFED ON UFO RETRIEVAL PROGRAM",
-    date: "2026-05-18",
-    href: "https://www.youtube.com/watch?v=N1t2XSzrnfk",
-    topicId: "uap-disclosure",
-    source: "YouTube",
-    videoId: "N1t2XSzrnfk",
-    embedUrl: "https://www.youtube.com/embed/N1t2XSzrnfk?rel=0",
-    thumbnail: "https://i3.ytimg.com/vi/N1t2XSzrnfk/hqdefault.jpg",
-    kind: "episode",
+    id: '3WyKJa_F_Wg',
+    title: 'THERES NO TREAM IN POLITICS #shorts',
+    date: '2026-05-16',
+    topicId: 'power-web',
+    type: 'short',
+    youtubeUrl: 'https://www.youtube.com/shorts/3WyKJa_F_Wg',
+    embedUrl: 'https://www.youtube.com/embed/3WyKJa_F_Wg?rel=0',
+    thumbnailUrl: 'https://i3.ytimg.com/vi/3WyKJa_F_Wg/hqdefault.jpg',
+    dossier:
+      'Track this as a political incentive file: identify who benefits, what the public record says, which claims are rhetoric, and where the receipts begin.',
+    references: [
+      { label: 'Congress', url: 'https://www.congress.gov/' },
+      { label: 'Federal Election Commission', url: 'https://www.fec.gov/data/' },
+      { label: 'OpenSecrets', url: 'https://www.opensecrets.org/' },
+    ],
   },
   {
-    title: "BERMUDA TRIANGLE MYSTERY SOLVED",
-    date: "2026-05-18",
-    href: "https://www.youtube.com/watch?v=buV734vffR0",
-    topicId: "space-anomalies",
-    source: "YouTube",
-    videoId: "buV734vffR0",
-    embedUrl: "https://www.youtube.com/embed/buV734vffR0?rel=0",
-    thumbnail: "https://i3.ytimg.com/vi/buV734vffR0/hqdefault.jpg",
-    kind: "episode",
+    id: 'BxI3cT1k45w',
+    title: 'FEEDING INTO THE HYSTERIA #shorts',
+    date: '2026-05-15',
+    topicId: 'machine-state',
+    type: 'short',
+    youtubeUrl: 'https://www.youtube.com/shorts/BxI3cT1k45w',
+    embedUrl: 'https://www.youtube.com/embed/BxI3cT1k45w?rel=0',
+    thumbnailUrl: 'https://i3.ytimg.com/vi/BxI3cT1k45w/hqdefault.jpg',
+    dossier:
+      'Treat hysteria as a distribution system. Map the original event, amplification loops, official corrections, and the incentive to keep fear alive.',
+    references: [
+      { label: 'GDELT', url: 'https://www.gdeltproject.org/' },
+      { label: 'Pew Research Center', url: 'https://www.pewresearch.org/' },
+      { label: 'NIST AI RMF', url: 'https://www.nist.gov/itl/ai-risk-management-framework' },
+    ],
   },
   {
-    title: "COVID COVERUP",
-    date: "2026-05-18",
-    href: "https://www.youtube.com/watch?v=8cSaStj158I",
-    topicId: "secret-programs",
-    source: "YouTube",
-    videoId: "8cSaStj158I",
-    embedUrl: "https://www.youtube.com/embed/8cSaStj158I?rel=0",
-    thumbnail: "https://i1.ytimg.com/vi/8cSaStj158I/hqdefault.jpg",
-    kind: "episode",
+    id: 'f_bplTaaDJQ',
+    title: 'Data Centers HERE, Data Centers THERE, Data Centers EVERYWHERE #shorts',
+    date: '2026-05-14',
+    topicId: 'machine-state',
+    type: 'short',
+    youtubeUrl: 'https://www.youtube.com/shorts/f_bplTaaDJQ',
+    embedUrl: 'https://www.youtube.com/embed/f_bplTaaDJQ?rel=0',
+    thumbnailUrl: 'https://i3.ytimg.com/vi/f_bplTaaDJQ/hqdefault.jpg',
+    dossier:
+      'The document path runs through zoning, energy demand, water usage, tax incentives, and national-security language around compute infrastructure.',
+    references: [
+      { label: 'EIA Electricity Data', url: 'https://www.eia.gov/electricity/' },
+      { label: 'DOE Data Centers', url: 'https://www.energy.gov/' },
+      { label: 'Local public records', url: 'https://www.searchsystems.net/' },
+    ],
   },
   {
-    title: "APOCALYPTIC",
-    date: "2026-05-18",
-    href: "https://www.youtube.com/watch?v=ApaRfQOuUO4",
-    topicId: "cryptids-paranormal",
-    source: "YouTube",
-    videoId: "ApaRfQOuUO4",
-    embedUrl: "https://www.youtube.com/embed/ApaRfQOuUO4?rel=0",
-    thumbnail: "https://i2.ytimg.com/vi/ApaRfQOuUO4/hqdefault.jpg",
-    kind: "episode",
+    id: 'D2-R8FERWoM',
+    title: 'BERMUDA TRIANGLE & FLOATING DATA CENTERS',
+    date: '2026-05-14',
+    topicId: 'off-world',
+    type: 'episode',
+    youtubeUrl: 'https://www.youtube.com/watch?v=D2-R8FERWoM',
+    embedUrl: 'https://www.youtube.com/embed/D2-R8FERWoM?rel=0',
+    thumbnailUrl: 'https://i3.ytimg.com/vi/D2-R8FERWoM/hqdefault.jpg',
+    dossier:
+      'This file links folklore geography to modern infrastructure. Separate maritime anomalies from data-center claims, then verify permits, shipping lanes, weather, and ownership.',
+    references: [
+      { label: 'NOAA Charts', url: 'https://www.nauticalcharts.noaa.gov/' },
+      { label: 'Maritime Administration', url: 'https://www.maritime.dot.gov/' },
+      { label: 'SEC EDGAR', url: 'https://www.sec.gov/edgar/search/' },
+    ],
   },
   {
-    title: "THERES NO TREAM IN POLITICS #shorts",
-    date: "2026-05-16",
-    href: "https://www.youtube.com/shorts/3WyKJa_F_Wg",
-    topicId: "ai-technocracy",
-    source: "YouTube",
-    videoId: "3WyKJa_F_Wg",
-    embedUrl: "https://www.youtube.com/embed/3WyKJa_F_Wg?rel=0",
-    thumbnail: "https://i4.ytimg.com/vi/3WyKJa_F_Wg/hqdefault.jpg",
-    kind: "short",
+    id: 'czJEpZvDJ3A',
+    title: 'THE ERA OF THE CONSPIRACY THEORIST #shorts',
+    date: '2026-05-13',
+    topicId: 'high-strangeness',
+    type: 'short',
+    youtubeUrl: 'https://www.youtube.com/shorts/czJEpZvDJ3A',
+    embedUrl: 'https://www.youtube.com/embed/czJEpZvDJ3A?rel=0',
+    thumbnailUrl: 'https://i3.ytimg.com/vi/czJEpZvDJ3A/hqdefault.jpg',
+    dossier:
+      'Use this as the manifesto file: when institutions lose trust, the public starts doing its own intelligence work. The standard has to rise, not collapse.',
+    references: [
+      { label: 'Edelman Trust Barometer', url: 'https://www.edelman.com/trust' },
+      { label: 'Gallup Trust', url: 'https://news.gallup.com/' },
+      { label: 'Library of Congress', url: 'https://www.loc.gov/' },
+    ],
   },
   {
-    title: "FEEDING INTO THE HYSTERIA #shorts",
-    date: "2026-05-15",
-    href: "https://www.youtube.com/shorts/BxI3cT1k45w",
-    topicId: "secret-programs",
-    source: "YouTube",
-    videoId: "BxI3cT1k45w",
-    embedUrl: "https://www.youtube.com/embed/BxI3cT1k45w?rel=0",
-    thumbnail: "https://i3.ytimg.com/vi/BxI3cT1k45w/hqdefault.jpg",
-    kind: "short",
+    id: '5v5RPBw7oos',
+    title: 'LUNA PLANNING MKULTRA HEARING',
+    date: '2026-05-13',
+    topicId: 'black-vault',
+    type: 'episode',
+    youtubeUrl: 'https://www.youtube.com/watch?v=5v5RPBw7oos',
+    embedUrl: 'https://www.youtube.com/embed/5v5RPBw7oos?rel=0',
+    thumbnailUrl: 'https://i3.ytimg.com/vi/5v5RPBw7oos/hqdefault.jpg',
+    dossier:
+      'MKULTRA belongs in the proven-conspiracy baseline. Start from declassified records, then separate historical fact from modern claims riding on the name.',
+    references: [
+      { label: 'CIA Reading Room', url: 'https://www.cia.gov/readingroom/' },
+      { label: 'Church Committee', url: 'https://www.senate.gov/about/powers-procedures/investigations/church-committee.htm' },
+      { label: 'National Security Archive', url: 'https://nsarchive.gwu.edu/' },
+    ],
   },
   {
-    title: "THEY WANT YOU TO FEEL INSANE",
-    date: "2026-05-15",
-    href: "https://www.youtube.com/watch?v=oiMLnd_4aHY",
-    topicId: "secret-programs",
-    source: "YouTube",
-    videoId: "oiMLnd_4aHY",
-    embedUrl: "https://www.youtube.com/embed/oiMLnd_4aHY?rel=0",
-    thumbnail: "https://i4.ytimg.com/vi/oiMLnd_4aHY/hqdefault.jpg",
-    kind: "episode",
+    id: 'cLgGJWS6abM',
+    title: 'DISTRACTION AFTER DISTRACTION #shorts',
+    date: '2026-05-12',
+    topicId: 'power-web',
+    type: 'short',
+    youtubeUrl: 'https://www.youtube.com/shorts/cLgGJWS6abM',
+    embedUrl: 'https://www.youtube.com/embed/cLgGJWS6abM?rel=0',
+    thumbnailUrl: 'https://i3.ytimg.com/vi/cLgGJWS6abM/hqdefault.jpg',
+    dossier:
+      'The serious angle is agenda setting: compare the attention spike to filings, hearings, market moves, and document releases that happened at the same time.',
+    references: [
+      { label: 'GDELT', url: 'https://www.gdeltproject.org/' },
+      { label: 'CourtListener', url: 'https://www.courtlistener.com/' },
+      { label: 'Federal Register', url: 'https://www.federalregister.gov/' },
+    ],
   },
   {
-    title: "Data Centers HERE, Data Centers THERE, Data Centers EVERYWHERE #shorts",
-    date: "2026-05-14",
-    href: "https://www.youtube.com/shorts/f_bplTaaDJQ",
-    topicId: "ai-technocracy",
-    source: "YouTube",
-    videoId: "f_bplTaaDJQ",
-    embedUrl: "https://www.youtube.com/embed/f_bplTaaDJQ?rel=0",
-    thumbnail: "https://i3.ytimg.com/vi/f_bplTaaDJQ/hqdefault.jpg",
-    kind: "short",
+    id: 'Jn4SAKfonCQ',
+    title: '4-FOOT-BEINGS IN UFO FILES ARE NOT KEVIN HART',
+    date: '2026-05-12',
+    topicId: 'skywatch',
+    type: 'episode',
+    youtubeUrl: 'https://www.youtube.com/watch?v=Jn4SAKfonCQ',
+    embedUrl: 'https://www.youtube.com/embed/Jn4SAKfonCQ?rel=0',
+    thumbnailUrl: 'https://i3.ytimg.com/vi/Jn4SAKfonCQ/hqdefault.jpg',
+    dossier:
+      'Entity claims need a strict evidence ladder: original file, provenance, witness chain, redactions, hoax vectors, and whether official language actually says what people claim.',
+    references: [
+      { label: 'FBI Vault UFO', url: 'https://vault.fbi.gov/UFO' },
+      { label: 'AARO', url: 'https://www.aaro.mil/' },
+      { label: 'NARA', url: 'https://www.archives.gov/' },
+    ],
   },
   {
-    title: "BERMUDA TRIANGLE & FLOATING DATA CENTERS",
-    date: "2026-05-14",
-    href: "https://www.youtube.com/watch?v=D2-R8FERWoM",
-    topicId: "ai-technocracy",
-    source: "YouTube",
-    videoId: "D2-R8FERWoM",
-    embedUrl: "https://www.youtube.com/embed/D2-R8FERWoM?rel=0",
-    thumbnail: "https://i1.ytimg.com/vi/D2-R8FERWoM/hqdefault.jpg",
-    kind: "episode",
+    id: 'gBH6UjvSXnQ',
+    title: 'The Note Epstein Left Behind',
+    date: '2026-05-11',
+    topicId: 'power-web',
+    type: 'episode',
+    youtubeUrl: 'https://www.youtube.com/watch?v=gBH6UjvSXnQ',
+    embedUrl: 'https://www.youtube.com/embed/gBH6UjvSXnQ?rel=0',
+    thumbnailUrl: 'https://i3.ytimg.com/vi/gBH6UjvSXnQ/hqdefault.jpg',
+    dossier:
+      'Handle this with court-first discipline. Separate authenticated filings, media claims, victim testimony, sealed gaps, and speculation about motives or protectors.',
+    references: [
+      { label: 'CourtListener', url: 'https://www.courtlistener.com/' },
+      { label: 'DOJ', url: 'https://www.justice.gov/' },
+      { label: 'PACER', url: 'https://pacer.uscourts.gov/' },
+    ],
   },
   {
-    title: "THE ERA OF THE CONSPIRACY THEORIST #shorts",
-    date: "2026-05-13",
-    href: "https://www.youtube.com/shorts/czJEpZvDJ3A",
-    topicId: "secret-programs",
-    source: "YouTube",
-    videoId: "czJEpZvDJ3A",
-    embedUrl: "https://www.youtube.com/embed/czJEpZvDJ3A?rel=0",
-    thumbnail: "https://i4.ytimg.com/vi/czJEpZvDJ3A/hqdefault.jpg",
-    kind: "short",
-  },
-  {
-    title: "LUNA PLANNING MKULTRA HEARING",
-    date: "2026-05-13",
-    href: "https://www.youtube.com/watch?v=5v5RPBw7oos",
-    topicId: "secret-programs",
-    source: "YouTube",
-    videoId: "5v5RPBw7oos",
-    embedUrl: "https://www.youtube.com/embed/5v5RPBw7oos?rel=0",
-    thumbnail: "https://i2.ytimg.com/vi/5v5RPBw7oos/hqdefault.jpg",
-    kind: "episode",
-  },
-  {
-    title: "DISTRACTION AFTER DISTRACTION #shorts",
-    date: "2026-05-12",
-    href: "https://www.youtube.com/shorts/cLgGJWS6abM",
-    topicId: "secret-programs",
-    source: "YouTube",
-    videoId: "cLgGJWS6abM",
-    embedUrl: "https://www.youtube.com/embed/cLgGJWS6abM?rel=0",
-    thumbnail: "https://i4.ytimg.com/vi/cLgGJWS6abM/hqdefault.jpg",
-    kind: "short",
-  },
-  {
-    title: "4-FOOT-BEINGS IN UFO FILES ARE NOT KEVIN HART",
-    date: "2026-05-12",
-    href: "https://www.youtube.com/watch?v=Jn4SAKfonCQ",
-    topicId: "uap-disclosure",
-    source: "YouTube",
-    videoId: "Jn4SAKfonCQ",
-    embedUrl: "https://www.youtube.com/embed/Jn4SAKfonCQ?rel=0",
-    thumbnail: "https://i3.ytimg.com/vi/Jn4SAKfonCQ/hqdefault.jpg",
-    kind: "episode",
-  },
-  {
-    title: "The Note Epstein Left Behind",
-    date: "2026-05-11",
-    href: "https://www.youtube.com/watch?v=gBH6UjvSXnQ",
-    topicId: "epstein-networks",
-    source: "YouTube",
-    videoId: "gBH6UjvSXnQ",
-    embedUrl: "https://www.youtube.com/embed/gBH6UjvSXnQ?rel=0",
-    thumbnail: "https://i4.ytimg.com/vi/gBH6UjvSXnQ/hqdefault.jpg",
-    kind: "episode",
-  },
-  {
+    id: 'k27iBDWl0DI',
     title: "BABA VANGA'S 2026 PREDICTIONS",
-    date: "2026-05-11",
-    href: "https://www.youtube.com/watch?v=k27iBDWl0DI",
-    topicId: "cryptids-paranormal",
-    source: "YouTube",
-    videoId: "k27iBDWl0DI",
-    embedUrl: "https://www.youtube.com/embed/k27iBDWl0DI?rel=0",
-    thumbnail: "https://i4.ytimg.com/vi/k27iBDWl0DI/hqdefault.jpg",
-    kind: "episode",
+    date: '2026-05-11',
+    topicId: 'high-strangeness',
+    type: 'episode',
+    youtubeUrl: 'https://www.youtube.com/watch?v=k27iBDWl0DI',
+    embedUrl: 'https://www.youtube.com/embed/k27iBDWl0DI?rel=0',
+    thumbnailUrl: 'https://i3.ytimg.com/vi/k27iBDWl0DI/hqdefault.jpg',
+    dossier:
+      'Prediction files need scorekeeping. Identify the earliest attributed source, the exact forecast, later edits, misses, hits, and the media cycle that keeps the prophecy alive.',
+    references: [
+      { label: 'Internet Archive', url: 'https://archive.org/' },
+      { label: 'Library of Congress', url: 'https://www.loc.gov/' },
+      { label: 'Google News', url: 'https://news.google.com/' },
+    ],
   },
-  {
-    title: "UFO FILES IMMINENT",
-    date: "2026-05-07",
-    href: "https://timcast.com/channel/ef7a7c4c-d491-11ed-9f19-b07b25f8c291",
-    topicId: "uap-disclosure",
-    source: "Timcast",
-  },
-  {
-    title: "SASQUATCH 2028",
-    date: "2026-05-06",
-    href: "https://timcast.com/channel/ef7a7c4c-d491-11ed-9f19-b07b25f8c291",
-    topicId: "cryptids-paranormal",
-    source: "Timcast",
-  },
-  {
-    title: "EVERY DEATH IS UFO RELATED NOW",
-    date: "2026-05-05",
-    href: "https://timcast.com/channel/ef7a7c4c-d491-11ed-9f19-b07b25f8c291",
-    topicId: "uap-disclosure",
-    source: "Timcast",
-  },
-  {
-    title: "PALANTIR'S MANIFESTO",
-    date: "2026-04-24",
-    href: "https://timcast.com/channel/ef7a7c4c-d491-11ed-9f19-b07b25f8c291",
-    topicId: "ai-technocracy",
-    source: "Timcast",
-  },
-  {
-    title: "TENTH PERSON TIED TO AMERICA'S SPACE/NUCLEAR SECRETS DISAPPEARS | Ep. 203",
-    date: "2026-04-15",
-    href: "https://timcast.com/channel/ef7a7c4c-d491-11ed-9f19-b07b25f8c291",
-    topicId: "secret-programs",
-    source: "Timcast",
-  },
-  {
-    title: "Ancient Breakaway Civilizations",
-    date: "2026-04-17",
-    href: "https://timcast.com/channel/ef7a7c4c-d491-11ed-9f19-b07b25f8c291",
-    topicId: "space-anomalies",
-    source: "Timcast",
-  },
-  {
-    title: "Epstein Files Reveal Cannibalism, Mind Control, and Mosquito Drones | Ep. 172",
-    date: "2026-02-13",
-    href: "https://timcast.com/channel/ef7a7c4c-d491-11ed-9f19-b07b25f8c291",
-    topicId: "epstein-networks",
-    source: "Timcast",
-  },
-  {
-    title: "CIA's Satanic MindWar Exposed: Brain Parasites, Psyops, and J6 Feds | Ep. 158",
-    date: "2026-01-08",
-    href: "https://timcast.com/channel/ef7a7c4c-d491-11ed-9f19-b07b25f8c291",
-    topicId: "secret-programs",
-    source: "Timcast",
-  },
-  {
-    title: "NASA Hints at Life Beyond Earth | Ep. 150",
-    date: "2025-12-04",
-    href: "https://timcast.com/channel/ef7a7c4c-d491-11ed-9f19-b07b25f8c291",
-    topicId: "space-anomalies",
-    source: "Timcast",
-  },
-]
+];
 
-export const researchDocuments: ResearchDocument[] = [
-  {
-    title: "All-domain Anomaly Resolution Office public reporting",
-    source: "AARO",
-    url: "https://www.aaro.mil/",
-    kind: "government",
-    topicIds: ["uap-disclosure"],
-  },
-  {
-    title: "ODNI UAP and national intelligence report library",
-    source: "ODNI",
-    url: "https://www.dni.gov/index.php/newsroom/reports-publications",
-    kind: "government",
-    topicIds: ["uap-disclosure", "secret-programs"],
-  },
-  {
-    title: "Congress.gov UAP search",
-    source: "Congress.gov",
-    url: "https://www.congress.gov/search?q=%7B%22search%22%3A%22UAP%22%7D",
-    kind: "government",
-    topicIds: ["uap-disclosure", "secret-programs"],
-  },
-  {
-    title: "NASA UAP Independent Study",
-    source: "NASA",
-    url: "https://science.nasa.gov/uap/",
-    kind: "government",
-    topicIds: ["uap-disclosure", "space-anomalies"],
-  },
-  {
-    title: "CIA CREST and Reading Room",
-    source: "CIA",
-    url: "https://www.cia.gov/readingroom/",
-    kind: "archive",
-    topicIds: ["secret-programs", "uap-disclosure"],
-  },
-  {
-    title: "CIA Reading Room MKULTRA search",
-    source: "CIA",
-    url: "https://www.cia.gov/readingroom/search/site/MKULTRA",
-    kind: "archive",
-    topicIds: ["secret-programs"],
-  },
-  {
-    title: "The FBI Vault",
-    source: "FBI",
-    url: "https://vault.fbi.gov/",
-    kind: "archive",
-    topicIds: ["secret-programs", "epstein-networks"],
-  },
-  {
-    title: "FBI Vault Jeffrey Epstein files",
-    source: "FBI",
-    url: "https://vault.fbi.gov/jeffrey-epstein",
-    kind: "archive",
-    topicIds: ["epstein-networks"],
-  },
-  {
-    title: "FOIA.gov request and agency records portal",
-    source: "FOIA.gov",
-    url: "https://www.foia.gov/",
-    kind: "government",
-    topicIds: ["secret-programs", "epstein-networks", "ai-technocracy"],
-  },
-  {
-    title: "National Security Archive declassified collections",
-    source: "National Security Archive",
-    url: "https://nsarchive.gwu.edu/",
-    kind: "archive",
-    topicIds: ["secret-programs", "uap-disclosure"],
-  },
-  {
-    title: "National Archives research catalog",
-    source: "National Archives",
-    url: "https://catalog.archives.gov/",
-    kind: "archive",
-    topicIds: ["secret-programs", "uap-disclosure", "space-anomalies"],
-  },
-  {
-    title: "GovInfo congressional and federal records",
-    source: "GovInfo",
-    url: "https://www.govinfo.gov/",
-    kind: "government",
-    topicIds: ["secret-programs", "ai-technocracy", "uap-disclosure"],
-  },
-  {
-    title: "MuckRock FOIA archive",
-    source: "MuckRock",
-    url: "https://www.muckrock.com/foi/",
-    kind: "archive",
-    topicIds: ["secret-programs", "epstein-networks", "ai-technocracy"],
-  },
-  {
-    title: "Federal Register document search",
-    source: "National Archives",
-    url: "https://www.federalregister.gov/",
-    kind: "government",
-    topicIds: ["ai-technocracy", "secret-programs", "space-anomalies"],
-  },
-  {
-    title: "Regulations.gov public docket search",
-    source: "Regulations.gov",
-    url: "https://www.regulations.gov/",
-    kind: "government",
-    topicIds: ["ai-technocracy", "secret-programs"],
-  },
-  {
-    title: "CourtListener opinion and docket search",
-    source: "Free Law Project",
-    url: "https://www.courtlistener.com/",
-    kind: "legal",
-    topicIds: ["epstein-networks", "secret-programs"],
-  },
-  {
-    title: "PACER federal court records",
-    source: "U.S. Courts",
-    url: "https://pacer.uscourts.gov/",
-    kind: "legal",
-    topicIds: ["epstein-networks", "secret-programs"],
-  },
-  {
-    title: "Southern District of New York public releases",
-    source: "DOJ SDNY",
-    url: "https://www.justice.gov/usao-sdny",
-    kind: "legal",
-    topicIds: ["epstein-networks", "secret-programs"],
-  },
-  {
-    title: "DOJ FOIA reference guide",
-    source: "DOJ",
-    url: "https://www.justice.gov/oip/doj-reference-guide",
-    kind: "government",
-    topicIds: ["epstein-networks", "secret-programs"],
-  },
-  {
-    title: "SEC EDGAR company and institution filings",
-    source: "SEC",
-    url: "https://www.sec.gov/edgar/search/",
-    kind: "legal",
-    topicIds: ["epstein-networks", "ai-technocracy"],
-  },
-  {
-    title: "NIST AI Risk Management Framework",
-    source: "NIST",
-    url: "https://www.nist.gov/itl/ai-risk-management-framework",
-    kind: "government",
-    topicIds: ["ai-technocracy"],
-  },
-  {
-    title: "CISA artificial intelligence security resources",
-    source: "CISA",
-    url: "https://www.cisa.gov/ai",
-    kind: "government",
-    topicIds: ["ai-technocracy"],
-  },
-  {
-    title: "NIST publications search",
-    source: "NIST",
-    url: "https://www.nist.gov/publications",
-    kind: "science",
-    topicIds: ["ai-technocracy", "secret-programs"],
-  },
-  {
-    title: "NIH PubMed biomedical literature",
-    source: "NIH",
-    url: "https://pubmed.ncbi.nlm.nih.gov/",
-    kind: "science",
-    topicIds: ["secret-programs", "ai-technocracy"],
-  },
-  {
-    title: "NASA Technical Reports Server",
-    source: "NASA",
-    url: "https://ntrs.nasa.gov/",
-    kind: "science",
-    topicIds: ["space-anomalies", "ai-technocracy"],
-  },
-  {
-    title: "NASA ADS astrophysics literature",
-    source: "NASA ADS",
-    url: "https://ui.adsabs.harvard.edu/",
-    kind: "science",
-    topicIds: ["space-anomalies"],
-  },
-  {
-    title: "NASA Center for Near Earth Object Studies fireball data",
-    source: "NASA CNEOS",
-    url: "https://cneos.jpl.nasa.gov/fireballs/",
-    kind: "science",
-    topicIds: ["space-anomalies"],
-  },
-  {
-    title: "NASA Exoplanet Archive",
-    source: "NASA",
-    url: "https://exoplanetarchive.ipac.caltech.edu/",
-    kind: "science",
-    topicIds: ["space-anomalies"],
-  },
-  {
-    title: "NOAA Space Weather Prediction Center",
-    source: "NOAA",
-    url: "https://www.swpc.noaa.gov/",
-    kind: "science",
-    topicIds: ["space-anomalies"],
-  },
-  {
-    title: "USGS earthquake and hazard data",
-    source: "USGS",
-    url: "https://earthquake.usgs.gov/",
-    kind: "science",
-    topicIds: ["space-anomalies"],
-  },
-  {
-    title: "Library of Congress Folklife collections",
-    source: "Library of Congress",
-    url: "https://www.loc.gov/folklife/",
-    kind: "archive",
-    topicIds: ["cryptids-paranormal"],
-  },
-  {
-    title: "Smithsonian collections search",
-    source: "Smithsonian",
-    url: "https://www.si.edu/search/collection-images",
-    kind: "archive",
-    topicIds: ["cryptids-paranormal", "space-anomalies"],
-  },
-  {
-    title: "Internet Archive TV News Search",
-    source: "Internet Archive",
-    url: "https://archive.org/details/tv",
-    kind: "news-index",
-    topicIds: topics.map((topic) => topic.id),
-  },
-  {
-    title: "Common Crawl open web corpus",
-    source: "Common Crawl",
-    url: "https://commoncrawl.org/",
-    kind: "archive",
-    topicIds: topics.map((topic) => topic.id),
-  },
-  {
-    title: "GDELT global news index",
-    source: "GDELT",
-    url: "https://www.gdeltproject.org/",
-    kind: "news-index",
-    topicIds: topics.map((topic) => topic.id),
-  },
-]
-
-export const fallbackCoverage: NewsCoverageItem[] = [
-  {
-    title: "Use GDELT to compare same-topic coverage across global outlets",
-    outlet: "GDELT",
-    url: "https://api.gdeltproject.org/api/v2/doc/doc",
-    lane: "news",
-  },
-  {
-    title: "Search Federal Register for official rulemaking and agency notices",
-    outlet: "Federal Register",
-    url: "https://www.federalregister.gov/developers/documentation/api/v1",
-    lane: "official",
-  },
-  {
-    title: "Pull science and aerospace material from NASA NTRS",
-    outlet: "NASA",
-    url: "https://ntrs.nasa.gov/",
-    lane: "science",
-  },
-]
-
-export function getTopic(topicId: string | null | undefined) {
-  return topics.find((topic) => topic.id === topicId) ?? universalTopic
+export function getTopic(id: string) {
+  return topics.find((topic) => topic.id === id) ?? topics[0];
 }
 
-export function getDocumentsForTopic(topicId: string) {
-  if (topicId === universalTopic.id) return researchDocuments
-  return researchDocuments.filter((doc) => doc.topicIds.includes(topicId))
-}
-
-export function getVideosForTopic(topicId: string) {
-  if (topicId === universalTopic.id) return featuredVideos
-  return featuredVideos.filter((video) => video.topicId === topicId)
+export function getVideo(id?: string | string[]) {
+  const videoId = Array.isArray(id) ? id[0] : id;
+  return videos.find((video) => video.id === videoId) ?? videos[0];
 }

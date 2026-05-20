@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "Inverted World",
+    "slug": "inverted-world",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "invertedworld",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "io.recursiv.invertedworld"
+    },
+    "android": {
+      "package": "io.recursiv.invertedworld",
+      "adaptiveIcon": {
+        "backgroundColor": "#050505"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/inverted-world-logo.jpg"
+    },
+    "plugins": [
+      "expo-font",
+      "expo-secure-store",
+      "expo-router",
+      "expo-web-browser"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
