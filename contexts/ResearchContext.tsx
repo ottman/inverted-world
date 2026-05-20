@@ -29,7 +29,7 @@ const PROMPT_VERSION = '1';
 
 export function ResearchProvider({ children }: { children: ReactNode }) {
   const { user, isAuthenticated } = useAuth();
-  const { sdk } = useRecursiv();
+  const { orgId, sdk } = useRecursiv();
   const [desk, setDesk] = useState<ResearchDesk | null>(null);
   const [isPreparing, setIsPreparing] = useState(false);
 
@@ -51,8 +51,10 @@ export function ResearchProvider({ children }: { children: ReactNode }) {
       await ensureDatabase(sdk);
       const agent = await (sdk.agents as any).create({
         name: 'Inverted World Research Desk',
+        username: `inverted_world_research_${Date.now()}`,
         model: 'anthropic/claude-sonnet-4.6',
         system_prompt: researchSystemPrompt(),
+        organization_id: orgId,
       });
       const nextDesk = {
         agentId: agent?.data?.id || agent?.id || DEFAULT_AGENT_ID,
@@ -74,7 +76,7 @@ export function ResearchProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsPreparing(false);
     }
-  }, [desk, isAuthenticated, sdk, user]);
+  }, [desk, isAuthenticated, orgId, sdk, user]);
 
   const value = useMemo(
     () => ({ desk, isPreparing, ensureResearchDesk }),
