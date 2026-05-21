@@ -8,6 +8,7 @@ export type ViralXPost = {
   authorName?: string
   username?: string
   createdAt?: string
+  source?: "x-api" | "brave-search"
   score?: number
   metrics?: {
     likes?: number
@@ -18,6 +19,9 @@ export type ViralXPost = {
 }
 
 const X_TIMEOUT_MS = 6500
+const BRAVE_TIMEOUT_MS = 6500
+const X_STATUS_URL_PATTERN =
+  /https?:\/\/(?:www\.)?(?:x\.com|twitter\.com)\/(?!i\/web)([A-Za-z0-9_]{1,20})\/status(?:es)?\/(\d+)/i
 
 function scorePost(metrics?: {
   like_count?: number
@@ -34,7 +38,26 @@ function scorePost(metrics?: {
   )
 }
 
-export async function fetchViralXPostsForTopic(topicId: string) {
+function cleanSearchText(value?: string) {
+  return (value || "")
+    .replace(/<[^>]+>/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+function extractXStatusUrl(value?: string) {
+  const match = value?.match(X_STATUS_URL_PATTERN)
+  if (!match) return undefined
+
+  const [, username, id] = match
+  return {
+    id,
+    username,
+    url: `https://x.com/${username}/status/${id}`,
+  }
+}
+
+async function fetchXApiPosts(topicId: string) {
   const token = process.env.X_BEARER_TOKEN || process.env.TWITTER_BEARER_TOKEN || process.env.TWITTER_API_BEARER_TOKEN
   if (!token) return [] satisfies ViralXPost[]
 
@@ -96,6 +119,7 @@ export async function fetchViralXPostsForTopic(topicId: string) {
         authorName: user?.name,
         username,
         createdAt: post.created_at,
+        source: "x-api",
         score,
         metrics: {
           likes: post.public_metrics?.like_count,
@@ -107,4 +131,86 @@ export async function fetchViralXPostsForTopic(topicId: string) {
     })
     .sort((left, right) => (right.score || 0) - (left.score || 0))
     .slice(0, 3)
+}
+
+async function fetchBraveIndexedXPosts(topicId: string) {
+  const token = process.env.BRAVE_SEARCH_API_KEY || process.env.BRAVE_API_KEY || process.env.BRAVE_SEARCH_KEY
+  if (!token) return [] satisfies ViralXPost[]
+
+  const topic = topics.find((item) => item.id === topicId)
+  if (!topic) return [] satisfies ViralXPost[]
+
+  const queryTerms = getTopicXQuery(topic)
+    .replace(/[()"]/g, " ")
+    .replace(/\bOR\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+
+  const url = new URL("https://api.search.brave.com/res/v1/web/search")
+  url.searchParams.set("q", `${queryTerms} site:x.com`)
+  url.searchParams.set("count", "12")
+  url.searchParams.set("country", "us")
+  url.searchParams.set("search_lang", "en")
+  url.searchParams.set("safesearch", "moderate")
+  url.searchParams.set("text_decorations", "false")
+
+  const response = await fetch(url, {
+    next: { revalidate: 1800 },
+    signal: AbortSignal.timeout(BRAVE_TIMEOUT_MS),
+    headers: {
+      accept: "application/json",
+      "user-agent": "InvertedWorldXSignals/1.0",
+      "x-subscription-token": token,
+    },
+  })
+
+  if (!response.ok) return [] satisfies ViralXPost[]
+
+  const data = (await response.json()) as {
+    web?: {
+      results?: Array<{
+        title?: string
+        url?: string
+        description?: string
+      }>
+    }
+  }
+
+  const seen = new Set<string>()
+
+  return (data.web?.results || [])
+    .map((result) => {
+      const status = extractXStatusUrl(result.url)
+      if (!status || seen.has(status.id)) return undefined
+      seen.add(status.id)
+
+      const title = cleanSearchText(result.title)
+      const description = cleanSearchText(result.description)
+      const text = title || description || `${topic.title} signal on X`
+
+      return {
+        id: status.id,
+        url: status.url,
+        text,
+        username: status.username,
+        source: "brave-search",
+      } satisfies ViralXPost
+    })
+    .filter((post): post is ViralXPost => Boolean(post))
+    .slice(0, 3)
+}
+
+export async function fetchViralXPostsForTopic(topicId: string) {
+  try {
+    const xPosts = await fetchXApiPosts(topicId)
+    if (xPosts.length) return xPosts
+  } catch {
+    // Fall back to indexed public X posts when the paid X API is absent, limited, or unavailable.
+  }
+
+  try {
+    return await fetchBraveIndexedXPosts(topicId)
+  } catch {
+    return [] satisfies ViralXPost[]
+  }
 }
