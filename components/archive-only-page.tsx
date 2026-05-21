@@ -31,6 +31,11 @@ function videoKey(video: ChannelVideo) {
   return video.videoId || video.href
 }
 
+function isShortVideo(video: ChannelVideo) {
+  const title = video.title.toLowerCase()
+  return video.kind === "short" || title.includes("#shorts") || video.href.includes("/shorts/")
+}
+
 function mergeVideos(current: ChannelVideo[], incoming: ChannelVideo[]) {
   const seen = new Set<string>()
   return [...current, ...incoming].filter((video) => {
@@ -52,14 +57,17 @@ export function ArchiveOnlyPage({
   initialArchive,
   initialTopicFeeds,
   initialTopicXPosts,
+  initialLiveVideo,
 }: {
   initialArchive?: DeepArchiveResponse
   initialTopicFeeds?: TopicFeeds
   initialTopicXPosts?: TopicXPosts
+  initialLiveVideo?: ChannelVideo
 }) {
   const initialVideos = initialArchive?.videos ?? []
+  const initialLeadVideo = initialLiveVideo || initialVideos.find((video) => !isShortVideo(video)) || initialVideos[0]
   const [videos, setVideos] = useState<ChannelVideo[]>(initialVideos)
-  const [selectedVideo, setSelectedVideo] = useState<ChannelVideo | undefined>(initialVideos[0])
+  const [selectedVideo, setSelectedVideo] = useState<ChannelVideo | undefined>(initialLeadVideo)
   const [loading, setLoading] = useState(false)
   const [nextOffset, setNextOffset] = useState((initialArchive?.offset ?? 0) + (initialArchive?.limit ?? initialVideos.length))
   const [hasMore, setHasMore] = useState(Boolean(initialArchive?.hasMore))
@@ -74,7 +82,8 @@ export function ArchiveOnlyPage({
     return map
   }, [videos])
 
-  const leadVideo = selectedVideo || videos[0]
+  const leadVideo = selectedVideo || initialLeadVideo || videos.find((video) => !isShortVideo(video)) || videos[0]
+  const leadVideoIsArchiveItem = Boolean(leadVideo && videos.some((video) => videoKey(video) === videoKey(leadVideo)))
   const selectedTopic = topics.find((topic) => topic.id === leadVideo?.topicId) || topics[0]
   const breakingItems = useMemo<BreakingItem[]>(
     () =>
@@ -116,7 +125,9 @@ export function ArchiveOnlyPage({
 
       setVideos(nextVideos)
       setSelectedVideo((current) =>
-        current && nextVideos.some((video) => videoKey(video) === videoKey(current)) ? current : nextVideos[0],
+        current && (current.date === "live" || nextVideos.some((video) => videoKey(video) === videoKey(current)))
+          ? current
+          : nextVideos.find((video) => !isShortVideo(video)) || nextVideos[0],
       )
       setNextOffset((data.offset ?? nextOffset) + (data.limit ?? incoming.length))
       setHasMore(Boolean(data.hasMore))
@@ -149,7 +160,7 @@ export function ArchiveOnlyPage({
 
         <aside className={cn("flex flex-col justify-between gap-6 p-4 sm:p-5", archiveSurface)}>
           <div>
-            <div className="flex items-center justify-between gap-3 text-xs font-semibold uppercase tracking-[0.16em] text-[#e8b45c]">
+            <div className="flex items-center justify-between gap-3 text-xs font-semibold uppercase tracking-[0.16em] text-[#df2f2f]">
               <span>{selectedTopic.title}</span>
               <Youtube className="h-5 w-5" />
             </div>
@@ -159,10 +170,12 @@ export function ArchiveOnlyPage({
           <div className="flex flex-wrap gap-2">
             {leadVideo?.videoId && (
               <a
-                href={`/archive/${leadVideo.videoId}`}
-                className="inline-flex h-10 items-center gap-2 bg-[#e8b45c]/10 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-[#e8b45c]/18"
+                href={leadVideoIsArchiveItem ? `/archive/${leadVideo.videoId}` : leadVideo.href}
+                target={leadVideoIsArchiveItem ? undefined : "_blank"}
+                rel={leadVideoIsArchiveItem ? undefined : "noreferrer"}
+                className="inline-flex h-10 items-center gap-2 bg-[#df2f2f]/10 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-[#df2f2f]/18"
               >
-                Video page
+                {leadVideoIsArchiveItem ? "Video page" : "Watch live"}
                 <ArrowUpRight className="h-4 w-4" />
               </a>
             )}
@@ -181,7 +194,11 @@ export function ArchiveOnlyPage({
         </aside>
       </section>
 
-      <XEmbedStrip />
+      <XEmbedStrip
+        posts={Object.values(initialTopicXPosts ?? {})
+          .map((posts) => posts[0])
+          .filter((post): post is ViralXPost => Boolean(post))}
+      />
 
       <div className="mt-6 grid gap-6">
         {topics.map((topic) => {
@@ -192,7 +209,7 @@ export function ArchiveOnlyPage({
             <section id={`topic-${topic.id}`} key={topic.id} className={cn("scroll-mt-36 p-3 sm:p-4", archiveSurface)}>
               <div className="flex flex-col gap-3 pb-3 md:flex-row md:items-end md:justify-between">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#e8b45c]">{topic.signal}</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#df2f2f]">{topic.signal}</p>
                   <h2 className="iw-serif mt-2 text-4xl leading-none text-[#fff8e6] sm:text-5xl">{topic.title}</h2>
                 </div>
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f4efe2]/48">
@@ -218,116 +235,74 @@ export function ArchiveOnlyPage({
 
 function XSignalLane({ topic, posts }: { topic: ContentTopic; posts: ViralXPost[] }) {
   const searchUrl = getTopicXSearchUrl(topic)
-  const hasPosts = posts.length > 0
+  const visiblePosts = posts.slice(0, 2)
 
   return (
     <section className="bg-[#050504]/30 p-3">
       <div className="mb-3 flex items-center justify-between gap-3">
         <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.16em] text-[#fff8e6]">
-          <Twitter className="h-4 w-4 text-[#e8b45c]" />
+          <Twitter className="h-4 w-4 text-[#df2f2f]" />
           X signal
         </h3>
         <a
           href={searchUrl}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#dff7ff] transition hover:text-[#e8b45c]"
+          className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#dff7ff] transition hover:text-[#df2f2f]"
         >
           Top search
           <ArrowUpRight className="h-3.5 w-3.5" />
         </a>
       </div>
 
-      {hasPosts ? (
-        <>
-          <div className="grid gap-3">
-            {posts.slice(0, 2).map((post) => (
-              <article key={post.id} className="overflow-hidden bg-[#070706]/38 p-2">
-                <blockquote className="twitter-tweet" data-theme="dark" data-dnt="true">
-                  <a href={post.url}>{post.text}</a>
-                </blockquote>
-                <div className="flex flex-wrap items-center gap-2 pt-2 text-[10px] uppercase tracking-[0.12em] text-[#f4efe2]/44">
-                  {post.username && <span>@{post.username}</span>}
-                  {typeof post.score === "number" && <span>{Math.round(post.score).toLocaleString()} signal</span>}
-                </div>
-              </article>
-            ))}
-          </div>
-        </>
-      ) : (
-        <div className="overflow-hidden bg-[#070706]/34 p-2 transition hover:bg-[#070706]/52">
-          <a
-            className="twitter-timeline"
-            data-theme="dark"
-            data-dnt="true"
-            data-height="240"
-            data-chrome="noheader nofooter noborders transparent"
-            href={searchUrl}
-          >
-            Viral X stream for {topic.title}
-          </a>
-          <a
-            href={searchUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-2 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#dff7ff] transition hover:text-[#e8b45c]"
-          >
-            Open top search
-            <ArrowUpRight className="h-3.5 w-3.5" />
-          </a>
-        </div>
-      )}
+      <EmbeddedTweetGrid posts={visiblePosts} />
     </section>
   )
 }
 
-function XEmbedStrip() {
-  const globalSearchUrl =
-    "https://twitter.com/search?q=%22Tales%20From%20The%20Inverted%20World%22%20OR%20UAP%20OR%20Epstein%20OR%20MKULTRA%20OR%20Bigfoot&src=typed_query&f=top"
-  const embeds = [
-    {
-      label: "@InvertedTales",
-      href: "https://twitter.com/InvertedTales?ref_src=twsrc%5Etfw",
-    },
-    {
-      label: "@ShaneCashman",
-      href: "https://twitter.com/ShaneCashman?ref_src=twsrc%5Etfw",
-    },
-    {
-      label: "Top X Signals",
-      href: globalSearchUrl,
-    },
-  ]
+function EmbeddedTweetGrid({ posts }: { posts: ViralXPost[] }) {
+  return (
+    <div className="grid gap-3">
+      {posts.map((post) => (
+        <article key={post.id || post.url} className="overflow-hidden bg-[#070706]/38 p-2">
+          <blockquote className="twitter-tweet" data-theme="dark" data-dnt="true">
+            <a href={post.url}>{post.text}</a>
+          </blockquote>
+          <div className="flex flex-wrap items-center gap-2 pt-2 text-[10px] uppercase tracking-[0.12em] text-[#f4efe2]/44">
+            {post.username && <span>@{post.username}</span>}
+            {typeof post.score === "number" && <span>{Math.round(post.score).toLocaleString()} signal</span>}
+          </div>
+        </article>
+      ))}
+    </div>
+  )
+}
+
+function XEmbedStrip({ posts }: { posts: ViralXPost[] }) {
+  const visiblePosts = posts.slice(0, 3)
 
   return (
     <section className="mt-4 grid gap-4 lg:grid-cols-3">
-      {embeds.map((embed) => (
-        <div key={embed.href} className={cn("min-h-[300px] overflow-hidden p-3", archiveSurface)}>
+      {visiblePosts.map((post) => (
+        <div key={post.id || post.url} className={cn("min-h-[300px] overflow-hidden p-3", archiveSurface)}>
           <div className="mb-2 flex items-center justify-between gap-3">
             <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#fff8e6]">
-              <Twitter className="h-4 w-4 text-[#e8b45c]" />
-              {embed.label}
+              <Twitter className="h-4 w-4 text-[#df2f2f]" />
+              Embedded X
             </h2>
             <a
-              href={embed.href}
+              href={post.url}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#dff7ff] transition hover:text-[#e8b45c]"
+              className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#dff7ff] transition hover:text-[#df2f2f]"
             >
               X
               <ArrowUpRight className="h-3.5 w-3.5" />
             </a>
           </div>
-          <a
-            className="twitter-timeline"
-            data-theme="dark"
-            data-dnt="true"
-            data-height="280"
-            data-chrome="noheader nofooter noborders transparent"
-            href={embed.href}
-          >
-            {embed.label}
-          </a>
+          <blockquote className="twitter-tweet" data-theme="dark" data-dnt="true">
+            <a href={post.url}>{post.text}</a>
+          </blockquote>
         </div>
       ))}
     </section>
@@ -353,8 +328,8 @@ function LiveFeed({ topicTitle, articles }: { topicTitle: string; articles: Inte
             className="group block bg-[#050504]/36 p-2.5 transition hover:bg-[#070706]/58"
           >
             <span className="flex items-start justify-between gap-3">
-              <span className="text-[13px] font-semibold leading-5 text-[#fff8e6] group-hover:text-[#e8b45c]">{article.title}</span>
-              <ArrowUpRight className="mt-0.5 h-4 w-4 shrink-0 text-[#f4efe2]/38 group-hover:text-[#e8b45c]" />
+              <span className="text-[13px] font-semibold leading-5 text-[#fff8e6] group-hover:text-[#df2f2f]">{article.title}</span>
+              <ArrowUpRight className="mt-0.5 h-4 w-4 shrink-0 text-[#f4efe2]/38 group-hover:text-[#df2f2f]" />
             </span>
             <span className="mt-2 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-[#f4efe2]/42">
               <span>{article.source}</span>
@@ -404,7 +379,7 @@ function VideoGrid({ videos }: { videos: ChannelVideo[] }) {
               <h3 className="line-clamp-3 text-sm font-semibold leading-5 text-[#fff8e6]">{video.title}</h3>
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
                 <span className="text-xs uppercase tracking-[0.12em] text-[#f4efe2]/42">{video.date || "upload"}</span>
-                <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.1em] text-[#dff7ff] transition group-hover:text-[#e8b45c]">
+                <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.1em] text-[#dff7ff] transition group-hover:text-[#df2f2f]">
                   Open
                   <ArrowUpRight className="h-3.5 w-3.5" />
                 </span>

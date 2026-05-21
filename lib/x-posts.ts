@@ -8,7 +8,7 @@ export type ViralXPost = {
   authorName?: string
   username?: string
   createdAt?: string
-  source?: "x-api" | "brave-search"
+  source?: "x-api" | "brave-search" | "seed"
   score?: number
   metrics?: {
     likes?: number
@@ -23,6 +23,91 @@ const BRAVE_TIMEOUT_MS = 6500
 const X_STATUS_URL_PATTERN =
   /https?:\/\/(?:www\.)?(?:x\.com|twitter\.com)\/(?!i\/web)([A-Za-z0-9_]{1,20})\/status(?:es)?\/(\d+)/i
 
+const seededTopicPosts: Record<string, ViralXPost[]> = {
+  "uap-disclosure": [
+    {
+      id: "2040507193330438252",
+      url: "https://twitter.com/Washington_EY/status/2040507193330438252",
+      text: "UAP disclosure signal",
+      username: "Washington_EY",
+      source: "seed",
+    },
+    {
+      id: "2035940133984162272",
+      url: "https://twitter.com/terramysteria/status/2035940133984162272",
+      text: "UFO disclosure signal",
+      username: "terramysteria",
+      source: "seed",
+    },
+    {
+      id: "1924919274352607532",
+      url: "https://twitter.com/FCBourbeau/status/1924919274352607532",
+      text: "Pentagon UAP signal",
+      username: "FCBourbeau",
+      source: "seed",
+    },
+  ],
+  "secret-programs": [
+    {
+      id: "2026090242147594751",
+      url: "https://twitter.com/Madres_Comadres/status/2026090242147594751",
+      text: "MKULTRA archive signal",
+      username: "Madres_Comadres",
+      source: "seed",
+    },
+    {
+      id: "2026167208230183314",
+      url: "https://twitter.com/aprajitanefes/status/2026167208230183314",
+      text: "CIA declassified signal",
+      username: "aprajitanefes",
+      source: "seed",
+    },
+  ],
+  "epstein-networks": [
+    {
+      id: "2021270437498372455",
+      url: "https://twitter.com/Reuters/status/2021270437498372455",
+      text: "Epstein files coverage",
+      username: "Reuters",
+      source: "seed",
+    },
+    {
+      id: "1743218364565033337",
+      url: "https://twitter.com/AP/status/1743218364565033337",
+      text: "Epstein court records coverage",
+      username: "AP",
+      source: "seed",
+    },
+  ],
+  "cryptids-paranormal": [
+    {
+      id: "1992992072843661646",
+      url: "https://twitter.com/officialdwts/status/1992992072843661646",
+      text: "Cryptid pop-culture signal",
+      username: "officialdwts",
+      source: "seed",
+    },
+  ],
+  "ai-technocracy": [
+    {
+      id: "2000696114278043891",
+      url: "https://twitter.com/suryavansh138/status/2000696114278043891",
+      text: "AI surveillance signal",
+      username: "suryavansh138",
+      source: "seed",
+    },
+  ],
+  "space-anomalies": [
+    {
+      id: "1786475097887354957",
+      url: "https://twitter.com/NASA/status/1786475097887354957",
+      text: "NASA anomaly signal",
+      username: "NASA",
+      source: "seed",
+    },
+  ],
+}
+
 function scorePost(metrics?: {
   like_count?: number
   retweet_count?: number
@@ -36,6 +121,22 @@ function scorePost(metrics?: {
     (metrics.quote_count || 0) * 2 +
     (metrics.reply_count || 0) * 0.5
   )
+}
+
+function seededPostsForTopic(topicId: string) {
+  return seededTopicPosts[topicId] || []
+}
+
+function mergeWithSeededPosts(topicId: string, posts: ViralXPost[]) {
+  const seen = new Set<string>()
+  return [...posts, ...seededPostsForTopic(topicId)]
+    .filter((post) => {
+      const key = post.id || post.url
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+    .slice(0, 4)
 }
 
 function cleanSearchText(value?: string) {
@@ -53,7 +154,7 @@ function extractXStatusUrl(value?: string) {
   return {
     id,
     username,
-    url: `https://x.com/${username}/status/${id}`,
+    url: `https://twitter.com/${username}/status/${id}`,
   }
 }
 
@@ -114,7 +215,7 @@ async function fetchXApiPosts(topicId: string) {
 
       return {
         id: post.id,
-        url: `https://x.com/${username || "i"}/status/${post.id}`,
+        url: `https://twitter.com/${username || "i"}/status/${post.id}`,
         text: post.text,
         authorName: user?.name,
         username,
@@ -203,14 +304,15 @@ async function fetchBraveIndexedXPosts(topicId: string) {
 export async function fetchViralXPostsForTopic(topicId: string) {
   try {
     const xPosts = await fetchXApiPosts(topicId)
-    if (xPosts.length) return xPosts
+    if (xPosts.length) return mergeWithSeededPosts(topicId, xPosts)
   } catch {
     // Fall back to indexed public X posts when the paid X API is absent, limited, or unavailable.
   }
 
   try {
-    return await fetchBraveIndexedXPosts(topicId)
+    const indexedPosts = await fetchBraveIndexedXPosts(topicId)
+    return mergeWithSeededPosts(topicId, indexedPosts)
   } catch {
-    return [] satisfies ViralXPost[]
+    return seededPostsForTopic(topicId)
   }
 }

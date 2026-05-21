@@ -3,12 +3,13 @@ import { topics } from "@/data/inverted-world"
 import { getDeepArchive } from "@/lib/deep-archive"
 import { fetchLiveArticlesForTopic } from "@/lib/live-articles"
 import { fetchViralXPostsForTopic } from "@/lib/x-posts"
+import { getYouTubeLiveStatus } from "@/lib/youtube-live"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 3600
 
 export default async function ArchivePage() {
-  const [initialArchive, topicFeeds, topicXPosts] = await Promise.all([
+  const [initialArchive, topicFeeds, topicXPosts, liveStatus] = await Promise.all([
     getDeepArchive({ limit: 500, maxLimit: 500 }),
     Promise.allSettled(
       topics.map(async (topic) => ({
@@ -22,6 +23,7 @@ export default async function ArchivePage() {
         posts: await fetchViralXPostsForTopic(topic.id),
       })),
     ),
+    getYouTubeLiveStatus().catch(() => null),
   ])
 
   const initialTopicFeeds = Object.fromEntries(
@@ -45,6 +47,21 @@ export default async function ArchivePage() {
       }}
       initialTopicFeeds={initialTopicFeeds}
       initialTopicXPosts={initialTopicXPosts}
+      initialLiveVideo={
+        liveStatus?.isLive && liveStatus.videoId
+          ? {
+              title: liveStatus.title || "Inverted World Live",
+              date: "live",
+              href: liveStatus.url || `https://www.youtube.com/watch?v=${liveStatus.videoId}`,
+              topicId: "uap-disclosure",
+              source: "YouTube",
+              videoId: liveStatus.videoId,
+              embedUrl: `https://www.youtube.com/embed/${liveStatus.videoId}?rel=0&autoplay=1`,
+              thumbnail: `https://i.ytimg.com/vi/${liveStatus.videoId}/hqdefault.jpg`,
+              kind: "episode",
+            }
+          : undefined
+      }
     />
   )
 }

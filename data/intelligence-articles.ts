@@ -186,7 +186,7 @@ const frames = [
 ]
 
 const thumbnailPalettes = [
-  "from-[#050504] via-[#21180d] to-[#e8b45c]",
+  "from-[#050504] via-[#21180d] to-[#df2f2f]",
   "from-[#050504] via-[#141d20] to-[#7dd3fc]",
   "from-[#050504] via-[#1c1020] to-[#d8b4fe]",
   "from-[#050504] via-[#102017] to-[#8ee6a8]",

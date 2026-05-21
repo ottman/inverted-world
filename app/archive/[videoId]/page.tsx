@@ -6,6 +6,7 @@ import { archiveSurface, InvertedPageShell, type BreakingItem } from "@/componen
 import { getArchiveVideo } from "@/lib/deep-archive"
 import { buildVideoDossier, videoDossierJsonLd } from "@/lib/video-dossier"
 import { fetchLiveArticlesForTopic } from "@/lib/live-articles"
+import { fetchViralXPostsForTopic } from "@/lib/x-posts"
 import { getTopicXSearchUrl } from "@/lib/x-search"
 import { cn } from "@/lib/utils"
 import type { ChannelVideo, ContentTopic } from "@/data/inverted-world"
@@ -91,6 +92,7 @@ export default async function ArchiveVideoPage({ params }: PageProps) {
   const canonicalUrl = `https://invertedworld.on.recursiv.io/archive/${params.videoId}`
   const synopsis = buildSynopsis(video, dossier.topic)
   const liveArticles = await fetchLiveArticlesForTopic(dossier.topic.id, dossier.topic.query.replaceAll('"', "")).catch(() => [])
+  const xPosts = await fetchViralXPostsForTopic(dossier.topic.id).catch(() => [])
   const breakingItems = articleToBreakingItems(liveArticles)
 
   return (
@@ -107,7 +109,7 @@ export default async function ArchiveVideoPage({ params }: PageProps) {
       <div className="mb-6">
         <a
           href="/archive"
-          className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#f4efe2]/58 transition hover:text-[#e8b45c]"
+          className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#f4efe2]/58 transition hover:text-[#df2f2f]"
         >
           <ArrowLeft className="h-4 w-4" />
           Archive
@@ -129,7 +131,7 @@ export default async function ArchiveVideoPage({ params }: PageProps) {
         </div>
 
         <aside className={cn("p-5", archiveSurface)}>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#e8b45c]">{video.date || "archive"}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#df2f2f]">{video.date || "archive"}</p>
           <h2 className="iw-serif mt-4 text-4xl leading-tight text-[#fff8e6]">Synopsis</h2>
           <p className="mt-4 text-sm leading-6 text-[#f4efe2]/68">{synopsis[0]}</p>
           <div className="mt-6 grid gap-2 text-xs uppercase tracking-[0.14em] text-[#f4efe2]/48">
@@ -142,7 +144,7 @@ export default async function ArchiveVideoPage({ params }: PageProps) {
 
       <article className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className={cn("p-5 sm:p-6", archiveSurface)}>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#e8b45c]">Video synopsis</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#df2f2f]">Video synopsis</p>
           <h2 className="iw-serif mt-4 text-4xl leading-tight text-[#fff8e6] sm:text-5xl">{video.title}</h2>
           <div className="mt-5 grid max-w-3xl gap-4">
             {synopsis.map((paragraph) => (
@@ -166,7 +168,7 @@ export default async function ArchiveVideoPage({ params }: PageProps) {
                   className="group block bg-[#070706]/24 p-3 transition hover:bg-[#070706]/46"
                 >
                   <span className="flex items-start justify-between gap-3">
-                    <span className="text-sm font-semibold leading-5 text-[#fff8e6] group-hover:text-[#e8b45c]">{reference.title}</span>
+                    <span className="text-sm font-semibold leading-5 text-[#fff8e6] group-hover:text-[#df2f2f]">{reference.title}</span>
                     <ExternalLink className="mt-0.5 h-4 w-4 shrink-0 text-[#f4efe2]/38" />
                   </span>
                   <span className="mt-2 block text-xs uppercase tracking-[0.14em] text-[#f4efe2]/42">
@@ -190,7 +192,7 @@ export default async function ArchiveVideoPage({ params }: PageProps) {
                     className="group block bg-[#070706]/24 p-3 transition hover:bg-[#070706]/46"
                   >
                     <span className="flex items-start justify-between gap-3">
-                      <span className="text-sm font-semibold leading-5 text-[#fff8e6] group-hover:text-[#e8b45c]">
+                      <span className="text-sm font-semibold leading-5 text-[#fff8e6] group-hover:text-[#df2f2f]">
                         {article.title}
                       </span>
                       <ExternalLink className="mt-0.5 h-4 w-4 shrink-0 text-[#f4efe2]/38" />
@@ -211,21 +213,20 @@ export default async function ArchiveVideoPage({ params }: PageProps) {
                 href={getTopicXSearchUrl(dossier.topic)}
                 target="_blank"
                 rel="noreferrer"
-                className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#dff7ff] transition hover:text-[#e8b45c]"
+                className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#dff7ff] transition hover:text-[#df2f2f]"
               >
                 Top search
               </a>
             </div>
-            <a
-              className="twitter-timeline"
-              data-theme="dark"
-              data-dnt="true"
-              data-height="320"
-              data-chrome="noheader nofooter noborders transparent"
-              href={getTopicXSearchUrl(dossier.topic)}
-            >
-              X signal for {dossier.topic.title}
-            </a>
+            <div className="grid gap-3">
+              {xPosts.slice(0, 2).map((post) => (
+                <article key={post.id || post.url} className="overflow-hidden bg-[#070706]/24 p-2">
+                  <blockquote className="twitter-tweet" data-theme="dark" data-dnt="true">
+                    <a href={post.url}>{post.text}</a>
+                  </blockquote>
+                </article>
+              ))}
+            </div>
           </section>
         </aside>
       </article>

@@ -76,6 +76,7 @@ function classifyArchiveTopic(title: string, _description?: string) {
 }
 
 function buildVideo(videoId: string, title: string, publishedAt?: string, description?: string): ChannelVideo {
+  const normalizedTitle = title.toLowerCase()
   return {
     title: title || "Untitled upload",
     date: publishedAt ? publishedAt.slice(0, 10) : "",
@@ -86,7 +87,7 @@ function buildVideo(videoId: string, title: string, publishedAt?: string, descri
     embedUrl: `https://www.youtube.com/embed/${videoId}?rel=0`,
     thumbnail: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
     description: description?.trim() || undefined,
-    kind: "episode",
+    kind: normalizedTitle.includes("#shorts") ? "short" : "episode",
   }
 }
 

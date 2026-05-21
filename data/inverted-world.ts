@@ -72,7 +72,7 @@ export const topics: ContentTopic[] = [
   },
   {
     id: "secret-programs",
-    title: "Black Vault",
+    title: "Declassified",
     signal: "FOIA, intelligence history, mind-control and black-budget claims",
     query: '"MKULTRA" OR "CIA" "FOIA" "declassified" "secret program"',
     stance: "Separate proven historical programs from speculative continuity claims.",

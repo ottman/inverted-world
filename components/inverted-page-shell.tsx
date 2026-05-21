@@ -63,7 +63,7 @@ export function InvertedPageShell({
     <div className="relative min-h-screen overflow-x-hidden bg-[#070706] text-[#f4efe2]">
       <div className="pointer-events-none fixed inset-0 z-0 opacity-95">
         <Waves
-          lineColor="rgba(232, 180, 92, 0.32)"
+          lineColor="rgba(244, 239, 226, 0.42)"
           backgroundColor="#070706"
           waveSpeedX={0.008}
           waveSpeedY={0.005}
@@ -99,7 +99,7 @@ export function InvertedPageShell({
             </a>
             <nav className="flex w-full items-center gap-3 overflow-x-auto text-xs font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/64 lg:justify-center lg:gap-5 lg:tracking-[0.14em]">
               {topics.map((topic) => (
-                <a key={topic.id} className="shrink-0 transition hover:text-[#e8b45c]" href={`/archive#topic-${topic.id}`}>
+                <a key={topic.id} className="shrink-0 transition hover:text-[#df2f2f]" href={`/archive#topic-${topic.id}`}>
                   {topic.title}
                 </a>
               ))}
@@ -111,7 +111,7 @@ export function InvertedPageShell({
         <main className="mx-auto max-w-7xl px-3 py-5 sm:px-6 sm:py-6 lg:px-8">
           <div className="mb-5 grid gap-4 bg-[#070706]/18 p-4 backdrop-blur-[1px] sm:p-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
             <div className="max-w-4xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#e8b45c]">{eyebrow}</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#df2f2f]">{eyebrow}</p>
               <h1 className="iw-serif mt-2 text-5xl leading-[0.9] tracking-normal text-[#fff8e6] sm:text-7xl">
                 Inverted World
               </h1>
@@ -143,7 +143,7 @@ function BreakingTicker({ items }: { items?: BreakingItem[] }) {
   return (
     <div>
       <div className="mx-auto flex max-w-7xl items-center gap-3 px-3 sm:px-6 lg:px-8">
-        <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#e8b45c]">Breaking</span>
+        <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#df2f2f]">Breaking</span>
         <div className="iw-breaking-scroll min-w-0 flex-1 overflow-hidden py-2">
           <div className="iw-breaking-track flex w-max gap-4">
             {marqueeItems.map((item, index) => {
@@ -157,7 +157,7 @@ function BreakingTicker({ items }: { items?: BreakingItem[] }) {
                   className="group flex shrink-0 items-center gap-2 text-[11px] uppercase tracking-[0.1em] text-[#f4efe2]/62 transition hover:text-[#fff8e6]"
                 >
                   <span className="max-w-[72vw] truncate sm:max-w-[420px]">{item.title}</span>
-                  {item.source && <span className="text-[#e8b45c]/70">{item.source}</span>}
+                  {item.source && <span className="text-[#df2f2f]/70">{item.source}</span>}
                 </a>
               )
             })}
@@ -189,7 +189,7 @@ function SimpleFooter() {
             target="_blank"
             rel="noreferrer"
             aria-label={link.label}
-            className="grid h-9 w-9 place-items-center bg-[#070706]/30 text-[#f4efe2]/62 transition hover:bg-[#e8b45c]/12 hover:text-[#fff8e6]"
+            className="grid h-9 w-9 place-items-center bg-[#070706]/30 text-[#f4efe2]/62 transition hover:bg-[#df2f2f]/12 hover:text-[#fff8e6]"
           >
             <SocialIcon label={link.label} />
           </a>
@@ -215,7 +215,7 @@ export function ExternalAction({ href, children }: { href: string; children: Rea
       target="_blank"
       rel="noreferrer"
       className={cn(
-        "inline-flex h-10 items-center gap-2 rounded-md bg-[#070706]/22 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-[#e8b45c]/12",
+        "inline-flex h-10 items-center gap-2 rounded-md bg-[#070706]/22 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-[#df2f2f]/12",
         archiveSurface,
       )}
     >
