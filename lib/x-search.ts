@@ -14,6 +14,6 @@ export function getTopicXQuery(topic: ContentTopic) {
 }
 
 export function getTopicXSearchUrl(topic: ContentTopic) {
-  const query = `${getTopicXQuery(topic)} min_faves:100 -filter:replies`
+  const query = `${getTopicXQuery(topic)} min_faves:1000 min_retweets:100 -filter:replies`
   return `https://x.com/search?q=${encodeURIComponent(query)}&src=typed_query&f=top`
 }

@@ -3,7 +3,7 @@
 import type React from "react"
 import { useEffect, useState } from "react"
 import Image from "next/image"
-import { ExternalLink, Facebook, Instagram, Radio, Twitter, Youtube } from "lucide-react"
+import { ExternalLink, Facebook, Instagram, Radio, Youtube } from "lucide-react"
 import Waves from "@/components/Waves"
 import { socialLinks, topics } from "@/data/inverted-world"
 import { cn } from "@/lib/utils"
@@ -94,7 +94,7 @@ export function InvertedPageShell({
                 width={1229}
                 height={203}
                 priority
-                className="h-7 w-auto max-w-[54vw] shrink sm:h-10 sm:max-w-none"
+                className="h-10 w-auto max-w-[76vw] shrink sm:h-11 sm:max-w-none"
               />
             </a>
             <nav className="flex w-full items-center gap-3 overflow-x-auto text-xs font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/64 lg:justify-center lg:gap-5 lg:tracking-[0.14em]">
@@ -116,7 +116,7 @@ export function InvertedPageShell({
                 Inverted World
               </h1>
               <p className="iw-serif mt-3 max-w-3xl text-2xl leading-[1.05] text-[#f4efe2]/86 sm:text-3xl">
-                A research archive for the strange, classified, misreported, and not-yet-understood.
+                Tales From the Inverted World investigates the mysteries that lie beneath the surface of everyday life.
               </p>
               <p className="sr-only">{title}</p>
             </div>
@@ -177,7 +177,7 @@ function SimpleFooter() {
           alt="Inverted World"
           width={1229}
           height={203}
-          className="h-6 w-auto opacity-82"
+          className="h-12 w-auto max-w-[72vw] opacity-82 sm:h-14"
         />
         <span className="text-xs uppercase tracking-[0.14em]">© {new Date().getFullYear()} Subverse, Inc.</span>
       </div>
@@ -204,8 +204,16 @@ function SocialIcon({ label }: { label: string }) {
   if (label === "YouTube") return <Youtube className={iconClass} />
   if (label === "Facebook") return <Facebook className={iconClass} />
   if (label === "Instagram") return <Instagram className={iconClass} />
-  if (label === "X") return <Twitter className={iconClass} />
+  if (label === "X") return <XIcon className={iconClass} />
   return <Radio className={iconClass} />
+}
+
+export function XIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+      <path d="M13.86 10.47 21.15 2h-1.73l-6.33 7.35L8.04 2H2.2l7.64 11.12L2.2 22h1.73l6.68-7.76L15.96 22h5.84l-7.94-11.53Zm-2.37 2.75-.77-1.11-6.16-8.8h2.65l4.97 7.11.77 1.11 6.47 9.25h-2.65l-5.28-7.56Z" />
+    </svg>
+  )
 }
 
 export function ExternalAction({ href, children }: { href: string; children: React.ReactNode }) {

@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import Script from "next/script"
 import { ArrowLeft, ExternalLink } from "lucide-react"
 import { notFound } from "next/navigation"
-import { archiveSurface, InvertedPageShell, type BreakingItem } from "@/components/inverted-page-shell"
+import { archiveSurface, InvertedPageShell, XIcon, type BreakingItem } from "@/components/inverted-page-shell"
 import { getArchiveVideo } from "@/lib/deep-archive"
 import { buildVideoDossier, videoDossierJsonLd } from "@/lib/video-dossier"
 import { fetchLiveArticlesForTopic } from "@/lib/live-articles"
@@ -192,7 +192,7 @@ export default async function ArchiveVideoPage({ params }: PageProps) {
                     className="group block bg-[#070706]/24 p-3 transition hover:bg-[#070706]/46"
                   >
                     <span className="flex items-start justify-between gap-3">
-                      <span className="text-sm font-semibold leading-5 text-[#fff8e6] group-hover:text-[#df2f2f]">
+                      <span className="iw-serif text-xl leading-[1.05] text-[#fff8e6] group-hover:text-[#df2f2f]">
                         {article.title}
                       </span>
                       <ExternalLink className="mt-0.5 h-4 w-4 shrink-0 text-[#f4efe2]/38" />
@@ -208,7 +208,10 @@ export default async function ArchiveVideoPage({ params }: PageProps) {
 
           <section className={cn("p-5", archiveSurface)}>
             <div className="mb-4 flex items-center justify-between gap-3">
-              <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-[#fff8e6]">X signal</h2>
+              <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.16em] text-[#fff8e6]">
+                <XIcon className="h-4 w-4 text-[#df2f2f]" />
+                X signal
+              </h2>
               <a
                 href={getTopicXSearchUrl(dossier.topic)}
                 target="_blank"
@@ -220,10 +223,19 @@ export default async function ArchiveVideoPage({ params }: PageProps) {
             </div>
             <div className="grid gap-3">
               {xPosts.slice(0, 2).map((post) => (
-                <article key={post.id || post.url} className="overflow-hidden bg-[#070706]/24 p-2">
-                  <blockquote className="twitter-tweet" data-theme="dark" data-dnt="true">
-                    <a href={post.url}>{post.text}</a>
-                  </blockquote>
+                <article key={post.id || post.url} className="overflow-hidden bg-black p-2">
+                  <div className="iw-compact-tweet">
+                    <blockquote
+                      className="twitter-tweet iw-tweet-blockquote"
+                      data-theme="dark"
+                      data-dnt="true"
+                      data-cards="hidden"
+                      data-conversation="none"
+                      data-width="260"
+                    >
+                      <a href={post.url}>{post.text}</a>
+                    </blockquote>
+                  </div>
                 </article>
               ))}
             </div>

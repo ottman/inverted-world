@@ -15,11 +15,14 @@ export type ViralXPost = {
     reposts?: number
     replies?: number
     quotes?: number
+    views?: number
   }
 }
 
 const X_TIMEOUT_MS = 6500
 const BRAVE_TIMEOUT_MS = 6500
+const configuredMinViralScore = Number(process.env.X_MIN_VIRAL_SCORE || "250")
+const MIN_VIRAL_X_SCORE = Number.isFinite(configuredMinViralScore) ? configuredMinViralScore : 250
 const X_STATUS_URL_PATTERN =
   /https?:\/\/(?:www\.)?(?:x\.com|twitter\.com)\/(?!i\/web)([A-Za-z0-9_]{1,20})\/status(?:es)?\/(\d+)/i
 
@@ -113,13 +116,15 @@ function scorePost(metrics?: {
   retweet_count?: number
   reply_count?: number
   quote_count?: number
+  impression_count?: number
 }) {
   if (!metrics) return 0
   return (
     (metrics.like_count || 0) +
     (metrics.retweet_count || 0) * 2 +
     (metrics.quote_count || 0) * 2 +
-    (metrics.reply_count || 0) * 0.5
+    (metrics.reply_count || 0) * 0.5 +
+    (metrics.impression_count || 0) * 0.01
   )
 }
 
@@ -194,6 +199,7 @@ async function fetchXApiPosts(topicId: string) {
         retweet_count?: number
         reply_count?: number
         quote_count?: number
+        impression_count?: number
       }
     }>
     includes?: {
@@ -207,7 +213,7 @@ async function fetchXApiPosts(topicId: string) {
 
   const users = new Map((data.includes?.users || []).map((user) => [user.id, user]))
 
-  return (data.data || [])
+  const ranked = (data.data || [])
     .map((post) => {
       const user = post.author_id ? users.get(post.author_id) : undefined
       const username = user?.username
@@ -227,11 +233,14 @@ async function fetchXApiPosts(topicId: string) {
           reposts: post.public_metrics?.retweet_count,
           replies: post.public_metrics?.reply_count,
           quotes: post.public_metrics?.quote_count,
+          views: post.public_metrics?.impression_count,
         },
       } satisfies ViralXPost
     })
     .sort((left, right) => (right.score || 0) - (left.score || 0))
-    .slice(0, 3)
+
+  const viral = ranked.filter((post) => (post.score || 0) >= MIN_VIRAL_X_SCORE)
+  return (viral.length ? viral : ranked).slice(0, 3)
 }
 
 async function fetchBraveIndexedXPosts(topicId: string) {

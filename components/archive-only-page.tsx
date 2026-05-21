@@ -1,9 +1,9 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { ArrowUpRight, Play, RefreshCw, Twitter, Youtube } from "lucide-react"
+import { ArrowUpRight, Play, RefreshCw, Youtube } from "lucide-react"
 import Script from "next/script"
-import { archiveSurface, InvertedPageShell, type BreakingItem } from "@/components/inverted-page-shell"
+import { archiveSurface, InvertedPageShell, XIcon, type BreakingItem } from "@/components/inverted-page-shell"
 import { channelProfile, topics, type ChannelVideo, type ContentTopic } from "@/data/inverted-world"
 import type { IntelligenceArticle } from "@/data/intelligence-articles"
 import { cn } from "@/lib/utils"
@@ -51,6 +51,30 @@ function normalizeDate(value?: string) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value.slice(0, 16)
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+}
+
+function formatMetricCount(value?: number) {
+  if (typeof value !== "number" || Number.isNaN(value)) return undefined
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(value >= 10_000_000 ? 0 : 1)}M`
+  if (value >= 1_000) return `${(value / 1_000).toFixed(value >= 10_000 ? 0 : 1)}K`
+  return String(Math.round(value))
+}
+
+function postMetricLabel(post: ViralXPost) {
+  const likes = formatMetricCount(post.metrics?.likes)
+  const reposts = formatMetricCount(post.metrics?.reposts)
+  const replies = formatMetricCount(post.metrics?.replies)
+  const views = formatMetricCount(post.metrics?.views)
+  const parts = [
+    likes ? `${likes} likes` : undefined,
+    reposts ? `${reposts} reposts` : undefined,
+    replies ? `${replies} replies` : undefined,
+    views ? `${views} views` : undefined,
+  ].filter(Boolean)
+
+  if (parts.length) return parts.slice(0, 3).join(" / ")
+  if (typeof post.score === "number" && post.score > 0) return `${formatMetricCount(post.score)} signal`
+  return "curated signal"
 }
 
 export function ArchiveOnlyPage({
@@ -217,8 +241,8 @@ export function ArchiveOnlyPage({
                 </p>
               </div>
 
-              <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(300px,0.98fr)_minmax(0,1.05fr)]">
-                <div className="grid h-fit gap-4">
+              <div className="mt-4 grid items-start gap-4 xl:grid-cols-[minmax(260px,0.72fr)_minmax(0,1.28fr)]">
+                <div className="grid min-w-0 gap-4">
                   <LiveFeed topicTitle={topic.title} articles={feed} />
                   <XSignalLane topic={topic} posts={xPosts} />
                 </div>
@@ -235,13 +259,13 @@ export function ArchiveOnlyPage({
 
 function XSignalLane({ topic, posts }: { topic: ContentTopic; posts: ViralXPost[] }) {
   const searchUrl = getTopicXSearchUrl(topic)
-  const visiblePosts = posts.slice(0, 2)
+  const visiblePosts = posts.slice(0, 1)
 
   return (
     <section className="bg-[#050504]/30 p-3">
       <div className="mb-3 flex items-center justify-between gap-3">
         <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.16em] text-[#fff8e6]">
-          <Twitter className="h-4 w-4 text-[#df2f2f]" />
+          <XIcon className="h-4 w-4 text-[#df2f2f]" />
           X signal
         </h3>
         <a
@@ -264,13 +288,22 @@ function EmbeddedTweetGrid({ posts }: { posts: ViralXPost[] }) {
   return (
     <div className="grid gap-3">
       {posts.map((post) => (
-        <article key={post.id || post.url} className="overflow-hidden bg-[#070706]/38 p-2">
-          <blockquote className="twitter-tweet" data-theme="dark" data-dnt="true">
-            <a href={post.url}>{post.text}</a>
-          </blockquote>
+        <article key={post.id || post.url} className="overflow-hidden bg-black p-2">
+          <div className="iw-compact-tweet">
+            <blockquote
+              className="twitter-tweet iw-tweet-blockquote"
+              data-theme="dark"
+              data-dnt="true"
+              data-cards="hidden"
+              data-conversation="none"
+              data-width="260"
+            >
+              <a href={post.url}>{post.text}</a>
+            </blockquote>
+          </div>
           <div className="flex flex-wrap items-center gap-2 pt-2 text-[10px] uppercase tracking-[0.12em] text-[#f4efe2]/44">
             {post.username && <span>@{post.username}</span>}
-            {typeof post.score === "number" && <span>{Math.round(post.score).toLocaleString()} signal</span>}
+            <span>{postMetricLabel(post)}</span>
           </div>
         </article>
       ))}
@@ -284,10 +317,10 @@ function XEmbedStrip({ posts }: { posts: ViralXPost[] }) {
   return (
     <section className="mt-4 grid gap-4 lg:grid-cols-3">
       {visiblePosts.map((post) => (
-        <div key={post.id || post.url} className={cn("min-h-[300px] overflow-hidden p-3", archiveSurface)}>
+        <div key={post.id || post.url} className={cn("min-h-[210px] overflow-hidden p-3", archiveSurface)}>
           <div className="mb-2 flex items-center justify-between gap-3">
             <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#fff8e6]">
-              <Twitter className="h-4 w-4 text-[#df2f2f]" />
+              <XIcon className="h-4 w-4 text-[#df2f2f]" />
               Embedded X
             </h2>
             <a
@@ -300,9 +333,22 @@ function XEmbedStrip({ posts }: { posts: ViralXPost[] }) {
               <ArrowUpRight className="h-3.5 w-3.5" />
             </a>
           </div>
-          <blockquote className="twitter-tweet" data-theme="dark" data-dnt="true">
-            <a href={post.url}>{post.text}</a>
-          </blockquote>
+          <div className="iw-compact-tweet iw-compact-tweet--strip">
+            <blockquote
+              className="twitter-tweet iw-tweet-blockquote"
+              data-theme="dark"
+              data-dnt="true"
+              data-cards="hidden"
+              data-conversation="none"
+              data-width="280"
+            >
+              <a href={post.url}>{post.text}</a>
+            </blockquote>
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-[#f4efe2]/44">
+            {post.username && <span>@{post.username}</span>}
+            <span>{postMetricLabel(post)}</span>
+          </div>
         </div>
       ))}
     </section>
@@ -328,7 +374,7 @@ function LiveFeed({ topicTitle, articles }: { topicTitle: string; articles: Inte
             className="group block bg-[#050504]/36 p-2.5 transition hover:bg-[#070706]/58"
           >
             <span className="flex items-start justify-between gap-3">
-              <span className="text-[13px] font-semibold leading-5 text-[#fff8e6] group-hover:text-[#df2f2f]">{article.title}</span>
+              <span className="iw-serif text-xl leading-[1.05] text-[#fff8e6] group-hover:text-[#df2f2f]">{article.title}</span>
               <ArrowUpRight className="mt-0.5 h-4 w-4 shrink-0 text-[#f4efe2]/38 group-hover:text-[#df2f2f]" />
             </span>
             <span className="mt-2 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-[#f4efe2]/42">
