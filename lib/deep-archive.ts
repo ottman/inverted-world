@@ -30,6 +30,33 @@ export type DeepArchiveResponse = {
 
 const ARCHIVE_TIMEOUT_MS = 8500
 
+const TOPIC_KEYWORDS: Array<{ topicId: string; words: string[] }> = [
+  {
+    topicId: "uap-disclosure",
+    words: ["ufo", "uap", "alien", "retrieval", "aaro", "pentagon", "disclosure", "grusch"],
+  },
+  {
+    topicId: "secret-programs",
+    words: ["mkultra", "cia", "fbi", "psyop", "psyops", "coverup", "classified", "declassified", "covid", "hearing"],
+  },
+  {
+    topicId: "epstein-networks",
+    words: ["epstein", "maxwell", "island", "sealed", "client list", "court record"],
+  },
+  {
+    topicId: "cryptids-paranormal",
+    words: ["cryptid", "bigfoot", "ghost", "paranormal", "apocalyptic", "haunted", "demon", "folklore", "pterodactyl"],
+  },
+  {
+    topicId: "ai-technocracy",
+    words: ["ai", "data center", "surveillance", "technocracy", "algorithm", "machine", "synthetic", "robot"],
+  },
+  {
+    topicId: "space-anomalies",
+    words: ["bermuda", "nasa", "moon", "mars", "meteor", "space", "satellite", "solar", "ocean"],
+  },
+]
+
 function decodeXml(value: string) {
   return value
     .replaceAll("&amp;", "&")
@@ -40,12 +67,20 @@ function decodeXml(value: string) {
     .replaceAll("&gt;", ">")
 }
 
+function classifyArchiveTopic(title: string, _description?: string) {
+  const titleHaystack = title.toLowerCase()
+  const titleMatch = TOPIC_KEYWORDS.find((topic) => topic.words.some((word) => titleHaystack.includes(word)))
+  if (titleMatch) return titleMatch.topicId
+
+  return "secret-programs"
+}
+
 function buildVideo(videoId: string, title: string, publishedAt?: string, description?: string): ChannelVideo {
   return {
     title: title || "Untitled upload",
     date: publishedAt ? publishedAt.slice(0, 10) : "",
     href: `https://www.youtube.com/watch?v=${videoId}`,
-    topicId: "all",
+    topicId: classifyArchiveTopic(title, description),
     source: "YouTube",
     videoId,
     embedUrl: `https://www.youtube.com/embed/${videoId}?rel=0`,

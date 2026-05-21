@@ -1,5 +1,5 @@
-import { InvertedWorldEditorialApp } from "@/components/inverted-world-editorial-app"
+import { redirect } from "next/navigation"
 
 export default function Page() {
-  return <InvertedWorldEditorialApp />
+  redirect("/archive")
 }

@@ -4,17 +4,17 @@ import './globals.css'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://invertedworld.on.recursiv.io'),
-  title: 'Inverted World Intelligence Desk',
+  title: 'Inverted World Archive',
   description:
-    'A Recursiv-powered research, AI news, and document intelligence system for Tales From the Inverted World.',
+    'Topic-organized videos from Tales From the Inverted World with hourly live article feeds.',
   generator: 'Recursiv',
   icons: {
     icon: '/icon.svg',
   },
   openGraph: {
-    title: 'Inverted World Intelligence Desk',
+    title: 'Inverted World Archive',
     description:
-      'AI-assisted research across channel archives, news outlets, government documents, and open-source data.',
+      'Topic-organized videos from Tales From the Inverted World with hourly live article feeds.',
     url: 'https://invertedworld.on.recursiv.io',
     siteName: 'Inverted World',
     images: ['/images/inverted-world-logo.jpg'],

@@ -93,19 +93,19 @@ export default async function ArchiveVideoPage({ params }: PageProps) {
 
         <aside className={cn("p-5", archiveSurface)}>
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#e8b45c]">{video.date || "archive"}</p>
-          <h2 className="mt-4 text-2xl font-semibold leading-tight text-[#fff8e6]">AI dossier</h2>
+          <h2 className="mt-4 text-2xl font-semibold leading-tight text-[#fff8e6]">Video</h2>
           <p className="mt-4 text-sm leading-6 text-[#f4efe2]/68">{dossier.dek}</p>
           <div className="mt-6 grid gap-2 text-xs uppercase tracking-[0.14em] text-[#f4efe2]/48">
             <span>topic: {dossier.topic.title}</span>
             <span>source: Tales From the Inverted World</span>
-            <span>format: video + article + references</span>
+            <span>format: video + references</span>
           </div>
         </aside>
       </section>
 
       <article className="mt-7 grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className={cn("p-5 sm:p-7", archiveSurface)}>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#e8b45c]">Indexable research article</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#e8b45c]">Archive notes</p>
           <h2 className="mt-4 text-3xl font-semibold leading-tight text-[#fff8e6] sm:text-4xl">{dossier.title}</h2>
           <p className="mt-5 max-w-3xl text-base leading-7 text-[#f4efe2]/72">{dossier.dek}</p>
 
@@ -144,7 +144,7 @@ export default async function ArchiveVideoPage({ params }: PageProps) {
           </section>
 
           <section className={cn("p-5", archiveSurface)}>
-            <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-[#fff8e6]">Research prompts</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-[#fff8e6]">Search trails</h2>
             <ul className="mt-4 grid gap-2">
               {dossier.searchQueries.map((query) => (
                 <li key={query} className="border border-[#f4efe2]/10 bg-[#070706]/24 p-3 text-xs leading-5 text-[#f4efe2]/64">

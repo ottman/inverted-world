@@ -1,5 +1,5 @@
-import { NewsroomPage } from "@/components/newsroom-page"
+import { redirect } from "next/navigation"
 
 export default function NewsPage() {
-  return <NewsroomPage />
+  redirect("/archive")
 }

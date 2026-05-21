@@ -1,7 +1,7 @@
 import { intelligenceArticles, type IntelligenceArticle } from "@/data/intelligence-articles"
 import { featuredVideos, researchDocuments, topics } from "@/data/inverted-world"
 
-const NEWS_TIMEOUT_MS = 5500
+const NEWS_TIMEOUT_MS = 6500
 
 function decodeXml(value: string) {
   return value
@@ -87,7 +87,7 @@ export async function fetchLiveArticlesForTopic(topicId: string, query: string) 
   url.searchParams.set("ceid", "US:en")
 
   const response = await fetch(url, {
-    next: { revalidate: 900 },
+    next: { revalidate: 3600 },
     signal: AbortSignal.timeout(NEWS_TIMEOUT_MS),
     headers: {
       "user-agent": "InvertedWorldResearch/1.0",
