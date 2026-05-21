@@ -220,6 +220,7 @@ export function ArchiveOnlyPage({
           )
         })}
       </div>
+      <Script src="https://platform.twitter.com/widgets.js" strategy="lazyOnload" />
     </InvertedPageShell>
   )
 }
@@ -261,25 +262,29 @@ function XSignalLane({ topic, posts }: { topic: ContentTopic; posts: ViralXPost[
               </article>
             ))}
           </div>
-          <Script src="https://platform.twitter.com/widgets.js" strategy="lazyOnload" />
         </>
       ) : (
-        <a
-          href={searchUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="group block border border-[#f4efe2]/10 bg-[#070706]/34 p-3 transition hover:border-[#e8b45c]/45"
-        >
-          <span className="flex items-start justify-between gap-3">
-            <span className="text-sm font-semibold leading-5 text-[#fff8e6] group-hover:text-[#e8b45c]">
-              Viral X search for {topic.title}
-            </span>
-            <ArrowUpRight className="mt-0.5 h-4 w-4 shrink-0 text-[#f4efe2]/38 group-hover:text-[#e8b45c]" />
-          </span>
-          <span className="mt-2 block text-xs leading-5 text-[#f4efe2]/52">
-            Opens the live top-post stream for this topic.
-          </span>
-        </a>
+        <div className="overflow-hidden border border-[#f4efe2]/10 bg-[#070706]/34 p-2 transition hover:border-[#e8b45c]/45">
+          <a
+            className="twitter-timeline"
+            data-theme="dark"
+            data-dnt="true"
+            data-height="240"
+            data-chrome="noheader nofooter noborders transparent"
+            href={searchUrl}
+          >
+            Viral X stream for {topic.title}
+          </a>
+          <a
+            href={searchUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-2 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#dff7ff] transition hover:text-[#e8b45c]"
+          >
+            Open top search
+            <ArrowUpRight className="h-3.5 w-3.5" />
+          </a>
+        </div>
       )}
     </section>
   )
