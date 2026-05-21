@@ -7,7 +7,6 @@ import { getArchiveVideo } from "@/lib/deep-archive"
 import { buildVideoDossier, videoDossierJsonLd } from "@/lib/video-dossier"
 import { fetchLiveArticlesForTopic } from "@/lib/live-articles"
 import { fetchViralXPostsForTopic } from "@/lib/x-posts"
-import { getTopicXSearchUrl } from "@/lib/x-search"
 import {
   getYouTubeTranscript,
   groupTranscriptSegments,
@@ -266,17 +265,16 @@ export default async function ArchiveVideoPage({ params }: PageProps) {
                 X signal
               </h2>
               <a
-                href={getTopicXSearchUrl(dossier.topic)}
-                target="_blank"
-                rel="noreferrer"
+                href={`/x/${dossier.topic.id}`}
                 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#dff7ff] transition hover:text-[#df2f2f]"
               >
-                Top search
+                Signal page
               </a>
             </div>
             <div className="grid gap-3">
               {xPosts.slice(0, 2).map((post) => (
-                <article key={post.id || post.url} className="overflow-hidden bg-black p-2">
+                <article key={post.id || post.url} className="relative overflow-hidden bg-black p-2">
+                  <a href={`/x/${post.topicId || dossier.topic.id}`} className="absolute inset-0 z-10" aria-label={`Open ${dossier.topic.title} X signal stream`} />
                   <div className="iw-compact-tweet">
                     <blockquote
                       className="twitter-tweet iw-tweet-blockquote"

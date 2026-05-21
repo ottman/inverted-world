@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, type KeyboardEvent } from "react"
 import { ArrowUpRight, Play, RefreshCw, Youtube } from "lucide-react"
 import Script from "next/script"
 import { archiveSurface, InvertedPageShell, XIcon, type BreakingItem } from "@/components/inverted-page-shell"
@@ -8,7 +8,6 @@ import { channelProfile, topics, type ChannelVideo, type ContentTopic } from "@/
 import type { IntelligenceArticle } from "@/data/intelligence-articles"
 import { cn } from "@/lib/utils"
 import type { DeepArchiveResponse } from "@/lib/deep-archive"
-import { getTopicXSearchUrl } from "@/lib/x-search"
 import type { ViralXPost } from "@/lib/x-posts"
 
 type ArchiveResponse = {
@@ -75,6 +74,17 @@ function postMetricLabel(post: ViralXPost) {
   if (parts.length) return parts.slice(0, 3).join(" / ")
   if (typeof post.score === "number" && post.score > 0) return `${formatMetricCount(post.score)} signal`
   return "curated signal"
+}
+
+function openInAppSignal(topicId: string) {
+  window.location.href = `/x/${topicId}`
+}
+
+function handleSignalKey(event: KeyboardEvent<HTMLElement>, topicId: string) {
+  if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault()
+    openInAppSignal(topicId)
+  }
 }
 
 export function ArchiveOnlyPage({
@@ -261,7 +271,7 @@ export function ArchiveOnlyPage({
 }
 
 function XSignalLane({ topic, posts }: { topic: ContentTopic; posts: ViralXPost[] }) {
-  const searchUrl = getTopicXSearchUrl(topic)
+  const signalUrl = `/x/${topic.id}`
   const visiblePosts = posts.slice(0, 1)
 
   return (
@@ -272,26 +282,42 @@ function XSignalLane({ topic, posts }: { topic: ContentTopic; posts: ViralXPost[
           X signal
         </h3>
         <a
-          href={searchUrl}
-          target="_blank"
-          rel="noreferrer"
+          href={signalUrl}
           className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#dff7ff] transition hover:text-[#df2f2f]"
         >
-          Top search
+          Signal page
           <ArrowUpRight className="h-3.5 w-3.5" />
         </a>
       </div>
 
-      <EmbeddedTweetGrid posts={visiblePosts} />
+      <EmbeddedTweetGrid posts={visiblePosts} topicId={topic.id} />
     </section>
   )
 }
 
-function EmbeddedTweetGrid({ posts }: { posts: ViralXPost[] }) {
+function EmbeddedTweetGrid({ posts, topicId }: { posts: ViralXPost[]; topicId: string }) {
+  if (!posts.length) {
+    return (
+      <a
+        href={`/x/${topicId}`}
+        className="block bg-black p-4 text-sm leading-6 text-[#f4efe2]/62 transition hover:text-[#fff8e6]"
+      >
+        No fresh embeddable X posts in the last 24 hours. Open the signal stream.
+      </a>
+    )
+  }
+
   return (
     <div className="grid gap-3">
       {posts.map((post) => (
-        <article key={post.id || post.url} className="overflow-hidden bg-black p-2">
+        <article
+          key={post.id || post.url}
+          role="link"
+          tabIndex={0}
+          onClick={() => openInAppSignal(post.topicId || topicId)}
+          onKeyDown={(event) => handleSignalKey(event, post.topicId || topicId)}
+          className="block cursor-pointer overflow-hidden bg-black p-2"
+        >
           <div className="iw-compact-tweet">
             <blockquote
               className="twitter-tweet iw-tweet-blockquote"
@@ -327,16 +353,20 @@ function XEmbedStrip({ posts }: { posts: ViralXPost[] }) {
               Embedded X
             </h2>
             <a
-              href={post.url}
-              target="_blank"
-              rel="noreferrer"
+              href={`/x/${post.topicId || "uap-disclosure"}`}
               className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#dff7ff] transition hover:text-[#df2f2f]"
             >
-              X
+              Stream
               <ArrowUpRight className="h-3.5 w-3.5" />
             </a>
           </div>
-          <div className="iw-compact-tweet iw-compact-tweet--strip">
+          <div
+            role="link"
+            tabIndex={0}
+            onClick={() => openInAppSignal(post.topicId || "uap-disclosure")}
+            onKeyDown={(event) => handleSignalKey(event, post.topicId || "uap-disclosure")}
+            className="iw-compact-tweet iw-compact-tweet--strip cursor-pointer"
+          >
             <blockquote
               className="twitter-tweet iw-tweet-blockquote"
               data-theme="dark"

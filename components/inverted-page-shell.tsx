@@ -91,7 +91,7 @@ export function InvertedPageShell({
         >
           <BreakingTicker items={breakingItems} />
           <div className="mx-auto grid max-w-7xl gap-3 px-3 py-3 sm:px-6 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-center lg:px-8">
-            <a className="flex min-w-0 items-center gap-3" href="/archive" aria-label="Inverted World archive">
+            <a className="flex min-w-0 items-center justify-center gap-3 justify-self-center lg:justify-self-auto" href="/archive" aria-label="Inverted World archive">
               <Image
                 src="/images/inverted-world-banner-logo.png"
                 alt="Inverted World"
