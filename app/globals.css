@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -36,6 +36,28 @@ body {
   letter-spacing: 0;
   text-rendering: geometricPrecision;
   -webkit-font-smoothing: antialiased;
+}
+
+.iw-serif {
+  font-family: "Instrument Serif", ui-serif, Georgia, "Times New Roman", serif;
+  font-weight: 400;
+}
+
+.iw-breaking-scroll {
+  scrollbar-color: rgba(232, 180, 92, 0.55) rgba(244, 239, 226, 0.08);
+  scrollbar-width: thin;
+}
+
+.iw-breaking-scroll::-webkit-scrollbar {
+  height: 5px;
+}
+
+.iw-breaking-scroll::-webkit-scrollbar-track {
+  background: rgba(244, 239, 226, 0.08);
+}
+
+.iw-breaking-scroll::-webkit-scrollbar-thumb {
+  background: rgba(232, 180, 92, 0.55);
 }
 
 a {

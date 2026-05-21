@@ -231,8 +231,8 @@ export function buildVideoDossier(video: ChannelVideo): VideoDossier {
   const published = video.date || "unknown date"
   const angle = videoAngle(video, topic)
   const description = compactDescription(video)
-  const title = `${video.title} | Inverted World dossier`
-  const dek = `Research dossier on ${angle.subject}, grounded in the episode, primary-source lanes, cross-outlet coverage, and the strongest skeptical counterread.`
+  const title = `${video.title} | Inverted World`
+  const dek = `Synopsis and research links for ${angle.subject}, grounded in the episode, primary-source lanes, cross-outlet coverage, and the strongest skeptical counterread.`
   const primaryRefs = references.slice(1, 4).map((reference) => reference.source).join(", ")
   const querySeed = topic.query.replaceAll('"', "")
 
@@ -276,7 +276,7 @@ export function buildVideoDossier(video: ChannelVideo): VideoDossier {
       {
         heading: "What to research next",
         body:
-          `Search the exact title, then run "${querySeed}" through government, court, science, and broadcast indexes. Save one primary record, one mainstream counterread, one hostile counterread, one archival lead, and one unanswered question. That is the minimum viable dossier.`,
+          `Search the exact title, then run "${querySeed}" through government, court, science, and broadcast indexes. Save one primary record, one mainstream counterread, one hostile counterread, one archival lead, and one unanswered question.`,
       },
     ],
   }

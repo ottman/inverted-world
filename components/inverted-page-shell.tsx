@@ -1,25 +1,66 @@
 "use client"
 
 import type React from "react"
+import { useEffect, useState } from "react"
 import Image from "next/image"
-import { ExternalLink } from "lucide-react"
+import { ExternalLink, Facebook, Instagram, Radio, Twitter, Youtube } from "lucide-react"
 import Waves from "@/components/Waves"
-import { topics } from "@/data/inverted-world"
+import { socialLinks, topics } from "@/data/inverted-world"
 import { cn } from "@/lib/utils"
 
 export const archiveSurface = "border border-[#f4efe2]/12 bg-[#070706]/28 backdrop-blur-[2px]"
+
+export type BreakingItem = {
+  title: string
+  href: string
+  source?: string
+}
+
+type LiveStatus = {
+  isLive: boolean
+  title?: string
+  url?: string
+}
 
 export function InvertedPageShell({
   eyebrow,
   title,
   children,
   action,
+  breakingItems,
 }: {
   eyebrow: string
   title: string
   children: React.ReactNode
   action?: React.ReactNode
+  breakingItems?: BreakingItem[]
 }) {
+  const [liveStatus, setLiveStatus] = useState<LiveStatus>({ isLive: false })
+
+  useEffect(() => {
+    let active = true
+
+    async function loadLiveStatus() {
+      try {
+        const response = await fetch("/api/youtube-live", { cache: "no-store" })
+        if (!response.ok) return
+        const data = (await response.json()) as LiveStatus
+        if (active) setLiveStatus({ isLive: Boolean(data.isLive), title: data.title, url: data.url })
+      } catch {
+        if (active) setLiveStatus({ isLive: false })
+      }
+    }
+
+    void loadLiveStatus()
+    const interval = window.setInterval(() => void loadLiveStatus(), 60_000)
+    return () => {
+      active = false
+      window.clearInterval(interval)
+    }
+  }, [])
+
+  const liveHref = liveStatus.url || "https://www.youtube.com/@TalesfromtheInvertedWorld/live"
+
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-[#070706] text-[#f4efe2]">
       <div className="pointer-events-none fixed inset-0 z-0 opacity-95">
@@ -40,7 +81,13 @@ export function InvertedPageShell({
       <div className="pointer-events-none fixed inset-0 z-[1] bg-[linear-gradient(180deg,rgba(7,7,6,0.04),rgba(7,7,6,0.72))]" />
 
       <div className="relative z-10">
-        <header className="sticky top-0 z-30 border-b border-[#f4efe2]/10 bg-[#070706]/28 backdrop-blur-[2px]">
+        <header
+          className={cn(
+            "sticky top-0 z-30 border-b bg-[#070706]/24 backdrop-blur-[2px] transition-colors",
+            liveStatus.isLive ? "border-[#df2f2f]/55 bg-[#180404]/46" : "border-[#f4efe2]/10",
+          )}
+        >
+          <BreakingTicker items={breakingItems} />
           <div className="mx-auto grid max-w-7xl gap-3 px-3 py-3 sm:px-6 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-center lg:px-8">
             <a className="flex min-w-0 items-center gap-3" href="/archive" aria-label="Inverted World archive">
               <Image
@@ -60,30 +107,120 @@ export function InvertedPageShell({
               ))}
             </nav>
             <a
-              href="https://www.youtube.com/@TalesfromtheInvertedWorld"
+              href={liveHref}
               target="_blank"
               rel="noreferrer"
-              className="hidden h-10 items-center gap-2 border border-[#f4efe2]/12 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/72 transition hover:border-[#e8b45c]/45 hover:text-[#fff8e6] lg:inline-flex"
+              className={cn(
+                "hidden h-10 items-center gap-2 border px-3 text-xs font-semibold uppercase tracking-[0.12em] transition lg:inline-flex",
+                liveStatus.isLive
+                  ? "border-[#df2f2f]/65 bg-[#df2f2f]/14 text-[#fff8e6]"
+                  : "border-[#f4efe2]/12 text-[#f4efe2]/72 hover:border-[#e8b45c]/45 hover:text-[#fff8e6]",
+              )}
             >
-              YouTube
-              <ExternalLink className="h-4 w-4" />
+              <span className={cn("h-2 w-2 rounded-full", liveStatus.isLive ? "animate-pulse bg-[#df2f2f]" : "bg-[#f4efe2]/34")} />
+              {liveStatus.isLive ? "Live now" : "YouTube"}
             </a>
           </div>
         </header>
 
-        <main className="mx-auto max-w-7xl px-3 py-8 sm:px-6 sm:py-10 lg:px-8">
-          <div className="mb-6 flex flex-col justify-between gap-4 sm:mb-8 sm:flex-row sm:items-end">
-            <div>
+        <main className="mx-auto max-w-7xl px-3 py-5 sm:px-6 sm:py-6 lg:px-8">
+          <div className="mb-5 grid gap-4 border border-[#f4efe2]/12 bg-[#070706]/18 p-4 backdrop-blur-[1px] sm:p-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+            <div className="max-w-4xl">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#e8b45c]">{eyebrow}</p>
-              <h1 className="mt-2 text-4xl font-semibold leading-none tracking-normal text-[#fff8e6] sm:text-6xl">{title}</h1>
+              <h1 className="iw-serif mt-2 text-5xl leading-[0.9] tracking-normal text-[#fff8e6] sm:text-7xl">
+                Inverted World
+              </h1>
+              <p className="iw-serif mt-3 max-w-3xl text-2xl leading-[1.05] text-[#f4efe2]/86 sm:text-3xl">
+                A research archive for the strange, classified, misreported, and not-yet-understood.
+              </p>
+              <p className="mt-3 max-w-3xl text-sm leading-6 text-[#f4efe2]/58">
+                Watch the channel, follow the records, compare the coverage, and keep belief open until the evidence closes.
+              </p>
+              <p className="sr-only">{title}</p>
             </div>
             {action}
           </div>
           {children}
         </main>
+
+        <SimpleFooter />
       </div>
     </div>
   )
+}
+
+function BreakingTicker({ items }: { items?: BreakingItem[] }) {
+  const fallbackItems = topics.map((topic) => ({
+    title: topic.signal,
+    href: `/archive#topic-${topic.id}`,
+    source: topic.title,
+  }))
+  const visibleItems = (items?.length ? items : fallbackItems).slice(0, 18)
+
+  return (
+    <div className="border-b border-[#f4efe2]/10">
+      <div className="mx-auto flex max-w-7xl items-center gap-3 px-3 sm:px-6 lg:px-8">
+        <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#e8b45c]">Breaking</span>
+        <div className="iw-breaking-scroll flex min-w-0 flex-1 gap-4 overflow-x-auto py-2">
+          {visibleItems.map((item) => {
+            const external = item.href.startsWith("http")
+            return (
+              <a
+                key={`${item.href}-${item.title}`}
+                href={item.href}
+                target={external ? "_blank" : undefined}
+                rel={external ? "noreferrer" : undefined}
+                className="group flex shrink-0 items-center gap-2 text-[11px] uppercase tracking-[0.1em] text-[#f4efe2]/62 transition hover:text-[#fff8e6]"
+              >
+                <span className="max-w-[72vw] truncate sm:max-w-[420px]">{item.title}</span>
+                {item.source && <span className="text-[#e8b45c]/70">{item.source}</span>}
+              </a>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SimpleFooter() {
+  return (
+    <footer className="relative z-10 mx-auto mt-8 flex max-w-7xl flex-col gap-4 border-t border-[#f4efe2]/10 px-3 py-6 text-[#f4efe2]/56 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
+      <div className="flex items-center gap-3">
+        <Image
+          src="/images/inverted-world-banner-logo.png"
+          alt="Inverted World"
+          width={1229}
+          height={203}
+          className="h-6 w-auto opacity-82"
+        />
+        <span className="text-xs uppercase tracking-[0.14em]">© {new Date().getFullYear()} Subverse, Inc.</span>
+      </div>
+      <div className="flex items-center gap-2">
+        {socialLinks.map((link) => (
+          <a
+            key={link.href}
+            href={link.href}
+            target="_blank"
+            rel="noreferrer"
+            aria-label={link.label}
+            className="grid h-9 w-9 place-items-center border border-[#f4efe2]/12 text-[#f4efe2]/62 transition hover:border-[#e8b45c]/45 hover:text-[#fff8e6]"
+          >
+            <SocialIcon label={link.label} />
+          </a>
+        ))}
+      </div>
+    </footer>
+  )
+}
+
+function SocialIcon({ label }: { label: string }) {
+  const iconClass = "h-4 w-4"
+  if (label === "YouTube") return <Youtube className={iconClass} />
+  if (label === "Facebook") return <Facebook className={iconClass} />
+  if (label === "Instagram") return <Instagram className={iconClass} />
+  if (label === "X") return <Twitter className={iconClass} />
+  return <Radio className={iconClass} />
 }
 
 export function ExternalAction({ href, children }: { href: string; children: React.ReactNode }) {

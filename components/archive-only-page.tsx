@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react"
 import { ArrowUpRight, Play, RefreshCw, Youtube } from "lucide-react"
-import { archiveSurface, ExternalAction, InvertedPageShell } from "@/components/inverted-page-shell"
+import { archiveSurface, ExternalAction, InvertedPageShell, type BreakingItem } from "@/components/inverted-page-shell"
 import { channelProfile, topics, type ChannelVideo } from "@/data/inverted-world"
 import type { IntelligenceArticle } from "@/data/intelligence-articles"
 import { cn } from "@/lib/utils"
@@ -21,6 +21,7 @@ type ArchiveResponse = {
 type TopicFeeds = Record<string, IntelligenceArticle[]>
 
 const PAGE_SIZE = 120
+const TOPIC_VIDEO_LIMIT = 8
 
 function videoKey(video: ChannelVideo) {
   return video.videoId || video.href
@@ -77,6 +78,19 @@ export function ArchiveOnlyPage({
 
   const leadVideo = selectedVideo || videos[0]
   const selectedTopic = topics.find((topic) => topic.id === leadVideo?.topicId) || topics[0]
+  const breakingItems = useMemo<BreakingItem[]>(
+    () =>
+      Object.values(initialTopicFeeds ?? {})
+        .flat()
+        .sort((left, right) => new Date(right.publishedAt).getTime() - new Date(left.publishedAt).getTime())
+        .slice(0, 18)
+        .map((article) => ({
+          title: article.title,
+          href: article.sourceUrl,
+          source: article.source,
+        })),
+    [initialTopicFeeds],
+  )
 
   async function loadMore() {
     if (loading) return
@@ -112,6 +126,7 @@ export function ArchiveOnlyPage({
       eyebrow={`${totalCount || videos.length} uploads / ${formatSourceMode(mode)} / hourly feeds`}
       title="Archive"
       action={<ExternalAction href="https://www.youtube.com/@TalesfromtheInvertedWorld/videos">YouTube</ExternalAction>}
+      breakingItems={breakingItems}
     >
       <section className="grid gap-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.55fr)]">
         <div className={cn("p-2 sm:p-3", archiveSurface)}>
@@ -161,23 +176,23 @@ export function ArchiveOnlyPage({
         </aside>
       </section>
 
-      <div className="mt-8 grid gap-8">
+      <div className="mt-6 grid gap-6">
         {topics.map((topic) => {
           const topicVideos = videosByTopic.get(topic.id) ?? []
           const feed = initialTopicFeeds?.[topic.id] ?? []
           return (
-            <section id={`topic-${topic.id}`} key={topic.id} className={cn("scroll-mt-28 p-4 sm:p-5", archiveSurface)}>
-              <div className="flex flex-col gap-3 border-b border-[#f4efe2]/10 pb-4 md:flex-row md:items-end md:justify-between">
+            <section id={`topic-${topic.id}`} key={topic.id} className={cn("scroll-mt-36 p-3 sm:p-4", archiveSurface)}>
+              <div className="flex flex-col gap-3 border-b border-[#f4efe2]/10 pb-3 md:flex-row md:items-end md:justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#e8b45c]">{topic.signal}</p>
-                  <h2 className="mt-2 text-3xl font-semibold leading-none text-[#fff8e6] sm:text-4xl">{topic.title}</h2>
+                  <h2 className="iw-serif mt-2 text-4xl leading-none text-[#fff8e6] sm:text-5xl">{topic.title}</h2>
                 </div>
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f4efe2]/48">
                   {topicVideos.length} videos / {feed.length} live links
                 </p>
               </div>
 
-              <div className="mt-5 grid gap-5 xl:grid-cols-[0.95fr_1.25fr]">
+              <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(300px,0.98fr)_minmax(0,1.05fr)]">
                 <LiveFeed topicTitle={topic.title} articles={feed} />
                 <VideoGrid videos={topicVideos} selectedVideo={leadVideo} onSelect={setSelectedVideo} />
               </div>
@@ -190,26 +205,28 @@ export function ArchiveOnlyPage({
 }
 
 function LiveFeed({ topicTitle, articles }: { topicTitle: string; articles: IntelligenceArticle[] }) {
+  const visibleArticles = articles.slice(0, 12)
+
   return (
     <div>
-      <div className="mb-3 flex items-center justify-between gap-3">
+      <div className="mb-2 flex items-center justify-between gap-3">
         <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-[#fff8e6]">Hourly feed</h3>
         <span className="text-xs uppercase tracking-[0.14em] text-[#f4efe2]/42">{topicTitle}</span>
       </div>
-      <div className="grid gap-3">
-        {articles.slice(0, 5).map((article) => (
+      <div className="grid gap-2">
+        {visibleArticles.map((article) => (
           <a
             key={article.id}
             href={article.sourceUrl}
             target="_blank"
             rel="noreferrer"
-            className="group block border border-[#f4efe2]/10 bg-[#050504]/36 p-3 transition hover:border-[#e8b45c]/45 hover:bg-[#070706]/58"
+            className="group block border border-[#f4efe2]/10 bg-[#050504]/36 p-2.5 transition hover:border-[#e8b45c]/45 hover:bg-[#070706]/58"
           >
             <span className="flex items-start justify-between gap-3">
-              <span className="text-sm font-semibold leading-5 text-[#fff8e6] group-hover:text-[#e8b45c]">{article.title}</span>
+              <span className="text-[13px] font-semibold leading-5 text-[#fff8e6] group-hover:text-[#e8b45c]">{article.title}</span>
               <ArrowUpRight className="mt-0.5 h-4 w-4 shrink-0 text-[#f4efe2]/38 group-hover:text-[#e8b45c]" />
             </span>
-            <span className="mt-3 flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.12em] text-[#f4efe2]/42">
+            <span className="mt-2 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-[#f4efe2]/42">
               <span>{article.source}</span>
               <span>/</span>
               <span>{normalizeDate(article.publishedAt)}</span>
@@ -235,9 +252,12 @@ function VideoGrid({
   selectedVideo?: ChannelVideo
   onSelect: (video: ChannelVideo) => void
 }) {
+  const visibleVideos = videos.slice(0, TOPIC_VIDEO_LIMIT)
+  const hiddenCount = Math.max(videos.length - visibleVideos.length, 0)
+
   return (
-    <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
-      {videos.map((video) => {
+    <div className="grid gap-3 sm:grid-cols-2">
+      {visibleVideos.map((video) => {
         const active = videoKey(video) === videoKey(selectedVideo || video)
         return (
           <article
@@ -279,6 +299,11 @@ function VideoGrid({
           </article>
         )
       })}
+      {hiddenCount > 0 && (
+        <div className="border border-[#f4efe2]/10 bg-[#050504]/24 p-3 text-xs uppercase tracking-[0.14em] text-[#f4efe2]/52 sm:col-span-2">
+          {hiddenCount} more videos in this topic. Use the top player or More to keep digging.
+        </div>
+      )}
       {!videos.length && (
         <div className="border border-[#f4efe2]/10 bg-[#050504]/24 p-3 text-sm text-[#f4efe2]/56">
           No archive videos classified here yet.

@@ -96,7 +96,7 @@ export async function fetchLiveArticlesForTopic(topicId: string, query: string) 
   if (!response.ok) throw new Error(`Google News returned ${response.status}`)
 
   const xml = await response.text()
-  return [...xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)].slice(0, 6).map((match, index) => {
+  return [...xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)].slice(0, 12).map((match, index) => {
     const item = match[1]
     const rawTitle = readTag(item, "title")
     const title = cleanNewsTitle(rawTitle)
