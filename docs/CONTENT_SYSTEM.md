@@ -26,7 +26,7 @@ Server-side agent calls use `RECURSIV_SERVER_API_KEY` so this standalone app doe
 
 ## Data Lanes
 
-- Channel archive: YouTube handle plus Timcast archive.
+- Channel archive: Tales From The Inverted World YouTube handle and uploads feed.
 - News coverage: GDELT/global article search and later paid/indexed providers.
 - Official records: Federal Register, AARO, NASA, NOAA, FBI Vault, CIA Reading Room.
 - Legal records: CourtListener and direct court dockets where available.

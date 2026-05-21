@@ -229,3 +229,12 @@ export async function getArchiveVideo(videoId: string) {
   const archive = await getDeepArchive({ limit: 1000, maxLimit: 1000 })
   return archive.videos.find((video) => video.videoId === videoId) ?? null
 }
+
+export async function getRecommendedArchiveVideos(video: ChannelVideo, limit = 8) {
+  const archive = await getDeepArchive({ limit: 1000, maxLimit: 1000 })
+  const candidates = archive.videos.filter((item) => item.videoId && item.videoId !== video.videoId)
+  const sameTopic = candidates.filter((item) => item.topicId === video.topicId)
+  const nearbyTopics = candidates.filter((item) => item.topicId !== video.topicId)
+
+  return dedupeVideos([...sameTopic, ...nearbyTopics]).slice(0, Math.max(1, Math.min(limit, 12)))
+}

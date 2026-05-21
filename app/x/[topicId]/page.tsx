@@ -38,13 +38,13 @@ export default async function XTopicPage({ params }: PageProps) {
   const posts = await fetchViralXPostsForTopic(topic.id, { limit: 24 }).catch(() => [])
   const breakingItems: BreakingItem[] = posts.map((post) => ({
     title: post.text,
-    href: post.url,
+    href: `/x/${post.topicId || topic.id}`,
     source: post.username ? `@${post.username}` : "X",
   }))
 
   return (
     <InvertedPageShell
-      eyebrow="Live Social Signals"
+      eyebrow="LIVE Mon - Thurs at 10 p.m. EST"
       title={`${topic.title} X Signals`}
       heroTitle={`${topic.title} X Signals`}
       heroDescription={`Fresh viral X posts, social velocity, and live stream tracking for ${topic.signal.toLowerCase()}.`}

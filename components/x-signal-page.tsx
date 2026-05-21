@@ -80,7 +80,7 @@ export function XSignalPage({ topic, initialPosts }: { topic: ContentTopic; init
           </div>
           <div className="flex flex-wrap items-center gap-3 text-[10px] uppercase tracking-[0.14em] text-[#f4efe2]/48">
             <span>last pull {formatAge(updatedAt)} ago</span>
-            <span>fresh posts only</span>
+            <span>last 7 days</span>
             <RefreshCw className={cn("h-3.5 w-3.5", refreshing && "animate-spin text-[#df2f2f]")} />
           </div>
         </div>
@@ -103,7 +103,7 @@ export function XSignalPage({ topic, initialPosts }: { topic: ContentTopic; init
           </div>
         ) : (
           <div className="bg-black/36 p-4 text-sm text-[#f4efe2]/62">
-            No fresh embeddable posts in the last 24 hours. The live search is still available.
+            No embeddable posts found this week. The live search is still available.
           </div>
         )}
       </section>

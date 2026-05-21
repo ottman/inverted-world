@@ -1,34 +1,10 @@
 import fs from "node:fs/promises"
 import path from "node:path"
 
-const TIMCAST_CHANNEL =
-  process.env.TIMCAST_CHANNEL_URL ||
-  "https://timcast.com/channel/ef7a7c4c-d491-11ed-9f19-b07b25f8c291"
 const YOUTUBE_FEED =
   process.env.YOUTUBE_FEED_URL ||
   "https://www.youtube.com/feeds/videos.xml?channel_id=UC7qGeFv85Oyct3xlKq-pedw"
-const MAX_PAGES = Number(process.env.TIMCAST_MAX_PAGES || "50")
 const OUT_FILE = path.resolve("data/generated/channel-archive.json")
-
-function absoluteUrl(href, base) {
-  try {
-    return new URL(href, base).toString()
-  } catch {
-    return href
-  }
-}
-
-function stripHtml(value) {
-  return value
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<style[\s\S]*?<\/style>/gi, "")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&#8217;/g, "'")
-    .replace(/&quot;/g, '"')
-    .replace(/\s+/g, " ")
-    .trim()
-}
 
 async function getText(url) {
   const response = await fetch(url, {
@@ -38,46 +14,6 @@ async function getText(url) {
   })
   if (!response.ok) throw new Error(`${url} returned ${response.status}`)
   return response.text()
-}
-
-function parseTimcastVideos(html, pageUrl) {
-  const videos = []
-  const linkPattern = /<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi
-  let match
-
-  while ((match = linkPattern.exec(html))) {
-    const href = absoluteUrl(match[1], pageUrl)
-    const label = stripHtml(match[2])
-    if (!label || !href.includes("/video/")) continue
-
-    const dateMatch = label.match(/([A-Z][a-z]{2}\s+\d{1,2},\s+\d{4})/)
-    const title = label
-      .replace(/^Video\s+/i, "")
-      .replace(/\s+[A-Z][a-z]{2}\s+\d{1,2},\s+\d{4}.*$/, "")
-      .trim()
-
-    if (title) {
-      videos.push({
-        title,
-        href,
-        date: dateMatch?.[1] || null,
-        source: "timcast",
-      })
-    }
-  }
-
-  return videos
-}
-
-function findNextUrl(html, pageUrl) {
-  const linkPattern = /<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi
-  let match
-  while ((match = linkPattern.exec(html))) {
-    if (stripHtml(match[2]).toLowerCase() === "next") {
-      return absoluteUrl(match[1], pageUrl)
-    }
-  }
-  return null
 }
 
 function parseYouTubeFeed(xml) {
@@ -97,37 +33,17 @@ function parseYouTubeFeed(xml) {
   }).filter((item) => item.title && item.href)
 }
 
-async function syncTimcast() {
-  const seenUrls = new Set()
-  const videos = []
-  let pageUrl = TIMCAST_CHANNEL
-
-  for (let page = 1; page <= MAX_PAGES && pageUrl && !seenUrls.has(pageUrl); page += 1) {
-    seenUrls.add(pageUrl)
-    const html = await getText(pageUrl)
-    videos.push(...parseTimcastVideos(html, pageUrl))
-    pageUrl = findNextUrl(html, pageUrl)
-  }
-
-  return videos
-}
-
 async function main() {
-  const [timcastResult, youtubeResult] = await Promise.allSettled([
-    syncTimcast(),
-    getText(YOUTUBE_FEED).then(parseYouTubeFeed),
-  ])
+  const youtubeResult = await getText(YOUTUBE_FEED).then(parseYouTubeFeed).then(
+    (value) => ({ status: "fulfilled", value }),
+    (reason) => ({ status: "rejected", reason }),
+  )
 
   const archive = {
     generatedAt: new Date().toISOString(),
     sources: {
-      timcast: TIMCAST_CHANNEL,
       youtube: YOUTUBE_FEED,
     },
-    timcast:
-      timcastResult.status === "fulfilled"
-        ? timcastResult.value
-        : { error: timcastResult.reason?.message || String(timcastResult.reason) },
     youtube:
       youtubeResult.status === "fulfilled"
         ? youtubeResult.value

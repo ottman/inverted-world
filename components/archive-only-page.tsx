@@ -137,7 +137,7 @@ export function ArchiveOnlyPage({
         .slice(0, 18)
         .map((post) => ({
           title: post.text,
-          href: post.url,
+          href: `/x/${post.topicId || "uap-disclosure"}`,
           source: post.username ? `@${post.username}` : "X",
         }))
 
@@ -177,9 +177,11 @@ export function ArchiveOnlyPage({
 
   return (
     <InvertedPageShell
-      eyebrow="Tales From The Inverted World"
-      title="Archive"
+      eyebrow="LIVE Mon - Thurs at 10 p.m. EST"
+      title="inverted.world"
       breakingItems={breakingItems}
+      heroTitle="Tales From The Inverted World investigates the mysteries that lie beneath the surface of everyday life."
+      heroDescription=""
     >
       <section className="grid gap-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.55fr)]">
         <div className={cn("p-2 sm:p-3", archiveSurface)}>
@@ -302,7 +304,7 @@ function EmbeddedTweetGrid({ posts, topicId }: { posts: ViralXPost[]; topicId: s
         href={`/x/${topicId}`}
         className="block bg-black p-4 text-sm leading-6 text-[#f4efe2]/62 transition hover:text-[#fff8e6]"
       >
-        No fresh embeddable X posts in the last 24 hours. Open the signal stream.
+        No embeddable X posts found this week. Open the signal stream.
       </a>
     )
   }

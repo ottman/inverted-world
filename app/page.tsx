@@ -1,5 +1,6 @@
-import { redirect } from "next/navigation"
+import ArchivePage from "./archive/page"
 
-export default function Page() {
-  redirect("/archive")
-}
+export const dynamic = "force-dynamic"
+export const revalidate = 300
+
+export default ArchivePage

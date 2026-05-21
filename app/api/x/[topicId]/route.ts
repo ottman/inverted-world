@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { topics } from "@/data/inverted-world"
-import { fetchViralXPostsForTopic } from "@/lib/x-posts"
+import { fetchViralXPostsForTopic, X_FRESHNESS_WINDOW_HOURS } from "@/lib/x-posts"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 300
@@ -19,7 +19,7 @@ export async function GET(request: Request, { params }: { params: { topicId: str
     {
       topic,
       generatedAt: new Date().toISOString(),
-      freshnessWindowHours: 24,
+      freshnessWindowHours: X_FRESHNESS_WINDOW_HOURS,
       posts,
     },
     {

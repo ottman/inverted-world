@@ -40,6 +40,7 @@ export function InvertedPageShell({
   heroDescription?: string
 }) {
   const [liveStatus, setLiveStatus] = useState<LiveStatus>({ isLive: false })
+  const longHeroTitle = heroTitle.length > 56
 
   useEffect(() => {
     let active = true
@@ -91,10 +92,10 @@ export function InvertedPageShell({
         >
           <BreakingTicker items={breakingItems} />
           <div className="mx-auto grid max-w-7xl gap-3 px-3 py-3 sm:px-6 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-center lg:px-8">
-            <a className="flex min-w-0 items-center justify-center gap-3 justify-self-center lg:justify-self-auto" href="/archive" aria-label="Inverted World archive">
+            <a className="flex min-w-0 items-center justify-center gap-3 justify-self-center lg:justify-self-auto" href="/" aria-label="inverted.world home">
               <Image
                 src="/images/inverted-world-banner-logo.png"
-                alt="Inverted World"
+                alt="inverted.world"
                 width={1229}
                 height={203}
                 priority
@@ -103,7 +104,7 @@ export function InvertedPageShell({
             </a>
             <nav className="flex w-full items-center gap-3 overflow-x-auto text-xs font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/64 lg:justify-center lg:gap-5 lg:tracking-[0.14em]">
               {topics.map((topic) => (
-                <a key={topic.id} className="shrink-0 transition hover:text-[#df2f2f]" href={`/archive#topic-${topic.id}`}>
+                <a key={topic.id} className="shrink-0 transition hover:text-[#df2f2f]" href={`/#topic-${topic.id}`}>
                   {topic.title}
                 </a>
               ))}
@@ -116,12 +117,21 @@ export function InvertedPageShell({
           <div className="mb-5 grid gap-4 bg-[#070706]/18 p-4 backdrop-blur-[1px] sm:p-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
             <div className="max-w-4xl">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#df2f2f]">{eyebrow}</p>
-              <h1 className="iw-serif mt-2 max-w-5xl text-5xl leading-[0.9] tracking-normal text-[#fff8e6] sm:text-7xl">
+              <h1
+                className={cn(
+                  "iw-serif mt-2 max-w-5xl tracking-normal text-[#fff8e6]",
+                  longHeroTitle
+                    ? "text-4xl leading-[0.95] sm:text-6xl lg:text-7xl"
+                    : "text-5xl leading-[0.9] sm:text-7xl",
+                )}
+              >
                 {heroTitle}
               </h1>
-              <p className="iw-serif mt-3 max-w-3xl text-2xl leading-[1.05] text-[#f4efe2]/86 sm:text-3xl">
-                {heroDescription}
-              </p>
+              {heroDescription ? (
+                <p className="iw-serif mt-3 max-w-3xl text-2xl leading-[1.05] text-[#f4efe2]/86 sm:text-3xl">
+                  {heroDescription}
+                </p>
+              ) : null}
               <p className="sr-only">{title}</p>
             </div>
             {action}
@@ -138,7 +148,7 @@ export function InvertedPageShell({
 function BreakingTicker({ items }: { items?: BreakingItem[] }) {
   const fallbackItems = topics.map((topic) => ({
     title: topic.signal,
-    href: `/archive#topic-${topic.id}`,
+    href: `/#topic-${topic.id}`,
     source: topic.title,
   }))
   const visibleItems = (items?.length ? items : fallbackItems).slice(0, 32)
@@ -174,18 +184,17 @@ function BreakingTicker({ items }: { items?: BreakingItem[] }) {
 
 function SimpleFooter() {
   return (
-    <footer className="relative z-10 mx-auto mt-8 flex max-w-7xl flex-col gap-4 px-3 py-6 text-[#f4efe2]/56 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
-      <div className="flex items-center gap-3">
+    <footer className="relative z-10 mx-auto mt-8 flex max-w-7xl flex-col items-center gap-4 px-3 py-8 text-center text-[#f4efe2]/56 sm:px-6 lg:px-8">
+      <div className="flex justify-center">
         <Image
           src="/images/inverted-world-banner-logo.png"
           alt="Inverted World"
           width={1229}
           height={203}
-          className="h-12 w-auto max-w-[72vw] opacity-82 sm:h-14"
+          className="h-14 w-auto max-w-[78vw] opacity-82 sm:h-20"
         />
-        <span className="text-xs uppercase tracking-[0.14em]">© {new Date().getFullYear()} Subverse, Inc.</span>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-center gap-2">
         {socialLinks.map((link) => (
           <a
             key={link.href}
@@ -199,6 +208,7 @@ function SimpleFooter() {
           </a>
         ))}
       </div>
+      <span className="text-xs uppercase tracking-[0.14em]">© {new Date().getFullYear()} Subverse, Inc.</span>
     </footer>
   )
 }

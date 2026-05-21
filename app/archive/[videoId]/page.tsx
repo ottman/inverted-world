@@ -1,9 +1,9 @@
 import type { Metadata } from "next"
 import Script from "next/script"
-import { ArrowLeft, ExternalLink } from "lucide-react"
+import { ArrowLeft, ExternalLink, Play } from "lucide-react"
 import { notFound } from "next/navigation"
 import { archiveSurface, InvertedPageShell, XIcon, type BreakingItem } from "@/components/inverted-page-shell"
-import { getArchiveVideo } from "@/lib/deep-archive"
+import { getArchiveVideo, getRecommendedArchiveVideos } from "@/lib/deep-archive"
 import { buildVideoDossier, videoDossierJsonLd } from "@/lib/video-dossier"
 import { fetchLiveArticlesForTopic } from "@/lib/live-articles"
 import { fetchViralXPostsForTopic } from "@/lib/x-posts"
@@ -61,7 +61,7 @@ function xPostsToBreakingItems(posts: Awaited<ReturnType<typeof fetchViralXPosts
     .slice(0, 12)
     .map((post) => ({
       title: post.text,
-      href: post.url,
+      href: `/x/${post.topicId || "uap-disclosure"}`,
       source: post.username ? `@${post.username}` : "X",
     }))
 }
@@ -145,16 +145,17 @@ export default async function ArchiveVideoPage({ params }: PageProps) {
   const dossier = buildVideoDossier(video)
   const canonicalUrl = `https://www.inverted.world/archive/${params.videoId}`
   const synopsis = buildSynopsis(video, dossier.topic)
-  const [transcript, liveArticles, xPosts] = await Promise.all([
+  const [transcript, liveArticles, xPosts, recommendedVideos] = await Promise.all([
     getYouTubeTranscript(video.videoId),
     fetchLiveArticlesForTopic(dossier.topic.id, dossier.topic.query.replaceAll('"', "")).catch(() => []),
     fetchViralXPostsForTopic(dossier.topic.id).catch(() => []),
+    getRecommendedArchiveVideos(video, 8).catch(() => []),
   ])
   const breakingItems = [...xPostsToBreakingItems(xPosts), ...articleToBreakingItems(liveArticles)]
 
   return (
     <InvertedPageShell
-      eyebrow="Tales From The Inverted World"
+      eyebrow="LIVE Mon - Thurs at 10 p.m. EST"
       title={video.title}
       breakingItems={breakingItems}
       heroTitle={video.title}
@@ -167,11 +168,11 @@ export default async function ArchiveVideoPage({ params }: PageProps) {
 
       <div className="mb-6">
         <a
-          href="/archive"
+          href="/"
           className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#f4efe2]/58 transition hover:text-[#df2f2f]"
         >
           <ArrowLeft className="h-4 w-4" />
-          Archive
+          Home
         </a>
       </div>
 
@@ -209,25 +210,43 @@ export default async function ArchiveVideoPage({ params }: PageProps) {
 
         <aside className="grid h-fit gap-5">
           <section className={cn("p-5", archiveSurface)}>
-            <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-[#fff8e6]">Further research</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-[#fff8e6]">Recommended videos</h2>
             <div className="mt-4 grid gap-3">
-              {dossier.references.slice(0, 8).map((reference) => (
+              {recommendedVideos.map((recommended) => (
                 <a
-                  key={reference.url}
-                  href={reference.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="group block bg-[#070706]/24 p-3 transition hover:bg-[#070706]/46"
+                  key={recommended.videoId || recommended.href}
+                  href={recommended.videoId ? `/archive/${recommended.videoId}` : recommended.href}
+                  className="group grid grid-cols-[86px_minmax(0,1fr)] gap-3 bg-[#070706]/24 p-2 transition hover:bg-[#070706]/46"
                 >
-                  <span className="flex items-start justify-between gap-3">
-                    <span className="text-sm font-semibold leading-5 text-[#fff8e6] group-hover:text-[#df2f2f]">{reference.title}</span>
-                    <ExternalLink className="mt-0.5 h-4 w-4 shrink-0 text-[#f4efe2]/38" />
+                  <span className="relative block aspect-video overflow-hidden bg-[#050504]/70">
+                    {recommended.thumbnail && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={recommended.thumbnail} alt="" className="absolute inset-0 h-full w-full object-cover opacity-78" />
+                    )}
+                    <span className="absolute inset-0 grid place-items-center bg-[#070706]/22">
+                      <Play className="h-4 w-4 fill-[#fff8e6] text-[#fff8e6]" />
+                    </span>
                   </span>
-                  <span className="mt-2 block text-xs uppercase tracking-[0.14em] text-[#f4efe2]/42">
-                    {reference.source} / {reference.kind}
+                  <span className="min-w-0">
+                    <span className="line-clamp-2 text-sm font-semibold leading-5 text-[#fff8e6] group-hover:text-[#df2f2f]">
+                      {recommended.title}
+                    </span>
+                    <span className="mt-2 block text-xs uppercase tracking-[0.14em] text-[#f4efe2]/42">
+                      {recommended.date || "Tales upload"}
+                    </span>
                   </span>
                 </a>
               ))}
+              {!recommendedVideos.length && (
+                <a
+                  href="https://www.youtube.com/@TalesfromtheInvertedWorld"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="group block bg-[#070706]/24 p-3 text-sm font-semibold leading-5 text-[#fff8e6] transition hover:bg-[#070706]/46 hover:text-[#df2f2f]"
+                >
+                  More Tales From The Inverted World videos
+                </a>
+              )}
             </div>
           </section>
 

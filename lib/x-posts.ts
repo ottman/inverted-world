@@ -24,8 +24,9 @@ const X_TIMEOUT_MS = 6500
 const BRAVE_TIMEOUT_MS = 6500
 const configuredMinViralScore = Number(process.env.X_MIN_VIRAL_SCORE || "250")
 const MIN_VIRAL_X_SCORE = Number.isFinite(configuredMinViralScore) ? configuredMinViralScore : 250
-const MAX_EMBED_AGE_HOURS = 24
+export const X_FRESHNESS_WINDOW_HOURS = 24 * 7
 const X_EPOCH_MS = 1_288_834_974_657n
+const PRIORITY_X_ACCOUNTS = ["ShaneCashman"] as const
 const X_STATUS_URL_PATTERN =
   /https?:\/\/(?:www\.)?(?:x\.com|twitter\.com)\/(?!i\/web)([A-Za-z0-9_]{1,20})\/status(?:es)?\/(\d+)/i
 
@@ -159,7 +160,7 @@ function getPostTimestamp(post: ViralXPost) {
   }
 }
 
-export function isFreshXPost(post: ViralXPost, maxAgeHours = MAX_EMBED_AGE_HOURS) {
+export function isFreshXPost(post: ViralXPost, maxAgeHours = X_FRESHNESS_WINDOW_HOURS) {
   const timestamp = getPostTimestamp(post)
   if (!timestamp) return false
   return Date.now() - timestamp <= maxAgeHours * 60 * 60 * 1000
@@ -177,6 +178,16 @@ function mergeWithSeededPosts(topicId: string, posts: ViralXPost[], limit: numbe
       return true
     })
     .slice(0, limit)
+}
+
+function dedupePosts(posts: ViralXPost[]) {
+  const seen = new Set<string>()
+  return posts.filter((post) => {
+    const key = post.id || post.url
+    if (!key || seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
 }
 
 function cleanSearchText(value?: string) {
@@ -199,15 +210,9 @@ function extractXStatusUrl(value?: string) {
   }
 }
 
-async function fetchXApiPosts(topicId: string, limit: number) {
-  const token = process.env.X_BEARER_TOKEN || process.env.TWITTER_BEARER_TOKEN || process.env.TWITTER_API_BEARER_TOKEN
-  if (!token) return [] satisfies ViralXPost[]
-
-  const topic = topics.find((item) => item.id === topicId)
-  if (!topic) return [] satisfies ViralXPost[]
-
+async function fetchXApiSearch(query: string, topicId: string, token: string) {
   const url = new URL("https://api.twitter.com/2/tweets/search/recent")
-  url.searchParams.set("query", `${getTopicXQuery(topic)} lang:en -is:retweet -is:reply`)
+  url.searchParams.set("query", query)
   url.searchParams.set("max_results", "50")
   url.searchParams.set("tweet.fields", "created_at,public_metrics")
   url.searchParams.set("expansions", "author_id")
@@ -249,52 +254,65 @@ async function fetchXApiPosts(topicId: string, limit: number) {
 
   const users = new Map((data.includes?.users || []).map((user) => [user.id, user]))
 
-  const ranked = (data.data || [])
-    .map((post) => {
-      const user = post.author_id ? users.get(post.author_id) : undefined
-      const username = user?.username
-      const score = scorePost(post.public_metrics)
+  return (data.data || []).map((post) => {
+    const user = post.author_id ? users.get(post.author_id) : undefined
+    const username = user?.username
+    const score = scorePost(post.public_metrics)
 
-      return {
-        id: post.id,
-        url: `https://twitter.com/${username || "i"}/status/${post.id}`,
-        text: post.text,
-        topicId,
-        authorName: user?.name,
-        username,
-        createdAt: post.created_at,
-        source: "x-api",
-        score,
-        metrics: {
-          likes: post.public_metrics?.like_count,
-          reposts: post.public_metrics?.retweet_count,
-          replies: post.public_metrics?.reply_count,
-          quotes: post.public_metrics?.quote_count,
-          views: post.public_metrics?.impression_count,
-        },
-      } satisfies ViralXPost
-    })
-    .sort((left, right) => (right.score || 0) - (left.score || 0))
-
-  const viral = ranked.filter((post) => (post.score || 0) >= MIN_VIRAL_X_SCORE)
-  return (viral.length ? viral : ranked).filter((post) => isFreshXPost(post)).slice(0, limit)
+    return {
+      id: post.id,
+      url: `https://twitter.com/${username || "i"}/status/${post.id}`,
+      text: post.text,
+      topicId,
+      authorName: user?.name,
+      username,
+      createdAt: post.created_at,
+      source: "x-api",
+      score,
+      metrics: {
+        likes: post.public_metrics?.like_count,
+        reposts: post.public_metrics?.retweet_count,
+        replies: post.public_metrics?.reply_count,
+        quotes: post.public_metrics?.quote_count,
+        views: post.public_metrics?.impression_count,
+      },
+    } satisfies ViralXPost
+  })
 }
 
-async function fetchBraveIndexedXPosts(topicId: string, limit: number) {
-  const token = process.env.BRAVE_SEARCH_API_KEY || process.env.BRAVE_API_KEY || process.env.BRAVE_SEARCH_KEY
+async function fetchXApiPosts(topicId: string, limit: number) {
+  const token = process.env.X_BEARER_TOKEN || process.env.TWITTER_BEARER_TOKEN || process.env.TWITTER_API_BEARER_TOKEN
   if (!token) return [] satisfies ViralXPost[]
 
   const topic = topics.find((item) => item.id === topicId)
   if (!topic) return [] satisfies ViralXPost[]
 
-  const queryTerms = getTopicXQuery(topic)
-    .replace(/[()"]/g, " ")
-    .replace(/\bOR\b/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
+  const topicQuery = getTopicXQuery(topic)
+  const priorityAccountQuery = PRIORITY_X_ACCOUNTS.map((account) => `from:${account}`).join(" OR ")
+  const priorityQuery =
+    PRIORITY_X_ACCOUNTS.length === 1
+      ? `${priorityAccountQuery} ${topicQuery} lang:en -is:retweet -is:reply`
+      : `(${priorityAccountQuery}) ${topicQuery} lang:en -is:retweet -is:reply`
+  const [topicPosts, priorityPosts] = await Promise.all([
+    fetchXApiSearch(`${topicQuery} lang:en -is:retweet -is:reply`, topicId, token),
+    fetchXApiSearch(priorityQuery, topicId, token),
+  ])
+
+  const ranked = dedupePosts([
+    ...priorityPosts.map((post) => ({ ...post, score: (post.score || 0) + 500 })),
+    ...topicPosts,
+  ]).sort((left, right) => (right.score || 0) - (left.score || 0))
+
+  const viral = ranked.filter((post) => (post.score || 0) >= MIN_VIRAL_X_SCORE)
+  return (viral.length ? viral : ranked).filter((post) => isFreshXPost(post)).slice(0, limit)
+}
+
+async function fetchBraveSearchResults(query: string) {
+  const token = process.env.BRAVE_SEARCH_API_KEY || process.env.BRAVE_API_KEY || process.env.BRAVE_SEARCH_KEY
+  if (!token) return []
 
   const url = new URL("https://api.search.brave.com/res/v1/web/search")
-  url.searchParams.set("q", `${queryTerms} viral OR million OR thread site:x.com`)
+  url.searchParams.set("q", query)
   url.searchParams.set("count", "20")
   url.searchParams.set("country", "us")
   url.searchParams.set("search_lang", "en")
@@ -311,7 +329,7 @@ async function fetchBraveIndexedXPosts(topicId: string, limit: number) {
     },
   })
 
-  if (!response.ok) return [] satisfies ViralXPost[]
+  if (!response.ok) return []
 
   const data = (await response.json()) as {
     web?: {
@@ -323,9 +341,31 @@ async function fetchBraveIndexedXPosts(topicId: string, limit: number) {
     }
   }
 
+  return data.web?.results || []
+}
+
+async function fetchBraveIndexedXPosts(topicId: string, limit: number) {
+  const token = process.env.BRAVE_SEARCH_API_KEY || process.env.BRAVE_API_KEY || process.env.BRAVE_SEARCH_KEY
+  if (!token) return [] satisfies ViralXPost[]
+
+  const topic = topics.find((item) => item.id === topicId)
+  if (!topic) return [] satisfies ViralXPost[]
+
+  const queryTerms = getTopicXQuery(topic)
+    .replace(/[()"]/g, " ")
+    .replace(/\bOR\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+
+  const results = await Promise.all([
+    fetchBraveSearchResults(`${queryTerms} viral OR million OR thread site:x.com`),
+    fetchBraveSearchResults(`${queryTerms} site:x.com/ShaneCashman`),
+  ])
+
   const seen = new Set<string>()
 
-  return (data.web?.results || [])
+  return results
+    .flat()
     .map((result) => {
       const status = extractXStatusUrl(result.url)
       if (!status || seen.has(status.id)) return undefined

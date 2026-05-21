@@ -12,7 +12,7 @@ export type ChannelVideo = {
   date: string
   href: string
   topicId: string
-  source: "Timcast" | "YouTube"
+  source: "YouTube"
   videoId?: string
   embedUrl?: string
   thumbnail?: string
@@ -54,11 +54,9 @@ export const channelProfile = {
   youtubeUploadsEmbedUrl:
     "https://www.youtube.com/embed/videoseries?list=UU7qGeFv85Oyct3xlKq-pedw&rel=0",
   youtubeRssUrl: "https://www.youtube.com/feeds/videos.xml?channel_id=UC7qGeFv85Oyct3xlKq-pedw",
-  timcastChannelId: "ef7a7c4c-d491-11ed-9f19-b07b25f8c291",
-  timcastArchiveUrl: "https://timcast.com/channel/ef7a7c4c-d491-11ed-9f19-b07b25f8c291",
   operatingLine:
     "An evidence-first research room for the strange, unexplained, classified, misreported, and not-yet-understood.",
-  archiveCountLabel: "Full YouTube uploads playlist plus 860+ Timcast archive videos",
+  archiveCountLabel: "Full Tales From the Inverted World YouTube uploads playlist",
 }
 
 export const topics: ContentTopic[] = [
@@ -296,69 +294,6 @@ export const featuredVideos: ChannelVideo[] = [
     embedUrl: "https://www.youtube.com/embed/k27iBDWl0DI?rel=0",
     thumbnail: "https://i4.ytimg.com/vi/k27iBDWl0DI/hqdefault.jpg",
     kind: "episode",
-  },
-  {
-    title: "UFO FILES IMMINENT",
-    date: "2026-05-07",
-    href: "https://timcast.com/channel/ef7a7c4c-d491-11ed-9f19-b07b25f8c291",
-    topicId: "uap-disclosure",
-    source: "Timcast",
-  },
-  {
-    title: "SASQUATCH 2028",
-    date: "2026-05-06",
-    href: "https://timcast.com/channel/ef7a7c4c-d491-11ed-9f19-b07b25f8c291",
-    topicId: "cryptids-paranormal",
-    source: "Timcast",
-  },
-  {
-    title: "EVERY DEATH IS UFO RELATED NOW",
-    date: "2026-05-05",
-    href: "https://timcast.com/channel/ef7a7c4c-d491-11ed-9f19-b07b25f8c291",
-    topicId: "uap-disclosure",
-    source: "Timcast",
-  },
-  {
-    title: "PALANTIR'S MANIFESTO",
-    date: "2026-04-24",
-    href: "https://timcast.com/channel/ef7a7c4c-d491-11ed-9f19-b07b25f8c291",
-    topicId: "ai-technocracy",
-    source: "Timcast",
-  },
-  {
-    title: "TENTH PERSON TIED TO AMERICA'S SPACE/NUCLEAR SECRETS DISAPPEARS | Ep. 203",
-    date: "2026-04-15",
-    href: "https://timcast.com/channel/ef7a7c4c-d491-11ed-9f19-b07b25f8c291",
-    topicId: "secret-programs",
-    source: "Timcast",
-  },
-  {
-    title: "Ancient Breakaway Civilizations",
-    date: "2026-04-17",
-    href: "https://timcast.com/channel/ef7a7c4c-d491-11ed-9f19-b07b25f8c291",
-    topicId: "space-anomalies",
-    source: "Timcast",
-  },
-  {
-    title: "Epstein Files Reveal Cannibalism, Mind Control, and Mosquito Drones | Ep. 172",
-    date: "2026-02-13",
-    href: "https://timcast.com/channel/ef7a7c4c-d491-11ed-9f19-b07b25f8c291",
-    topicId: "epstein-networks",
-    source: "Timcast",
-  },
-  {
-    title: "CIA's Satanic MindWar Exposed: Brain Parasites, Psyops, and J6 Feds | Ep. 158",
-    date: "2026-01-08",
-    href: "https://timcast.com/channel/ef7a7c4c-d491-11ed-9f19-b07b25f8c291",
-    topicId: "secret-programs",
-    source: "Timcast",
-  },
-  {
-    title: "NASA Hints at Life Beyond Earth | Ep. 150",
-    date: "2025-12-04",
-    href: "https://timcast.com/channel/ef7a7c4c-d491-11ed-9f19-b07b25f8c291",
-    topicId: "space-anomalies",
-    source: "Timcast",
   },
 ]
 
