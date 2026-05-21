@@ -29,6 +29,7 @@ export type DeepArchiveResponse = {
 }
 
 const ARCHIVE_TIMEOUT_MS = 8500
+const YOUTUBE_ARCHIVE_REVALIDATE_SECONDS = 300
 
 const TOPIC_KEYWORDS: Array<{ topicId: string; words: string[] }> = [
   {
@@ -103,7 +104,7 @@ function dedupeVideos(videos: ChannelVideo[]) {
 
 async function fetchYouTubeRss() {
   const response = await fetch(channelProfile.youtubeRssUrl, {
-    next: { revalidate: 900 },
+    next: { revalidate: YOUTUBE_ARCHIVE_REVALIDATE_SECONDS },
     signal: AbortSignal.timeout(ARCHIVE_TIMEOUT_MS),
     headers: { "user-agent": "InvertedWorldArchive/1.0" },
   })
@@ -136,7 +137,7 @@ async function fetchYouTubeDataApi() {
     if (pageToken) url.searchParams.set("pageToken", pageToken)
 
     const response = await fetch(url, {
-      next: { revalidate: 900 },
+      next: { revalidate: YOUTUBE_ARCHIVE_REVALIDATE_SECONDS },
       signal: AbortSignal.timeout(ARCHIVE_TIMEOUT_MS),
       headers: { "user-agent": "InvertedWorldArchive/1.0" },
     })

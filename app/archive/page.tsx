@@ -6,7 +6,7 @@ import { fetchViralXPostsForTopic } from "@/lib/x-posts"
 import { getYouTubeLiveStatus } from "@/lib/youtube-live"
 
 export const dynamic = "force-dynamic"
-export const revalidate = 3600
+export const revalidate = 300
 
 export default async function ArchivePage() {
   const [initialArchive, topicFeeds, topicXPosts, liveStatus] = await Promise.all([

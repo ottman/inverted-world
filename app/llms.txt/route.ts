@@ -17,7 +17,7 @@ export async function GET() {
     "",
     "## Update Cadence",
     "- YouTube live status: checked every 60 seconds.",
-    "- Full channel archive: refreshed from the YouTube Data API every 15 minutes when the API is available.",
+    "- Full channel archive and header video: refreshed from the YouTube Data API every 5 minutes when the API is available.",
     "- Google News topic feeds: refreshed every hour.",
     "- Viral X signal fetches: refreshed every 30 minutes; X API metrics are used when available.",
     "- YouTube transcripts: refreshed daily because caption tracks are mostly stable after upload.",
