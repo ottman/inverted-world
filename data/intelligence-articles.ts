@@ -37,7 +37,7 @@ const lanes = [
   },
   {
     topicId: "secret-programs",
-    topic: "BLACK VAULT",
+    topic: "DECLASSIFIED",
     glyph: "FOIA",
     sigil: "MK-Δ",
     source: "CIA Reading Room",
