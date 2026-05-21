@@ -1,12 +1,15 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { ArrowUpRight, Play, RefreshCw, Youtube } from "lucide-react"
+import { ArrowUpRight, Play, RefreshCw, Twitter, Youtube } from "lucide-react"
+import Script from "next/script"
 import { archiveSurface, ExternalAction, InvertedPageShell, type BreakingItem } from "@/components/inverted-page-shell"
-import { channelProfile, topics, type ChannelVideo } from "@/data/inverted-world"
+import { channelProfile, topics, type ChannelVideo, type ContentTopic } from "@/data/inverted-world"
 import type { IntelligenceArticle } from "@/data/intelligence-articles"
 import { cn } from "@/lib/utils"
 import type { DeepArchiveResponse } from "@/lib/deep-archive"
+import { getTopicXSearchUrl } from "@/lib/x-search"
+import type { ViralXPost } from "@/lib/x-posts"
 
 type ArchiveResponse = {
   sourceMode?: DeepArchiveResponse["sourceMode"]
@@ -19,6 +22,7 @@ type ArchiveResponse = {
 }
 
 type TopicFeeds = Record<string, IntelligenceArticle[]>
+type TopicXPosts = Record<string, ViralXPost[]>
 
 const PAGE_SIZE = 120
 const TOPIC_VIDEO_LIMIT = 8
@@ -53,9 +57,11 @@ function normalizeDate(value?: string) {
 export function ArchiveOnlyPage({
   initialArchive,
   initialTopicFeeds,
+  initialTopicXPosts,
 }: {
   initialArchive?: DeepArchiveResponse
   initialTopicFeeds?: TopicFeeds
+  initialTopicXPosts?: TopicXPosts
 }) {
   const initialVideos = initialArchive?.videos ?? []
   const [videos, setVideos] = useState<ChannelVideo[]>(initialVideos)
@@ -88,8 +94,18 @@ export function ArchiveOnlyPage({
           title: article.title,
           href: article.sourceUrl,
           source: article.source,
-        })),
-    [initialTopicFeeds],
+        }))
+        .concat(
+          Object.values(initialTopicXPosts ?? {})
+            .flat()
+            .slice(0, 8)
+            .map((post) => ({
+              title: post.text,
+              href: post.url,
+              source: post.username ? `@${post.username}` : "X",
+            })),
+        ),
+    [initialTopicFeeds, initialTopicXPosts],
   )
 
   async function loadMore() {
@@ -180,6 +196,7 @@ export function ArchiveOnlyPage({
         {topics.map((topic) => {
           const topicVideos = videosByTopic.get(topic.id) ?? []
           const feed = initialTopicFeeds?.[topic.id] ?? []
+          const xPosts = initialTopicXPosts?.[topic.id] ?? []
           return (
             <section id={`topic-${topic.id}`} key={topic.id} className={cn("scroll-mt-36 p-3 sm:p-4", archiveSurface)}>
               <div className="flex flex-col gap-3 border-b border-[#f4efe2]/10 pb-3 md:flex-row md:items-end md:justify-between">
@@ -188,12 +205,15 @@ export function ArchiveOnlyPage({
                   <h2 className="iw-serif mt-2 text-4xl leading-none text-[#fff8e6] sm:text-5xl">{topic.title}</h2>
                 </div>
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f4efe2]/48">
-                  {topicVideos.length} videos / {feed.length} live links
+                  {topicVideos.length} videos / {feed.length} live links / {xPosts.length || "live"} X
                 </p>
               </div>
 
               <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(300px,0.98fr)_minmax(0,1.05fr)]">
-                <LiveFeed topicTitle={topic.title} articles={feed} />
+                <div className="grid h-fit gap-4">
+                  <LiveFeed topicTitle={topic.title} articles={feed} />
+                  <XSignalLane topic={topic} posts={xPosts} />
+                </div>
                 <VideoGrid videos={topicVideos} selectedVideo={leadVideo} onSelect={setSelectedVideo} />
               </div>
             </section>
@@ -201,6 +221,67 @@ export function ArchiveOnlyPage({
         })}
       </div>
     </InvertedPageShell>
+  )
+}
+
+function XSignalLane({ topic, posts }: { topic: ContentTopic; posts: ViralXPost[] }) {
+  const searchUrl = getTopicXSearchUrl(topic)
+  const hasPosts = posts.length > 0
+
+  return (
+    <section className="border border-[#f4efe2]/10 bg-[#050504]/30 p-3">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.16em] text-[#fff8e6]">
+          <Twitter className="h-4 w-4 text-[#e8b45c]" />
+          X signal
+        </h3>
+        <a
+          href={searchUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#dff7ff] transition hover:text-[#e8b45c]"
+        >
+          Top search
+          <ArrowUpRight className="h-3.5 w-3.5" />
+        </a>
+      </div>
+
+      {hasPosts ? (
+        <>
+          <div className="grid gap-3">
+            {posts.slice(0, 2).map((post) => (
+              <article key={post.id} className="overflow-hidden border border-[#f4efe2]/10 bg-[#070706]/38 p-2">
+                <blockquote className="twitter-tweet" data-theme="dark" data-dnt="true">
+                  <a href={post.url}>{post.text}</a>
+                </blockquote>
+                <div className="flex flex-wrap items-center gap-2 border-t border-[#f4efe2]/10 pt-2 text-[10px] uppercase tracking-[0.12em] text-[#f4efe2]/44">
+                  {post.username && <span>@{post.username}</span>}
+                  {typeof post.score === "number" && <span>{Math.round(post.score).toLocaleString()} signal</span>}
+                </div>
+              </article>
+            ))}
+          </div>
+          <Script src="https://platform.twitter.com/widgets.js" strategy="lazyOnload" />
+        </>
+      ) : (
+        <a
+          href={searchUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="group block border border-[#f4efe2]/10 bg-[#070706]/34 p-3 transition hover:border-[#e8b45c]/45"
+        >
+          <span className="flex items-start justify-between gap-3">
+            <span className="text-sm font-semibold leading-5 text-[#fff8e6] group-hover:text-[#e8b45c]">
+              Viral X search for {topic.title}
+            </span>
+            <ArrowUpRight className="mt-0.5 h-4 w-4 shrink-0 text-[#f4efe2]/38 group-hover:text-[#e8b45c]" />
+          </span>
+          <span className="mt-2 block text-xs leading-5 text-[#f4efe2]/52">
+            Opens the live top-post stream for this topic.
+          </span>
+        </a>
+      )}
+    </section>
   )
 }
 
