@@ -11,17 +11,31 @@ export async function GET() {
   const lines = [
     "# Inverted World",
     "",
-    "A topic-organized video archive for Tales From the Inverted World with hourly live article feeds.",
+    "Tales From the Inverted World investigates the mysteries that lie beneath the surface of everyday life.",
+    "",
+    "This site is designed for LLM retrieval: every video has an indexable page, canonical metadata, source links, live coverage, and a transcript section when YouTube captions are public.",
+    "",
+    "## Update Cadence",
+    "- YouTube live status: checked every 60 seconds.",
+    "- Full channel archive: refreshed from the YouTube Data API every 15 minutes when the API is available.",
+    "- Google News topic feeds: refreshed every hour.",
+    "- Viral X signal fetches: refreshed every 30 minutes; X API metrics are used when available.",
+    "- YouTube transcripts: refreshed daily because caption tracks are mostly stable after upload.",
     "",
     "## Core URLs",
     `${baseUrl}/`,
     `${baseUrl}/archive`,
     `${baseUrl}/sitemap.xml`,
+    `${baseUrl}/api/archive`,
+    `${baseUrl}/api/articles`,
     "",
     "## Video Archive",
     ...archive.videos
       .filter((video) => video.videoId)
-      .map((video) => `- ${video.title} (${video.date || "archive"}): ${baseUrl}/archive/${video.videoId}`),
+      .map(
+        (video) =>
+          `- ${video.title} (${video.date || "archive"}): ${baseUrl}/archive/${video.videoId} | transcript JSON: ${baseUrl}/api/transcript/${video.videoId}`,
+      ),
   ]
 
   return new NextResponse(lines.join("\n"), {

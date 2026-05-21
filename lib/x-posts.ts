@@ -141,7 +141,7 @@ function mergeWithSeededPosts(topicId: string, posts: ViralXPost[]) {
       seen.add(key)
       return true
     })
-    .slice(0, 4)
+    .slice(0, 6)
 }
 
 function cleanSearchText(value?: string) {
@@ -172,7 +172,7 @@ async function fetchXApiPosts(topicId: string) {
 
   const url = new URL("https://api.twitter.com/2/tweets/search/recent")
   url.searchParams.set("query", `${getTopicXQuery(topic)} lang:en -is:retweet -is:reply`)
-  url.searchParams.set("max_results", "25")
+  url.searchParams.set("max_results", "50")
   url.searchParams.set("tweet.fields", "created_at,public_metrics")
   url.searchParams.set("expansions", "author_id")
   url.searchParams.set("user.fields", "name,username")
@@ -240,7 +240,7 @@ async function fetchXApiPosts(topicId: string) {
     .sort((left, right) => (right.score || 0) - (left.score || 0))
 
   const viral = ranked.filter((post) => (post.score || 0) >= MIN_VIRAL_X_SCORE)
-  return (viral.length ? viral : ranked).slice(0, 3)
+  return (viral.length ? viral : ranked).slice(0, 5)
 }
 
 async function fetchBraveIndexedXPosts(topicId: string) {
@@ -257,8 +257,8 @@ async function fetchBraveIndexedXPosts(topicId: string) {
     .trim()
 
   const url = new URL("https://api.search.brave.com/res/v1/web/search")
-  url.searchParams.set("q", `${queryTerms} site:x.com`)
-  url.searchParams.set("count", "12")
+  url.searchParams.set("q", `${queryTerms} viral OR million OR thread site:x.com`)
+  url.searchParams.set("count", "20")
   url.searchParams.set("country", "us")
   url.searchParams.set("search_lang", "en")
   url.searchParams.set("safesearch", "moderate")
@@ -307,7 +307,7 @@ async function fetchBraveIndexedXPosts(topicId: string) {
       } satisfies ViralXPost
     })
     .filter((post): post is ViralXPost => Boolean(post))
-    .slice(0, 3)
+    .slice(0, 5)
 }
 
 export async function fetchViralXPostsForTopic(topicId: string) {

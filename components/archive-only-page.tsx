@@ -110,8 +110,8 @@ export function ArchiveOnlyPage({
   const leadVideoIsArchiveItem = Boolean(leadVideo && videos.some((video) => videoKey(video) === videoKey(leadVideo)))
   const selectedTopic = topics.find((topic) => topic.id === leadVideo?.topicId) || topics[0]
   const breakingItems = useMemo<BreakingItem[]>(
-    () =>
-      Object.values(initialTopicFeeds ?? {})
+    () => {
+      const newsItems = Object.values(initialTopicFeeds ?? {})
         .flat()
         .sort((left, right) => new Date(right.publishedAt).getTime() - new Date(left.publishedAt).getTime())
         .slice(0, 18)
@@ -120,16 +120,19 @@ export function ArchiveOnlyPage({
           href: article.sourceUrl,
           source: article.source,
         }))
-        .concat(
-          Object.values(initialTopicXPosts ?? {})
-            .flat()
-            .slice(0, 8)
-            .map((post) => ({
-              title: post.text,
-              href: post.url,
-              source: post.username ? `@${post.username}` : "X",
-            })),
-        ),
+
+      const xItems = Object.values(initialTopicXPosts ?? {})
+        .flat()
+        .sort((left, right) => (right.score || 0) - (left.score || 0))
+        .slice(0, 18)
+        .map((post) => ({
+          title: post.text,
+          href: post.url,
+          source: post.username ? `@${post.username}` : "X",
+        }))
+
+      return [...xItems.slice(0, 10), ...newsItems.slice(0, 12), ...xItems.slice(10)]
+    },
     [initialTopicFeeds, initialTopicXPosts],
   )
 

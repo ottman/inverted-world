@@ -28,12 +28,16 @@ export function InvertedPageShell({
   children,
   action,
   breakingItems,
+  heroTitle = "Inverted World",
+  heroDescription = "Tales From the Inverted World investigates the mysteries that lie beneath the surface of everyday life.",
 }: {
   eyebrow: string
   title: string
   children: React.ReactNode
   action?: React.ReactNode
   breakingItems?: BreakingItem[]
+  heroTitle?: string
+  heroDescription?: string
 }) {
   const [liveStatus, setLiveStatus] = useState<LiveStatus>({ isLive: false })
 
@@ -112,11 +116,11 @@ export function InvertedPageShell({
           <div className="mb-5 grid gap-4 bg-[#070706]/18 p-4 backdrop-blur-[1px] sm:p-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
             <div className="max-w-4xl">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#df2f2f]">{eyebrow}</p>
-              <h1 className="iw-serif mt-2 text-5xl leading-[0.9] tracking-normal text-[#fff8e6] sm:text-7xl">
-                Inverted World
+              <h1 className="iw-serif mt-2 max-w-5xl text-5xl leading-[0.9] tracking-normal text-[#fff8e6] sm:text-7xl">
+                {heroTitle}
               </h1>
               <p className="iw-serif mt-3 max-w-3xl text-2xl leading-[1.05] text-[#f4efe2]/86 sm:text-3xl">
-                Tales From the Inverted World investigates the mysteries that lie beneath the surface of everyday life.
+                {heroDescription}
               </p>
               <p className="sr-only">{title}</p>
             </div>
@@ -137,7 +141,7 @@ function BreakingTicker({ items }: { items?: BreakingItem[] }) {
     href: `/archive#topic-${topic.id}`,
     source: topic.title,
   }))
-  const visibleItems = (items?.length ? items : fallbackItems).slice(0, 18)
+  const visibleItems = (items?.length ? items : fallbackItems).slice(0, 32)
   const marqueeItems = [...visibleItems, ...visibleItems]
 
   return (

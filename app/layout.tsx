@@ -6,7 +6,21 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://invertedworld.on.recursiv.io'),
   title: 'Inverted World Archive',
   description:
-    'Topic-organized videos from Tales From the Inverted World with hourly live article feeds.',
+    'Tales From the Inverted World investigates paranormal mysteries, UFO disclosure, declassified programs, strange history, and current coverage with video transcripts, source links, and live signals.',
+  keywords: [
+    'Inverted World',
+    'Tales From the Inverted World',
+    'paranormal archive',
+    'UFO disclosure',
+    'UAP',
+    'declassified documents',
+    'conspiracy research',
+    'cryptids',
+    'MKULTRA',
+    'Epstein files',
+    'AI technocracy',
+    'YouTube transcripts',
+  ],
   generator: 'Recursiv',
   icons: {
     icon: '/icon.svg',
@@ -14,10 +28,28 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Inverted World Archive',
     description:
-      'Topic-organized videos from Tales From the Inverted World with hourly live article feeds.',
+      'Paranormal and conspiracy research archive with Tales From the Inverted World videos, transcripts, live news, X signals, and primary-source research links.',
     url: 'https://invertedworld.on.recursiv.io',
     siteName: 'Inverted World',
     images: ['/images/inverted-world-logo.jpg'],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Inverted World Archive',
+    description:
+      'Paranormal and conspiracy research archive with videos, transcripts, live news, X signals, and primary-source research links.',
+    images: ['/images/inverted-world-logo.jpg'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+      'max-video-preview': -1,
+    },
   },
 }
 

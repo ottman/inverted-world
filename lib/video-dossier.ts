@@ -9,6 +9,7 @@ import {
   type ContentTopic,
   type ResearchDocument,
 } from "@/data/inverted-world"
+import type { YouTubeTranscript } from "@/lib/youtube-transcript"
 
 export type DossierReference = {
   title: string
@@ -282,23 +283,29 @@ export function buildVideoDossier(video: ChannelVideo): VideoDossier {
   }
 }
 
-export function videoDossierJsonLd(dossier: VideoDossier, url: string) {
+export function videoDossierJsonLd(dossier: VideoDossier, url: string, transcript?: YouTubeTranscript) {
   return {
     "@context": "https://schema.org",
     "@graph": [
       {
         "@type": "VideoObject",
         name: dossier.video.title,
-        description: dossier.dek,
+        description: transcript?.text || dossier.dek,
+        transcript: transcript?.text || undefined,
         uploadDate: dossier.video.date || undefined,
         thumbnailUrl: dossier.video.thumbnail ? [dossier.video.thumbnail] : undefined,
         embedUrl: dossier.video.embedUrl,
         contentUrl: dossier.video.href,
+        isPartOf: {
+          "@type": "WebSite",
+          name: "Inverted World",
+          url: "https://invertedworld.on.recursiv.io",
+        },
       },
       {
         "@type": "Article",
-        headline: dossier.title,
-        description: dossier.dek,
+        headline: dossier.video.title,
+        description: transcript?.text ? transcript.text.slice(0, 500) : dossier.dek,
         datePublished: dossier.video.date || undefined,
         dateModified: new Date().toISOString(),
         mainEntityOfPage: url,

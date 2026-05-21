@@ -8,6 +8,12 @@ import { buildVideoDossier, videoDossierJsonLd } from "@/lib/video-dossier"
 import { fetchLiveArticlesForTopic } from "@/lib/live-articles"
 import { fetchViralXPostsForTopic } from "@/lib/x-posts"
 import { getTopicXSearchUrl } from "@/lib/x-search"
+import {
+  getYouTubeTranscript,
+  groupTranscriptSegments,
+  transcriptExcerpt,
+  type YouTubeTranscript,
+} from "@/lib/youtube-transcript"
 import { cn } from "@/lib/utils"
 import type { ChannelVideo, ContentTopic } from "@/data/inverted-world"
 
@@ -49,6 +55,31 @@ function articleToBreakingItems(
   }))
 }
 
+function xPostsToBreakingItems(posts: Awaited<ReturnType<typeof fetchViralXPostsForTopic>>): BreakingItem[] {
+  return posts
+    .slice()
+    .sort((left, right) => (right.score || 0) - (left.score || 0))
+    .slice(0, 12)
+    .map((post) => ({
+      title: post.text,
+      href: post.url,
+      source: post.username ? `@${post.username}` : "X",
+    }))
+}
+
+function formatTranscriptTime(seconds: number) {
+  const safeSeconds = Math.max(Math.floor(seconds), 0)
+  const minutes = Math.floor(safeSeconds / 60)
+  const remainingSeconds = safeSeconds % 60
+  return `${minutes}:${String(remainingSeconds).padStart(2, "0")}`
+}
+
+function transcriptDescription(video: ChannelVideo, transcript: YouTubeTranscript, fallback: string) {
+  const excerpt = transcriptExcerpt(transcript, 260)
+  if (excerpt) return excerpt
+  return fallback || `Watch and research ${video.title} from Tales From the Inverted World.`
+}
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const video = await getArchiveVideo(params.videoId)
   if (!video) {
@@ -59,17 +90,30 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const dossier = buildVideoDossier(video)
   const synopsis = buildSynopsis(video, dossier.topic).join(" ")
+  const transcript = await getYouTubeTranscript(video.videoId)
+  const description = transcriptDescription(video, transcript, synopsis)
   const url = `/archive/${params.videoId}`
 
   return {
-    title: `${video.title} | Inverted World`,
-    description: synopsis,
+    title: video.title,
+    description,
+    keywords: [
+      video.title,
+      dossier.topic.title,
+      "Tales From the Inverted World",
+      "Inverted World transcript",
+      "paranormal research",
+      "conspiracy research",
+      "UFO",
+      "UAP",
+      "declassified documents",
+    ],
     alternates: {
       canonical: url,
     },
     openGraph: {
-      title: `${video.title} | Inverted World`,
-      description: synopsis,
+      title: video.title,
+      description,
       url,
       type: "article",
       publishedTime: video.date || undefined,
@@ -77,9 +121,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     },
     twitter: {
       card: "summary_large_image",
-      title: `${video.title} | Inverted World`,
-      description: synopsis,
+      title: video.title,
+      description,
       images: video.thumbnail ? [video.thumbnail] : undefined,
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+        "max-video-preview": -1,
+      },
     },
   }
 }
@@ -91,19 +146,24 @@ export default async function ArchiveVideoPage({ params }: PageProps) {
   const dossier = buildVideoDossier(video)
   const canonicalUrl = `https://invertedworld.on.recursiv.io/archive/${params.videoId}`
   const synopsis = buildSynopsis(video, dossier.topic)
-  const liveArticles = await fetchLiveArticlesForTopic(dossier.topic.id, dossier.topic.query.replaceAll('"', "")).catch(() => [])
-  const xPosts = await fetchViralXPostsForTopic(dossier.topic.id).catch(() => [])
-  const breakingItems = articleToBreakingItems(liveArticles)
+  const [transcript, liveArticles, xPosts] = await Promise.all([
+    getYouTubeTranscript(video.videoId),
+    fetchLiveArticlesForTopic(dossier.topic.id, dossier.topic.query.replaceAll('"', "")).catch(() => []),
+    fetchViralXPostsForTopic(dossier.topic.id).catch(() => []),
+  ])
+  const breakingItems = [...xPostsToBreakingItems(xPosts), ...articleToBreakingItems(liveArticles)]
 
   return (
     <InvertedPageShell
       eyebrow="Tales From The Inverted World"
       title={video.title}
       breakingItems={breakingItems}
+      heroTitle={video.title}
+      heroDescription={`Transcript, source video, live coverage, and research links for the ${dossier.topic.title} file.`}
     >
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(videoDossierJsonLd(dossier, canonicalUrl)) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(videoDossierJsonLd(dossier, canonicalUrl, transcript)) }}
       />
 
       <div className="mb-6">
@@ -132,27 +192,20 @@ export default async function ArchiveVideoPage({ params }: PageProps) {
 
         <aside className={cn("p-5", archiveSurface)}>
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#df2f2f]">{video.date || "archive"}</p>
-          <h2 className="iw-serif mt-4 text-4xl leading-tight text-[#fff8e6]">Synopsis</h2>
+          <h2 className="iw-serif mt-4 text-4xl leading-tight text-[#fff8e6]">Episode record</h2>
           <p className="mt-4 text-sm leading-6 text-[#f4efe2]/68">{synopsis[0]}</p>
           <div className="mt-6 grid gap-2 text-xs uppercase tracking-[0.14em] text-[#f4efe2]/48">
             <span>topic: {dossier.topic.title}</span>
             <span>source: Tales From the Inverted World</span>
-            <span>format: video + research links</span>
+            <span>format: video + transcript + research links</span>
+            <span>transcript: {transcript.available ? `${transcript.language || "captions"} / ${transcript.source || "youtube"}` : "not publicly available"}</span>
           </div>
         </aside>
       </section>
 
       <article className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className={cn("p-5 sm:p-6", archiveSurface)}>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#df2f2f]">Video synopsis</p>
-          <h2 className="iw-serif mt-4 text-4xl leading-tight text-[#fff8e6] sm:text-5xl">{video.title}</h2>
-          <div className="mt-5 grid max-w-3xl gap-4">
-            {synopsis.map((paragraph) => (
-              <p key={paragraph} className="text-sm leading-7 text-[#f4efe2]/72">
-                {paragraph}
-              </p>
-            ))}
-          </div>
+          <TranscriptSection video={video} transcript={transcript} synopsis={synopsis} />
         </div>
 
         <aside className="grid h-fit gap-5">
@@ -244,5 +297,62 @@ export default async function ArchiveVideoPage({ params }: PageProps) {
       </article>
       <Script src="https://platform.twitter.com/widgets.js" strategy="lazyOnload" />
     </InvertedPageShell>
+  )
+}
+
+function TranscriptSection({
+  video,
+  transcript,
+  synopsis,
+}: {
+  video: ChannelVideo
+  transcript: YouTubeTranscript
+  synopsis: string[]
+}) {
+  if (!transcript.available) {
+    return (
+      <section>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#df2f2f]">Transcript</p>
+        <h2 className="iw-serif mt-4 text-4xl leading-tight text-[#fff8e6] sm:text-5xl">{video.title}</h2>
+        <div className="mt-5 grid max-w-3xl gap-4">
+          <p className="text-sm leading-7 text-[#f4efe2]/72">
+            No public YouTube captions are available for this upload yet. Until a transcript is available, use the
+            original video, the current coverage, and the research links on this page as the source trail.
+          </p>
+          {synopsis.map((paragraph) => (
+            <p key={paragraph} className="text-sm leading-7 text-[#f4efe2]/72">
+              {paragraph}
+            </p>
+          ))}
+        </div>
+      </section>
+    )
+  }
+
+  const groups = groupTranscriptSegments(transcript.segments)
+
+  return (
+    <section>
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#df2f2f]">Transcript</p>
+      <h2 className="iw-serif mt-4 text-4xl leading-tight text-[#fff8e6] sm:text-5xl">{video.title}</h2>
+      <p className="mt-3 text-xs uppercase tracking-[0.14em] text-[#f4efe2]/48">
+        {transcript.language || "captions"} / {transcript.source || "youtube"} / refreshed daily
+      </p>
+      <div className="mt-6 grid gap-5" itemProp="transcript">
+        {groups.map((group) => (
+          <p key={`${group.start}-${group.text.slice(0, 18)}`} className="grid gap-2 text-sm leading-7 text-[#f4efe2]/76 sm:grid-cols-[72px_minmax(0,1fr)]">
+            <a
+              href={`${video.href}&t=${Math.floor(group.start)}s`}
+              target="_blank"
+              rel="noreferrer"
+              className="text-xs font-semibold uppercase tracking-[0.12em] text-[#df2f2f] transition hover:text-[#fff8e6]"
+            >
+              {formatTranscriptTime(group.start)}
+            </a>
+            <span>{group.text}</span>
+          </p>
+        ))}
+      </div>
+    </section>
   )
 }
