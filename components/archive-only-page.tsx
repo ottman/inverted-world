@@ -41,12 +41,6 @@ function mergeVideos(current: ChannelVideo[], incoming: ChannelVideo[]) {
   })
 }
 
-function formatSourceMode(mode: DeepArchiveResponse["sourceMode"]) {
-  if (mode === "youtube-data-api") return "YouTube API"
-  if (mode === "rss-plus-seed") return "YouTube RSS"
-  return "seed archive"
-}
-
 function normalizeDate(value?: string) {
   if (!value) return "live"
   const date = new Date(value)
@@ -66,9 +60,7 @@ export function ArchiveOnlyPage({
   const initialVideos = initialArchive?.videos ?? []
   const [videos, setVideos] = useState<ChannelVideo[]>(initialVideos)
   const [selectedVideo, setSelectedVideo] = useState<ChannelVideo | undefined>(initialVideos[0])
-  const [mode, setMode] = useState<DeepArchiveResponse["sourceMode"]>(initialArchive?.sourceMode || "seed")
   const [loading, setLoading] = useState(false)
-  const [totalCount, setTotalCount] = useState(initialArchive?.totalCount ?? initialVideos.length)
   const [nextOffset, setNextOffset] = useState((initialArchive?.offset ?? 0) + (initialArchive?.limit ?? initialVideos.length))
   const [hasMore, setHasMore] = useState(Boolean(initialArchive?.hasMore))
 
@@ -126,8 +118,6 @@ export function ArchiveOnlyPage({
       setSelectedVideo((current) =>
         current && nextVideos.some((video) => videoKey(video) === videoKey(current)) ? current : nextVideos[0],
       )
-      setMode(data.sourceMode || mode)
-      setTotalCount(data.totalCount ?? nextVideos.length)
       setNextOffset((data.offset ?? nextOffset) + (data.limit ?? incoming.length))
       setHasMore(Boolean(data.hasMore))
     } catch (error) {
@@ -139,7 +129,7 @@ export function ArchiveOnlyPage({
 
   return (
     <InvertedPageShell
-      eyebrow={`${totalCount || videos.length} uploads / ${formatSourceMode(mode)} / hourly feeds`}
+      eyebrow="Tales From The Inverted World"
       title="Archive"
       breakingItems={breakingItems}
     >
@@ -190,6 +180,8 @@ export function ArchiveOnlyPage({
           </div>
         </aside>
       </section>
+
+      <XEmbedStrip />
 
       <div className="mt-6 grid gap-6">
         {topics.map((topic) => {
@@ -285,6 +277,59 @@ function XSignalLane({ topic, posts }: { topic: ContentTopic; posts: ViralXPost[
           </a>
         </div>
       )}
+    </section>
+  )
+}
+
+function XEmbedStrip() {
+  const globalSearchUrl =
+    "https://twitter.com/search?q=%22Tales%20From%20The%20Inverted%20World%22%20OR%20UAP%20OR%20Epstein%20OR%20MKULTRA%20OR%20Bigfoot&src=typed_query&f=top"
+  const embeds = [
+    {
+      label: "@InvertedTales",
+      href: "https://twitter.com/InvertedTales?ref_src=twsrc%5Etfw",
+    },
+    {
+      label: "@ShaneCashman",
+      href: "https://twitter.com/ShaneCashman?ref_src=twsrc%5Etfw",
+    },
+    {
+      label: "Top X Signals",
+      href: globalSearchUrl,
+    },
+  ]
+
+  return (
+    <section className="mt-4 grid gap-4 lg:grid-cols-3">
+      {embeds.map((embed) => (
+        <div key={embed.href} className={cn("min-h-[300px] overflow-hidden p-3", archiveSurface)}>
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#fff8e6]">
+              <Twitter className="h-4 w-4 text-[#e8b45c]" />
+              {embed.label}
+            </h2>
+            <a
+              href={embed.href}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#dff7ff] transition hover:text-[#e8b45c]"
+            >
+              X
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </a>
+          </div>
+          <a
+            className="twitter-timeline"
+            data-theme="dark"
+            data-dnt="true"
+            data-height="280"
+            data-chrome="noheader nofooter noborders transparent"
+            href={embed.href}
+          >
+            {embed.label}
+          </a>
+        </div>
+      ))}
     </section>
   )
 }

@@ -48,6 +48,30 @@ body {
   scrollbar-width: thin;
 }
 
+.iw-breaking-track {
+  animation: iw-breaking-marquee 82s linear infinite;
+}
+
+.iw-breaking-scroll:hover .iw-breaking-track {
+  animation-play-state: paused;
+}
+
+@keyframes iw-breaking-marquee {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .iw-breaking-track {
+    animation: none;
+  }
+}
+
 .iw-breaking-scroll::-webkit-scrollbar {
   height: 5px;
 }

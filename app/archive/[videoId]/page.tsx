@@ -1,10 +1,12 @@
 import type { Metadata } from "next"
+import Script from "next/script"
 import { ArrowLeft, ExternalLink } from "lucide-react"
 import { notFound } from "next/navigation"
 import { archiveSurface, InvertedPageShell, type BreakingItem } from "@/components/inverted-page-shell"
 import { getArchiveVideo } from "@/lib/deep-archive"
 import { buildVideoDossier, videoDossierJsonLd } from "@/lib/video-dossier"
 import { fetchLiveArticlesForTopic } from "@/lib/live-articles"
+import { getTopicXSearchUrl } from "@/lib/x-search"
 import { cn } from "@/lib/utils"
 import type { ChannelVideo, ContentTopic } from "@/data/inverted-world"
 
@@ -93,7 +95,7 @@ export default async function ArchiveVideoPage({ params }: PageProps) {
 
   return (
     <InvertedPageShell
-      eyebrow={dossier.topic.title}
+      eyebrow="Tales From The Inverted World"
       title={video.title}
       breakingItems={breakingItems}
     >
@@ -201,8 +203,33 @@ export default async function ArchiveVideoPage({ params }: PageProps) {
               </div>
             </section>
           )}
+
+          <section className={cn("p-5", archiveSurface)}>
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-[#fff8e6]">X signal</h2>
+              <a
+                href={getTopicXSearchUrl(dossier.topic)}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#dff7ff] transition hover:text-[#e8b45c]"
+              >
+                Top search
+              </a>
+            </div>
+            <a
+              className="twitter-timeline"
+              data-theme="dark"
+              data-dnt="true"
+              data-height="320"
+              data-chrome="noheader nofooter noborders transparent"
+              href={getTopicXSearchUrl(dossier.topic)}
+            >
+              X signal for {dossier.topic.title}
+            </a>
+          </section>
         </aside>
       </article>
+      <Script src="https://platform.twitter.com/widgets.js" strategy="lazyOnload" />
     </InvertedPageShell>
   )
 }

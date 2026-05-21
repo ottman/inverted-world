@@ -118,9 +118,6 @@ export function InvertedPageShell({
               <p className="iw-serif mt-3 max-w-3xl text-2xl leading-[1.05] text-[#f4efe2]/86 sm:text-3xl">
                 A research archive for the strange, classified, misreported, and not-yet-understood.
               </p>
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-[#f4efe2]/58">
-                Watch the channel, follow the records, compare the coverage, and keep belief open until the evidence closes.
-              </p>
               <p className="sr-only">{title}</p>
             </div>
             {action}
@@ -141,27 +138,30 @@ function BreakingTicker({ items }: { items?: BreakingItem[] }) {
     source: topic.title,
   }))
   const visibleItems = (items?.length ? items : fallbackItems).slice(0, 18)
+  const marqueeItems = [...visibleItems, ...visibleItems]
 
   return (
     <div>
       <div className="mx-auto flex max-w-7xl items-center gap-3 px-3 sm:px-6 lg:px-8">
         <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#e8b45c]">Breaking</span>
-        <div className="iw-breaking-scroll flex min-w-0 flex-1 gap-4 overflow-x-auto py-2">
-          {visibleItems.map((item) => {
-            const external = item.href.startsWith("http")
-            return (
-              <a
-                key={`${item.href}-${item.title}`}
-                href={item.href}
-                target={external ? "_blank" : undefined}
-                rel={external ? "noreferrer" : undefined}
-                className="group flex shrink-0 items-center gap-2 text-[11px] uppercase tracking-[0.1em] text-[#f4efe2]/62 transition hover:text-[#fff8e6]"
-              >
-                <span className="max-w-[72vw] truncate sm:max-w-[420px]">{item.title}</span>
-                {item.source && <span className="text-[#e8b45c]/70">{item.source}</span>}
-              </a>
-            )
-          })}
+        <div className="iw-breaking-scroll min-w-0 flex-1 overflow-hidden py-2">
+          <div className="iw-breaking-track flex w-max gap-4">
+            {marqueeItems.map((item, index) => {
+              const external = item.href.startsWith("http")
+              return (
+                <a
+                  key={`${item.href}-${item.title}-${index}`}
+                  href={item.href}
+                  target={external ? "_blank" : undefined}
+                  rel={external ? "noreferrer" : undefined}
+                  className="group flex shrink-0 items-center gap-2 text-[11px] uppercase tracking-[0.1em] text-[#f4efe2]/62 transition hover:text-[#fff8e6]"
+                >
+                  <span className="max-w-[72vw] truncate sm:max-w-[420px]">{item.title}</span>
+                  {item.source && <span className="text-[#e8b45c]/70">{item.source}</span>}
+                </a>
+              )
+            })}
+          </div>
         </div>
       </div>
     </div>
