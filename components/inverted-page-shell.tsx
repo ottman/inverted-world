@@ -8,7 +8,7 @@ import Waves from "@/components/Waves"
 import { socialLinks, topics } from "@/data/inverted-world"
 import { cn } from "@/lib/utils"
 
-export const archiveSurface = "border border-[#f4efe2]/12 bg-[#070706]/28 backdrop-blur-[2px]"
+export const archiveSurface = "bg-[#070706]/30 backdrop-blur-[2px]"
 
 export type BreakingItem = {
   title: string
@@ -59,8 +59,6 @@ export function InvertedPageShell({
     }
   }, [])
 
-  const liveHref = liveStatus.url || "https://www.youtube.com/@TalesfromtheInvertedWorld/live"
-
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-[#070706] text-[#f4efe2]">
       <div className="pointer-events-none fixed inset-0 z-0 opacity-95">
@@ -83,8 +81,8 @@ export function InvertedPageShell({
       <div className="relative z-10">
         <header
           className={cn(
-            "sticky top-0 z-30 border-b bg-[#070706]/24 backdrop-blur-[2px] transition-colors",
-            liveStatus.isLive ? "border-[#df2f2f]/55 bg-[#180404]/46" : "border-[#f4efe2]/10",
+            "sticky top-0 z-30 bg-[#070706]/24 backdrop-blur-[2px] transition-colors",
+            liveStatus.isLive && "bg-[#180404]/46 shadow-[0_1px_0_rgba(223,47,47,0.42)]",
           )}
         >
           <BreakingTicker items={breakingItems} />
@@ -106,25 +104,12 @@ export function InvertedPageShell({
                 </a>
               ))}
             </nav>
-            <a
-              href={liveHref}
-              target="_blank"
-              rel="noreferrer"
-              className={cn(
-                "hidden h-10 items-center gap-2 border px-3 text-xs font-semibold uppercase tracking-[0.12em] transition lg:inline-flex",
-                liveStatus.isLive
-                  ? "border-[#df2f2f]/65 bg-[#df2f2f]/14 text-[#fff8e6]"
-                  : "border-[#f4efe2]/12 text-[#f4efe2]/72 hover:border-[#e8b45c]/45 hover:text-[#fff8e6]",
-              )}
-            >
-              <span className={cn("h-2 w-2 rounded-full", liveStatus.isLive ? "animate-pulse bg-[#df2f2f]" : "bg-[#f4efe2]/34")} />
-              {liveStatus.isLive ? "Live now" : "YouTube"}
-            </a>
+            <div className="hidden lg:block" aria-hidden="true" />
           </div>
         </header>
 
         <main className="mx-auto max-w-7xl px-3 py-5 sm:px-6 sm:py-6 lg:px-8">
-          <div className="mb-5 grid gap-4 border border-[#f4efe2]/12 bg-[#070706]/18 p-4 backdrop-blur-[1px] sm:p-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+          <div className="mb-5 grid gap-4 bg-[#070706]/18 p-4 backdrop-blur-[1px] sm:p-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
             <div className="max-w-4xl">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#e8b45c]">{eyebrow}</p>
               <h1 className="iw-serif mt-2 text-5xl leading-[0.9] tracking-normal text-[#fff8e6] sm:text-7xl">
@@ -158,7 +143,7 @@ function BreakingTicker({ items }: { items?: BreakingItem[] }) {
   const visibleItems = (items?.length ? items : fallbackItems).slice(0, 18)
 
   return (
-    <div className="border-b border-[#f4efe2]/10">
+    <div>
       <div className="mx-auto flex max-w-7xl items-center gap-3 px-3 sm:px-6 lg:px-8">
         <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#e8b45c]">Breaking</span>
         <div className="iw-breaking-scroll flex min-w-0 flex-1 gap-4 overflow-x-auto py-2">
@@ -185,7 +170,7 @@ function BreakingTicker({ items }: { items?: BreakingItem[] }) {
 
 function SimpleFooter() {
   return (
-    <footer className="relative z-10 mx-auto mt-8 flex max-w-7xl flex-col gap-4 border-t border-[#f4efe2]/10 px-3 py-6 text-[#f4efe2]/56 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
+    <footer className="relative z-10 mx-auto mt-8 flex max-w-7xl flex-col gap-4 px-3 py-6 text-[#f4efe2]/56 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
       <div className="flex items-center gap-3">
         <Image
           src="/images/inverted-world-banner-logo.png"
@@ -204,7 +189,7 @@ function SimpleFooter() {
             target="_blank"
             rel="noreferrer"
             aria-label={link.label}
-            className="grid h-9 w-9 place-items-center border border-[#f4efe2]/12 text-[#f4efe2]/62 transition hover:border-[#e8b45c]/45 hover:text-[#fff8e6]"
+            className="grid h-9 w-9 place-items-center bg-[#070706]/30 text-[#f4efe2]/62 transition hover:bg-[#e8b45c]/12 hover:text-[#fff8e6]"
           >
             <SocialIcon label={link.label} />
           </a>
@@ -230,7 +215,7 @@ export function ExternalAction({ href, children }: { href: string; children: Rea
       target="_blank"
       rel="noreferrer"
       className={cn(
-        "inline-flex h-10 items-center gap-2 rounded-md border border-[#e8b45c]/45 bg-[#070706]/22 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-[#e8b45c]/12",
+        "inline-flex h-10 items-center gap-2 rounded-md bg-[#070706]/22 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-[#e8b45c]/12",
         archiveSurface,
       )}
     >

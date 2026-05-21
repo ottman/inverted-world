@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import { ArrowLeft, ExternalLink } from "lucide-react"
 import { notFound } from "next/navigation"
-import { archiveSurface, ExternalAction, InvertedPageShell, type BreakingItem } from "@/components/inverted-page-shell"
+import { archiveSurface, InvertedPageShell, type BreakingItem } from "@/components/inverted-page-shell"
 import { getArchiveVideo } from "@/lib/deep-archive"
 import { buildVideoDossier, videoDossierJsonLd } from "@/lib/video-dossier"
 import { fetchLiveArticlesForTopic } from "@/lib/live-articles"
@@ -95,7 +95,6 @@ export default async function ArchiveVideoPage({ params }: PageProps) {
     <InvertedPageShell
       eyebrow={dossier.topic.title}
       title={video.title}
-      action={<ExternalAction href={video.href}>YouTube</ExternalAction>}
       breakingItems={breakingItems}
     >
       <script
@@ -115,7 +114,7 @@ export default async function ArchiveVideoPage({ params }: PageProps) {
 
       <section className="grid gap-5 lg:grid-cols-[1.14fr_0.86fr]">
         <div className={cn("p-3", archiveSurface)}>
-          <div className="relative aspect-video overflow-hidden border border-[#f4efe2]/10 bg-[#050504]/55">
+          <div className="relative aspect-video overflow-hidden bg-[#050504]/55">
             <iframe
               className="absolute inset-0 h-full w-full"
               src={video.embedUrl}
@@ -162,7 +161,7 @@ export default async function ArchiveVideoPage({ params }: PageProps) {
                   href={reference.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="group block border border-[#f4efe2]/10 bg-[#070706]/24 p-3 transition hover:border-[#e8b45c]/45"
+                  className="group block bg-[#070706]/24 p-3 transition hover:bg-[#070706]/46"
                 >
                   <span className="flex items-start justify-between gap-3">
                     <span className="text-sm font-semibold leading-5 text-[#fff8e6] group-hover:text-[#e8b45c]">{reference.title}</span>
@@ -186,7 +185,7 @@ export default async function ArchiveVideoPage({ params }: PageProps) {
                     href={article.sourceUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="group block border border-[#f4efe2]/10 bg-[#070706]/24 p-3 transition hover:border-[#e8b45c]/45"
+                    className="group block bg-[#070706]/24 p-3 transition hover:bg-[#070706]/46"
                   >
                     <span className="flex items-start justify-between gap-3">
                       <span className="text-sm font-semibold leading-5 text-[#fff8e6] group-hover:text-[#e8b45c]">

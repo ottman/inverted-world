@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react"
 import { ArrowUpRight, Play, RefreshCw, Twitter, Youtube } from "lucide-react"
 import Script from "next/script"
-import { archiveSurface, ExternalAction, InvertedPageShell, type BreakingItem } from "@/components/inverted-page-shell"
+import { archiveSurface, InvertedPageShell, type BreakingItem } from "@/components/inverted-page-shell"
 import { channelProfile, topics, type ChannelVideo, type ContentTopic } from "@/data/inverted-world"
 import type { IntelligenceArticle } from "@/data/intelligence-articles"
 import { cn } from "@/lib/utils"
@@ -141,12 +141,11 @@ export function ArchiveOnlyPage({
     <InvertedPageShell
       eyebrow={`${totalCount || videos.length} uploads / ${formatSourceMode(mode)} / hourly feeds`}
       title="Archive"
-      action={<ExternalAction href="https://www.youtube.com/@TalesfromtheInvertedWorld/videos">YouTube</ExternalAction>}
       breakingItems={breakingItems}
     >
       <section className="grid gap-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.55fr)]">
         <div className={cn("p-2 sm:p-3", archiveSurface)}>
-          <div className="relative aspect-video overflow-hidden border border-[#f4efe2]/10 bg-[#050504]/60">
+          <div className="relative aspect-video overflow-hidden bg-[#050504]/60">
             <iframe
               className="absolute inset-0 h-full w-full"
               src={leadVideo?.embedUrl || channelProfile.youtubeUploadsEmbedUrl}
@@ -171,7 +170,7 @@ export function ArchiveOnlyPage({
             {leadVideo?.videoId && (
               <a
                 href={`/archive/${leadVideo.videoId}`}
-                className="inline-flex h-10 items-center gap-2 border border-[#e8b45c]/45 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-[#e8b45c]/12"
+                className="inline-flex h-10 items-center gap-2 bg-[#e8b45c]/10 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-[#e8b45c]/18"
               >
                 Video page
                 <ArrowUpRight className="h-4 w-4" />
@@ -181,7 +180,7 @@ export function ArchiveOnlyPage({
               <button
                 type="button"
                 onClick={() => void loadMore()}
-                className="inline-flex h-10 items-center gap-2 border border-[#7dd3fc]/35 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#dff7ff] transition hover:bg-[#7dd3fc]/12 disabled:cursor-wait disabled:opacity-60"
+                className="inline-flex h-10 items-center gap-2 bg-[#7dd3fc]/10 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#dff7ff] transition hover:bg-[#7dd3fc]/16 disabled:cursor-wait disabled:opacity-60"
                 disabled={loading}
               >
                 <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
@@ -199,7 +198,7 @@ export function ArchiveOnlyPage({
           const xPosts = initialTopicXPosts?.[topic.id] ?? []
           return (
             <section id={`topic-${topic.id}`} key={topic.id} className={cn("scroll-mt-36 p-3 sm:p-4", archiveSurface)}>
-              <div className="flex flex-col gap-3 border-b border-[#f4efe2]/10 pb-3 md:flex-row md:items-end md:justify-between">
+              <div className="flex flex-col gap-3 pb-3 md:flex-row md:items-end md:justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#e8b45c]">{topic.signal}</p>
                   <h2 className="iw-serif mt-2 text-4xl leading-none text-[#fff8e6] sm:text-5xl">{topic.title}</h2>
@@ -214,7 +213,7 @@ export function ArchiveOnlyPage({
                   <LiveFeed topicTitle={topic.title} articles={feed} />
                   <XSignalLane topic={topic} posts={xPosts} />
                 </div>
-                <VideoGrid videos={topicVideos} selectedVideo={leadVideo} onSelect={setSelectedVideo} />
+                <VideoGrid videos={topicVideos} />
               </div>
             </section>
           )
@@ -230,7 +229,7 @@ function XSignalLane({ topic, posts }: { topic: ContentTopic; posts: ViralXPost[
   const hasPosts = posts.length > 0
 
   return (
-    <section className="border border-[#f4efe2]/10 bg-[#050504]/30 p-3">
+    <section className="bg-[#050504]/30 p-3">
       <div className="mb-3 flex items-center justify-between gap-3">
         <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.16em] text-[#fff8e6]">
           <Twitter className="h-4 w-4 text-[#e8b45c]" />
@@ -251,11 +250,11 @@ function XSignalLane({ topic, posts }: { topic: ContentTopic; posts: ViralXPost[
         <>
           <div className="grid gap-3">
             {posts.slice(0, 2).map((post) => (
-              <article key={post.id} className="overflow-hidden border border-[#f4efe2]/10 bg-[#070706]/38 p-2">
+              <article key={post.id} className="overflow-hidden bg-[#070706]/38 p-2">
                 <blockquote className="twitter-tweet" data-theme="dark" data-dnt="true">
                   <a href={post.url}>{post.text}</a>
                 </blockquote>
-                <div className="flex flex-wrap items-center gap-2 border-t border-[#f4efe2]/10 pt-2 text-[10px] uppercase tracking-[0.12em] text-[#f4efe2]/44">
+                <div className="flex flex-wrap items-center gap-2 pt-2 text-[10px] uppercase tracking-[0.12em] text-[#f4efe2]/44">
                   {post.username && <span>@{post.username}</span>}
                   {typeof post.score === "number" && <span>{Math.round(post.score).toLocaleString()} signal</span>}
                 </div>
@@ -264,7 +263,7 @@ function XSignalLane({ topic, posts }: { topic: ContentTopic; posts: ViralXPost[
           </div>
         </>
       ) : (
-        <div className="overflow-hidden border border-[#f4efe2]/10 bg-[#070706]/34 p-2 transition hover:border-[#e8b45c]/45">
+        <div className="overflow-hidden bg-[#070706]/34 p-2 transition hover:bg-[#070706]/52">
           <a
             className="twitter-timeline"
             data-theme="dark"
@@ -306,7 +305,7 @@ function LiveFeed({ topicTitle, articles }: { topicTitle: string; articles: Inte
             href={article.sourceUrl}
             target="_blank"
             rel="noreferrer"
-            className="group block border border-[#f4efe2]/10 bg-[#050504]/36 p-2.5 transition hover:border-[#e8b45c]/45 hover:bg-[#070706]/58"
+            className="group block bg-[#050504]/36 p-2.5 transition hover:bg-[#070706]/58"
           >
             <span className="flex items-start justify-between gap-3">
               <span className="text-[13px] font-semibold leading-5 text-[#fff8e6] group-hover:text-[#e8b45c]">{article.title}</span>
@@ -320,7 +319,7 @@ function LiveFeed({ topicTitle, articles }: { topicTitle: string; articles: Inte
           </a>
         ))}
         {!articles.length && (
-          <div className="border border-[#f4efe2]/10 bg-[#050504]/24 p-3 text-sm text-[#f4efe2]/56">
+          <div className="bg-[#050504]/24 p-3 text-sm text-[#f4efe2]/56">
             Feed unavailable right now.
           </div>
         )}
@@ -329,36 +328,25 @@ function LiveFeed({ topicTitle, articles }: { topicTitle: string; articles: Inte
   )
 }
 
-function VideoGrid({
-  videos,
-  selectedVideo,
-  onSelect,
-}: {
-  videos: ChannelVideo[]
-  selectedVideo?: ChannelVideo
-  onSelect: (video: ChannelVideo) => void
-}) {
+function VideoGrid({ videos }: { videos: ChannelVideo[] }) {
   const visibleVideos = videos.slice(0, TOPIC_VIDEO_LIMIT)
   const hiddenCount = Math.max(videos.length - visibleVideos.length, 0)
 
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       {visibleVideos.map((video) => {
-        const active = videoKey(video) === videoKey(selectedVideo || video)
+        const href = video.videoId ? `/archive/${video.videoId}` : video.href
+        const external = href.startsWith("http")
         return (
-          <article
+          <a
             key={videoKey(video)}
-            className={cn(
-              "group overflow-hidden border bg-[#050504]/36 transition hover:border-[#e8b45c]/45",
-              active ? "border-[#e8b45c]/70" : "border-[#f4efe2]/10",
-            )}
+            href={href}
+            target={external ? "_blank" : undefined}
+            rel={external ? "noreferrer" : undefined}
+            className="group overflow-hidden bg-[#050504]/36 transition hover:bg-[#070706]/62"
+            aria-label={`Open ${video.title}`}
           >
-            <button
-              type="button"
-              onClick={() => onSelect(video)}
-              className="relative block aspect-video w-full bg-[#050504]/70 text-left"
-              aria-label={`Play ${video.title}`}
-            >
+            <span className="relative block aspect-video w-full bg-[#050504]/70 text-left">
               {video.thumbnail && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={video.thumbnail} alt="" className="absolute inset-0 h-full w-full object-cover opacity-80" />
@@ -366,32 +354,27 @@ function VideoGrid({
               <span className="absolute inset-0 grid place-items-center bg-[#070706]/24 transition group-hover:bg-[#070706]/8">
                 <Play className="h-7 w-7 fill-[#fff8e6] text-[#fff8e6]" />
               </span>
-            </button>
+            </span>
             <div className="flex min-h-[126px] flex-col justify-between p-3">
               <h3 className="line-clamp-3 text-sm font-semibold leading-5 text-[#fff8e6]">{video.title}</h3>
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
                 <span className="text-xs uppercase tracking-[0.12em] text-[#f4efe2]/42">{video.date || "upload"}</span>
-                {video.videoId && (
-                  <a
-                    href={`/archive/${video.videoId}`}
-                    className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.1em] text-[#dff7ff] transition hover:text-[#e8b45c]"
-                  >
-                    Page
-                    <ArrowUpRight className="h-3.5 w-3.5" />
-                  </a>
-                )}
+                <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.1em] text-[#dff7ff] transition group-hover:text-[#e8b45c]">
+                  Open
+                  <ArrowUpRight className="h-3.5 w-3.5" />
+                </span>
               </div>
             </div>
-          </article>
+          </a>
         )
       })}
       {hiddenCount > 0 && (
-        <div className="border border-[#f4efe2]/10 bg-[#050504]/24 p-3 text-xs uppercase tracking-[0.14em] text-[#f4efe2]/52 sm:col-span-2">
+        <div className="bg-[#050504]/24 p-3 text-xs uppercase tracking-[0.14em] text-[#f4efe2]/52 sm:col-span-2">
           {hiddenCount} more videos in this topic. Use the top player or More to keep digging.
         </div>
       )}
       {!videos.length && (
-        <div className="border border-[#f4efe2]/10 bg-[#050504]/24 p-3 text-sm text-[#f4efe2]/56">
+        <div className="bg-[#050504]/24 p-3 text-sm text-[#f4efe2]/56">
           No archive videos classified here yet.
         </div>
       )}
