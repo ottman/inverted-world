@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: "/",
     },
-    sitemap: "https://invertedworld.on.recursiv.io/sitemap.xml",
-    host: "https://invertedworld.on.recursiv.io",
+    sitemap: "https://www.inverted.world/sitemap.xml",
+    host: "https://www.inverted.world",
   }
 }

@@ -143,7 +143,7 @@ export default async function ArchiveVideoPage({ params }: PageProps) {
   if (!video) notFound()
 
   const dossier = buildVideoDossier(video)
-  const canonicalUrl = `https://invertedworld.on.recursiv.io/archive/${params.videoId}`
+  const canonicalUrl = `https://www.inverted.world/archive/${params.videoId}`
   const synopsis = buildSynopsis(video, dossier.topic)
   const [transcript, liveArticles, xPosts] = await Promise.all([
     getYouTubeTranscript(video.videoId),

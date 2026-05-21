@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next"
 import { getDeepArchive } from "@/lib/deep-archive"
 
-const baseUrl = "https://invertedworld.on.recursiv.io"
+const baseUrl = "https://www.inverted.world"
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: MetadataRoute.Sitemap = ["", "/archive", "/llms.txt"].map((path) => ({

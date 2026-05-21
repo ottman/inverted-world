@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { getDeepArchive } from "@/lib/deep-archive"
 
-const baseUrl = "https://invertedworld.on.recursiv.io"
+const baseUrl = "https://www.inverted.world"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 3600

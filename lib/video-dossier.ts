@@ -299,7 +299,7 @@ export function videoDossierJsonLd(dossier: VideoDossier, url: string, transcrip
         isPartOf: {
           "@type": "WebSite",
           name: "Inverted World",
-          url: "https://invertedworld.on.recursiv.io",
+          url: "https://www.inverted.world",
         },
       },
       {
@@ -314,7 +314,7 @@ export function videoDossierJsonLd(dossier: VideoDossier, url: string, transcrip
         publisher: {
           "@type": "Organization",
           name: "Inverted World",
-          url: "https://invertedworld.on.recursiv.io",
+          url: "https://www.inverted.world",
         },
       },
       {
@@ -324,7 +324,7 @@ export function videoDossierJsonLd(dossier: VideoDossier, url: string, transcrip
             "@type": "ListItem",
             position: 1,
             name: "Archive",
-            item: "https://invertedworld.on.recursiv.io/archive",
+            item: "https://www.inverted.world/archive",
           },
           {
             "@type": "ListItem",
