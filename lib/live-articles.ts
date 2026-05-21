@@ -31,7 +31,13 @@ function readSource(item: string) {
 }
 
 function cleanNewsTitle(title: string) {
-  return title.replace(/\s+-\s+[^-]+$/, "").trim()
+  return normalizeInvertedLabels(title.replace(/\s+-\s+[^-]+$/, "").trim())
+}
+
+function normalizeInvertedLabels(value: string) {
+  return value
+    .replace(/\bthe black vault\b/gi, "the Declassified archive")
+    .replace(/\bblack vault\b/gi, "Declassified")
 }
 
 function topicSeed(topicId: string, index: number) {
@@ -103,28 +109,30 @@ export async function fetchLiveArticlesForTopic(topicId: string, query: string) 
     const link = readTag(item, "link")
     const publishedAt = readTag(item, "pubDate")
     const source = readSource(item)
+    const sourceName = normalizeInvertedLabels(source.source)
     const seed = topicSeed(topicId, index)
+    const articleTitle = title || normalizeInvertedLabels(seed.title)
 
     return {
       ...seed,
       id: `live-${topicId}-${index}`,
-      title: title || seed.title,
-      deck: `${source.source}. Live coverage cluster; source it against primary records, archive context, and a skeptical counterread before publishing.`,
+      title: articleTitle,
+      deck: `${sourceName}. Live coverage cluster; source it against primary records, archive context, and a skeptical counterread before publishing.`,
       topicId,
       topic: topic?.title.toUpperCase() || seed.topic,
       publishedAt: publishedAt || seed.publishedAt,
-      source: source.source,
+      source: sourceName,
       sourceUrl: link || source.sourceUrl,
       heat: 100 - index,
       body: liveArticleBody({
-        title: title || seed.title,
-        source: source.source,
+        title: articleTitle,
+        source: sourceName,
         topicId,
         query,
         index,
       }),
       thumbnailPrompt:
-        `Inverted World thumbnail for "${title || seed.title}": ${topic?.title || seed.topic} signal, ` +
+        `Inverted World thumbnail for "${articleTitle}": ${topic?.title || seed.topic} signal, ` +
         "terminal grid, redacted source trail, amber-black palette, one iconic symbol, no fake documents, no faces.",
     } satisfies IntelligenceArticle
   })
