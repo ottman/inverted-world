@@ -19,7 +19,10 @@ function trimMessage(value: unknown) {
 function dossierContext(dossier: NonNullable<Awaited<ReturnType<typeof getRecursivClaimDossier>>>) {
   const sourceLines = dossier.sourceLinks
     .slice(0, 8)
-    .map((source, index) => `${index + 1}. ${source.outlet || source.sourceKind || "source"}: ${source.title} (${source.url})`)
+    .map((source, index) => {
+      const excerpt = source.excerpt ? `\n   Extract: ${source.excerpt}` : ""
+      return `${index + 1}. ${source.outlet || source.sourceKind || "source"}: ${source.title} (${source.url})${excerpt}`
+    })
     .join("\n")
   const xLines = dossier.xSignals
     .slice(0, 6)

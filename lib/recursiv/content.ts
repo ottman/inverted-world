@@ -82,6 +82,8 @@ export type ClaimSourceLink = {
   biasLane?: string
   publishedAt?: string
   credibilityScore?: number
+  excerpt?: string
+  extractionProvider?: string
 }
 
 export type ClaimDossier = {
@@ -239,6 +241,8 @@ function sourceLinkFromJson(value: unknown): ClaimSourceLink | null {
     biasLane: typeof item.biasLane === "string" ? item.biasLane : typeof item.bias_lane === "string" ? item.bias_lane : undefined,
     publishedAt: typeof item.publishedAt === "string" ? item.publishedAt : typeof item.published_at === "string" ? item.published_at : undefined,
     credibilityScore: Number(item.credibilityScore ?? item.credibility_score ?? 0) || undefined,
+    excerpt: typeof item.excerpt === "string" ? item.excerpt : undefined,
+    extractionProvider: typeof item.extractionProvider === "string" ? item.extractionProvider : undefined,
   }
 }
 

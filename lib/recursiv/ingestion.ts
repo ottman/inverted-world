@@ -2,6 +2,7 @@ import { channelProfile, topics, type ChannelVideo } from "@/data/inverted-world
 import { fetchLiveArticlesForTopic } from "@/lib/live-articles"
 import { createRecursivServerClient } from "@/lib/recursiv/client"
 import { INVERTED_WORLD_SCHEMA_SQL } from "@/lib/recursiv/schema"
+import { extractSourceText } from "@/lib/source-extraction"
 import { fetchViralXPostsForTopic, type ViralXPost } from "@/lib/x-posts"
 
 type YouTubePlaylistItem = {
@@ -20,6 +21,21 @@ type YouTubePlaylistResponse = {
 }
 
 type RecursivServerClient = ReturnType<typeof createRecursivServerClient>["sdk"]
+
+type ClaimSourceCandidate = {
+  title: string
+  url: string
+  outlet: string
+  sourceKind: string
+  stance: string
+  biasLane: string
+  publishedAt: string
+  credibilityScore: number
+  excerpt?: string
+  extractionProvider?: string
+  extractedTitle?: string
+  extractedDescription?: string
+}
 
 const TOPIC_KEYWORDS: Array<{ topicId: string; words: string[] }> = [
   { topicId: "uap-disclosure", words: ["ufo", "uap", "alien", "retrieval", "aaro", "pentagon", "disclosure"] },
@@ -196,6 +212,28 @@ function postScore(post: ViralXPost) {
       (post.metrics?.replies || 0) * 0.5 +
       (post.metrics?.views || 0) * 0.01
   )
+}
+
+async function enrichSourceLinks(sourceLinks: ClaimSourceCandidate[]) {
+  const limit = Math.max(0, Math.min(Number(process.env.SOURCE_ENRICHMENT_LIMIT_PER_DOSSIER || "2"), 5))
+  if (!limit || (!process.env.FIRECRAWL_API_KEY && !process.env.JINA_API_KEY)) return sourceLinks
+
+  const enriched = await Promise.all(
+    sourceLinks.slice(0, limit).map(async (source) => {
+      const extraction = await extractSourceText(source.url)
+      if (!extraction) return source
+
+      return {
+        ...source,
+        excerpt: extraction.excerpt,
+        extractionProvider: extraction.provider,
+        extractedTitle: extraction.title,
+        extractedDescription: extraction.description,
+      }
+    }),
+  )
+
+  return [...enriched, ...sourceLinks.slice(limit)]
 }
 
 export async function ensureInvertedWorldSchema() {
@@ -384,7 +422,7 @@ export async function generateClaimDossiersInRecursiv() {
     })) satisfies ChannelVideo[]
 
     const xVelocityScore = Math.round(posts.reduce((sum, post) => sum + postScore(post), 0))
-    const sourceLinks = articles.slice(0, 10).map((article, index) => {
+    const sourceLinks = await enrichSourceLinks(articles.slice(0, 10).map((article, index) => {
       const kind = sourceKind(article.source, article.sourceUrl)
       const lane = biasLane(article.source, article.sourceUrl)
       return {
@@ -397,7 +435,7 @@ export async function generateClaimDossiersInRecursiv() {
         publishedAt: article.publishedAt,
         credibilityScore: kind === "official" ? 92 : lane === "mainstream" ? 72 : lane === "independent" ? 64 : 58,
       }
-    })
+    }))
     const grade = evidenceGrade(sourceLinks, xVelocityScore)
     const confidenceScore = confidenceScoreFor(grade, sourceLinks.length, posts.length)
     const title = `${topic.title}: ${lead?.title || topic.signal}`
@@ -538,7 +576,13 @@ export async function generateClaimDossiersInRecursiv() {
             source.biasLane || "open-web",
             source.publishedAt || "",
             source.credibilityScore || 0,
-            JSON.stringify({ topic: topic.title }),
+            JSON.stringify({
+              topic: topic.title,
+              excerpt: source.excerpt || null,
+              extractionProvider: source.extractionProvider || null,
+              extractedTitle: source.extractedTitle || null,
+              extractedDescription: source.extractedDescription || null,
+            }),
           ],
         })
         sourcesUpserted += 1

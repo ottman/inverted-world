@@ -8,8 +8,9 @@ Current runtime lanes:
 
 - Home/archive UI: `app/page.tsx` reuses `app/archive/page.tsx`.
 - Archive ingestion: `lib/deep-archive.ts` now reads Recursiv `channel_items` first, then falls back to YouTube Data API, RSS, and seeded local videos.
-- Live articles: `lib/live-articles.ts` now reads published Recursiv `article_drafts` first, then falls back to Google News RSS.
+- Live articles: `lib/live-articles.ts` now reads published Recursiv `article_drafts` first, then falls back to Exa source discovery and Google News RSS.
 - X signals: `lib/x-posts.ts` now reads Recursiv `x_signals` first, then falls back to X API, Brave, public syndication, and seed posts.
+- Claim dossier sources: `lib/source-extraction.ts` extracts short source excerpts with Firecrawl first and Jina Reader fallback so `/news/[slug]` chat is grounded in page text, not links alone.
 - Video pages: `app/archive/[videoId]/page.tsx` renders one embedded video and related Tales videos.
 - Static editorial scaffolding: `data/intelligence-articles.ts`, `data/inverted-world.ts`, and docs files.
 
@@ -32,7 +33,7 @@ Recursiv should host the app and own the backend. Vercel is temporary legacy hos
 
 Recommended backend flow:
 
-1. Recursiv scheduled job polls YouTube, Google News/GDELT/Brave, X, and official sources.
+1. Recursiv scheduled job polls YouTube, Exa/Google News/GDELT/Brave, X, and official sources, then enriches lead links with source-text extraction.
 2. Recursiv stores normalized rows in Postgres tables:
    - `channel_items`
    - `topic_sources`

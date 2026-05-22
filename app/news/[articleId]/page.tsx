@@ -109,8 +109,12 @@ export default async function NewsArticlePage({ params }: PageProps) {
                 >
                   <span>
                     <span className="block text-sm leading-5 text-[#fff8e6]">{source.title}</span>
+                    {source.excerpt ? (
+                      <span className="mt-2 block line-clamp-2 text-xs leading-5 text-[#f4efe2]/56">{source.excerpt}</span>
+                    ) : null}
                     <span className="mt-1 block text-[10px] uppercase tracking-[0.12em] text-[#f4efe2]/42">
                       {source.outlet || "source"} / {source.biasLane || "open-web"} / {source.sourceKind || "news"}
+                      {source.extractionProvider ? ` / ${source.extractionProvider}` : ""}
                     </span>
                   </span>
                   <ArrowUpRight className="h-4 w-4 text-[#df2f2f]" />
