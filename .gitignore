@@ -9,3 +9,4 @@ node_modules
 data/generated/*
 !data/generated/
 !data/generated/recursiv-public-snapshot.json
+!data/generated/recursiv-news-snapshot.json

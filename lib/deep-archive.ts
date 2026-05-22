@@ -22,7 +22,7 @@ type YouTubePlaylistResponse = {
 
 export type DeepArchiveResponse = {
   generatedAt: string
-  sourceMode: "recursiv-database" | "youtube-data-api" | "rss-plus-seed" | "seed"
+  sourceMode: "recursiv-database" | "recursiv-snapshot" | "youtube-data-api" | "rss-plus-seed" | "seed"
   completeHistoryAvailable: boolean
   videos: ChannelVideo[]
   totalCount: number
@@ -145,7 +145,7 @@ export async function getDeepArchive(options: {
   if (recursivArchive?.videos.length) {
     return {
       ...recursivArchive,
-      sourceMode: "recursiv-database",
+      sourceMode: recursivArchive.sourceMode || "recursiv-database",
       completeHistoryAvailable: true,
       warnings,
     }

@@ -1,5 +1,6 @@
 import { researchDocuments, topics, type ChannelVideo, type ResearchDocument } from "@/data/inverted-world"
 import recursivPublicSnapshot from "@/data/generated/recursiv-public-snapshot.json"
+import recursivNewsSnapshot from "@/data/generated/recursiv-news-snapshot.json"
 import type { IntelligenceArticle } from "@/data/intelligence-articles"
 import type { ViralXPost } from "@/lib/x-posts"
 import { queryInvertedWorldDatabase, type RecursivRow } from "@/lib/recursiv/database"
@@ -126,6 +127,23 @@ type SourceDocumentRow = RecursivRow & {
 }
 
 const DOSSIER_RELATED_VIDEO_TARGET = 6
+
+type SnapshotKey =
+  | "channelItems"
+  | "xSignals"
+  | "articleDrafts"
+  | "claimDossiers"
+  | "frontPageEditions"
+  | "pipelineRuns"
+
+type RecursivNewsSnapshot = Partial<Record<SnapshotKey, unknown[]>>
+
+const newsSnapshot = recursivNewsSnapshot as RecursivNewsSnapshot
+
+function snapshotRows<T>(key: SnapshotKey): T[] {
+  const rows = newsSnapshot[key]
+  return Array.isArray(rows) ? (rows as T[]) : []
+}
 
 export type ClaimSourceLink = {
   title: string
@@ -663,6 +681,30 @@ function dedupeArticles(articles: IntelligenceArticle[]) {
   })
 }
 
+function snapshotChannelRows() {
+  return snapshotRows<ChannelItemRow>("channelItems")
+}
+
+function snapshotArticleRows() {
+  return snapshotRows<ArticleDraftRow>("articleDrafts")
+}
+
+function snapshotXSignalRows() {
+  return snapshotRows<XSignalRow>("xSignals")
+}
+
+function snapshotClaimDossierRows() {
+  return snapshotRows<ClaimDossierRow>("claimDossiers")
+}
+
+function snapshotFrontPageRows() {
+  return snapshotRows<FrontPageEditionRow>("frontPageEditions")
+}
+
+function snapshotPipelineRows() {
+  return snapshotRows<PipelineRunRow>("pipelineRuns")
+}
+
 function videoKey(video: ChannelVideo) {
   return video.videoId || video.href
 }
@@ -915,11 +957,26 @@ export async function getRecursivChannelArchive({
     [safeLimit, safeOffset],
   )
 
-  if (!rows?.length) return null
+  if (!rows?.length) {
+    const snapshotRows = snapshotChannelRows()
+    const videos = snapshotRows.slice(safeOffset, safeOffset + safeLimit).map(channelRowToVideo)
+    if (!videos.length) return null
+
+    return {
+      generatedAt: new Date().toISOString(),
+      sourceMode: "recursiv-snapshot" as const,
+      videos,
+      totalCount: snapshotRows.length,
+      offset: safeOffset,
+      limit: safeLimit,
+      hasMore: safeOffset + safeLimit < snapshotRows.length,
+    }
+  }
 
   const totalCount = Number(rows[0].total_count || rows.length)
   return {
     generatedAt: new Date().toISOString(),
+    sourceMode: "recursiv-database" as const,
     videos: rows.map(channelRowToVideo),
     totalCount,
     offset: safeOffset,
@@ -949,7 +1006,12 @@ export async function getRecursivChannelVideo(videoId: string) {
     [videoId, `https://www.youtube.com/watch?v=${videoId}`],
   )
 
-  return rows?.[0] ? channelRowToVideo(rows[0]) : null
+  if (rows?.[0]) return channelRowToVideo(rows[0])
+
+  const snapshotRow = snapshotChannelRows().find(
+    (row) => row.source_id === videoId || row.source_url === `https://www.youtube.com/watch?v=${videoId}`,
+  )
+  return snapshotRow ? channelRowToVideo(snapshotRow) : null
 }
 
 export async function fetchRecursivPublishedArticles(options: { limit?: number } = {}) {
@@ -978,7 +1040,8 @@ export async function fetchRecursivPublishedArticles(options: { limit?: number }
     [queryLimit],
   )
 
-  return rows ? dedupeArticles(rows.map(articleRowToArticle)).slice(0, limit) : null
+  const sourceRows = rows?.length ? rows : snapshotArticleRows()
+  return sourceRows.length ? dedupeArticles(sourceRows.map(articleRowToArticle)).slice(0, limit) : rows ? [] : null
 }
 
 export async function fetchRecursivPublishedArticlesForTopic(topicId: string, options: { limit?: number } = {}) {
@@ -1007,7 +1070,8 @@ export async function fetchRecursivPublishedArticlesForTopic(topicId: string, op
     [topicId, queryLimit],
   )
 
-  return rows ? dedupeArticles(rows.map(articleRowToArticle)).slice(0, limit) : null
+  const sourceRows = rows?.length ? rows : snapshotArticleRows().filter((row) => row.topic_id === topicId)
+  return sourceRows.length ? dedupeArticles(sourceRows.map(articleRowToArticle)).slice(0, limit) : rows ? [] : null
 }
 
 export async function fetchRecursivPublishedArticlesByTopic(options: { limitPerTopic?: number; topicIds?: string[] } = {}) {
@@ -1060,10 +1124,13 @@ export async function fetchRecursivPublishedArticlesByTopic(options: { limitPerT
     ORDER BY topic_id, topic_rank`,
     [queryLimitPerTopic, ...topicIds],
   )
-  if (!rows) return null
+  const sourceRows = rows?.length
+    ? rows
+    : snapshotArticleRows().filter((row) => topicIds.includes(row.topic_id || ""))
+  if (!sourceRows.length) return rows ? Object.fromEntries(topicIds.map((topicId) => [topicId, []])) : null
 
   const grouped: Record<string, IntelligenceArticle[]> = Object.fromEntries(topicIds.map((topicId) => [topicId, []]))
-  for (const row of rows) {
+  for (const row of sourceRows) {
     const article = articleRowToArticle(row)
     ;(grouped[article.topicId] ||= []).push(article)
   }
@@ -1120,7 +1187,11 @@ export async function getRecursivPublishedArticle(articleId: string) {
     LIMIT 100`,
   )
 
-  return fallbackRows?.map(articleRowToArticle).find((article) => article.id === articleId) ?? null
+  const snapshotArticle = snapshotArticleRows()
+    .map(articleRowToArticle)
+    .find((article) => article.id === articleId)
+
+  return fallbackRows?.map(articleRowToArticle).find((article) => article.id === articleId) ?? snapshotArticle ?? null
 }
 
 export async function fetchRecursivXSignalsForTopic(topicId: string, options: { limit?: number } = {}) {
@@ -1144,7 +1215,8 @@ export async function fetchRecursivXSignalsForTopic(topicId: string, options: { 
     [topicId, limit],
   )
 
-  return rows?.map(xRowToPost) ?? null
+  const sourceRows = rows?.length ? rows : snapshotXSignalRows().filter((row) => row.topic_id === topicId).slice(0, limit)
+  return sourceRows.length ? sourceRows.map(xRowToPost) : rows ? [] : null
 }
 
 export async function fetchRecursivXSignalsByTopic(options: { limitPerTopic?: number; topicIds?: string[] } = {}) {
@@ -1189,10 +1261,13 @@ export async function fetchRecursivXSignalsByTopic(options: { limitPerTopic?: nu
     ORDER BY topic_id, topic_rank`,
     [limitPerTopic, ...topicIds],
   )
-  if (!rows) return null
+  const sourceRows = rows?.length
+    ? rows
+    : snapshotXSignalRows().filter((row) => topicIds.includes(row.topic_id || ""))
+  if (!sourceRows.length) return rows ? Object.fromEntries(topicIds.map((topicId) => [topicId, []])) : null
 
   const grouped: Record<string, ViralXPost[]> = Object.fromEntries(topicIds.map((topicId) => [topicId, []]))
-  for (const row of rows) {
+  for (const row of sourceRows) {
     const post = xRowToPost(row)
     ;(grouped[post.topicId || "secret-programs"] ||= []).push(post)
   }
@@ -1238,9 +1313,13 @@ export async function fetchRecursivClaimDossiers(options: { limit?: number; topi
     params,
   )
 
-  if (!rows?.length) return null
+  const sourceRows = rows?.length
+    ? rows
+    : snapshotClaimDossierRows().filter((row) => !options.topicId || row.topic_id === options.topicId).slice(0, queryLimit)
 
-  const dossiers = dedupeDossiers(rows.map(claimDossierRowToDossier))
+  if (!sourceRows.length) return null
+
+  const dossiers = dedupeDossiers(sourceRows.map(claimDossierRowToDossier))
   const hydrated = await hydrateDossierRelatedVideos(dossiers)
   return hydrated.slice(0, limit)
 }
@@ -1309,7 +1388,7 @@ export async function getLatestRecursivFrontPageEdition() {
     LIMIT 1`,
   )
 
-  return rows?.[0] ? frontPageEditionRowToEdition(rows[0]) : null
+  return rows?.[0] ? frontPageEditionRowToEdition(rows[0]) : snapshotFrontPageRows().map(frontPageEditionRowToEdition)[0] ?? null
 }
 
 export async function fetchRecursivPipelineRuns(options: { limit?: number; jobName?: string } = {}) {
@@ -1334,7 +1413,10 @@ export async function fetchRecursivPipelineRuns(options: { limit?: number; jobNa
     params,
   )
 
-  return rows?.map(pipelineRunRowToStatus) ?? null
+  const sourceRows = rows?.length
+    ? rows
+    : snapshotPipelineRows().filter((row) => !options.jobName || row.job_name === options.jobName).slice(0, limit)
+  return sourceRows.length ? sourceRows.map(pipelineRunRowToStatus) : rows ? [] : null
 }
 
 export async function getLatestRecursivPipelineRun(jobName = "full-pipeline") {
