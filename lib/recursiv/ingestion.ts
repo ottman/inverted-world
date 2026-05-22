@@ -179,6 +179,27 @@ function cleanSlug(value: string) {
     .slice(0, 80)
 }
 
+function slugifyPublicTitle(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[''"]/g, "")
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 96)
+    .replace(/-+$/g, "")
+}
+
+function publicNewsSlug(rawSlug: string, title: string, topicId: string) {
+  const titleSlug = slugifyPublicTitle(title)
+  if (titleSlug && topicId) return `${topicId}-${titleSlug}`
+  return rawSlug.replace(/^brief-/, "") || titleSlug || "story"
+}
+
+function publicNewsHref(rawSlug: string, title: string, topicId: string) {
+  return `/news/${publicNewsSlug(rawSlug, title, topicId)}`
+}
+
 function asNumber(value: unknown) {
   const number = Number(value)
   return Number.isFinite(number) ? number : 0
@@ -218,6 +239,104 @@ function shorten(value: unknown, maxLength: number) {
   const text = textField(value).replace(/\s+/g, " ")
   if (!text) return ""
   return text.length > maxLength ? `${text.slice(0, maxLength - 1).trim()}...` : text
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
+
+function topicDisplayTitle(topicId?: string) {
+  return topics.find((topic) => topic.id === topicId)?.title || "Inverted World"
+}
+
+function cleanStoryTitle(value: unknown, topicId?: string, fallback = "Inverted World report") {
+  let title = shorten(value, 180) || fallback
+  const prefixes = [
+    topicDisplayTitle(topicId),
+    ...topics.map((topic) => topic.title),
+    "Inverted World",
+    "Claim Dossier",
+    "Source Dossier",
+  ].filter(Boolean)
+
+  for (let pass = 0; pass < 4; pass += 1) {
+    const before = title
+    for (const prefix of prefixes) {
+      title = title.replace(new RegExp(`^${escapeRegExp(prefix)}\\s*:\\s*`, "i"), "").trim()
+    }
+    if (title === before) break
+  }
+
+  return title || fallback
+}
+
+const FRONT_PAGE_TITLE_STOPWORDS = new Set([
+  "the",
+  "and",
+  "for",
+  "with",
+  "from",
+  "that",
+  "this",
+  "after",
+  "into",
+  "over",
+  "under",
+  "following",
+])
+
+function titleWords(value: string) {
+  return cleanStoryTitle(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .split(/\s+/)
+    .filter((word) => word.length > 2 && !FRONT_PAGE_TITLE_STOPWORDS.has(word))
+}
+
+function isNearDuplicateTitle(value: string, seen: string[]) {
+  const words = new Set(titleWords(value))
+  if (words.size < 4) return false
+
+  for (const seenTitle of seen) {
+    const seenWords = new Set(titleWords(seenTitle))
+    if (seenWords.size < 4) continue
+    const overlap = [...words].filter((word) => seenWords.has(word)).length
+    if (overlap / Math.min(words.size, seenWords.size) >= 0.72) return true
+  }
+
+  return false
+}
+
+function diversifyFrontPageItems<T extends { title?: string; text?: string; href?: string; slug?: string; topicId?: string }>(
+  items: T[],
+  limit: number,
+  maxPerTopic = 2,
+) {
+  const seenLinks = new Set<string>()
+  const seenTitles: string[] = []
+  const topicCounts = new Map<string, number>()
+  const primary: T[] = []
+  const overflow: T[] = []
+
+  for (const item of items) {
+    const linkKey = item.slug || item.href || ""
+    const titleKey = item.title || item.text || linkKey
+    if (linkKey && seenLinks.has(linkKey)) continue
+    if (titleKey && isNearDuplicateTitle(titleKey, seenTitles)) continue
+    if (linkKey) seenLinks.add(linkKey)
+    if (titleKey) seenTitles.push(titleKey)
+
+    const topic = item.topicId || "all"
+    const count = topicCounts.get(topic) || 0
+    if (count < maxPerTopic) {
+      primary.push(item)
+      topicCounts.set(topic, count + 1)
+    } else {
+      overflow.push(item)
+    }
+  }
+
+  return [...primary, ...overflow].slice(0, limit)
 }
 
 function escapeXml(value: string) {
@@ -361,7 +480,7 @@ function fallbackDossierArticleDraft(row: ClaimDossierDraftRow, topic: (typeof t
   const sourceLanes = Array.from(
     new Set(sourceLinks.map((source) => textField(source.biasLane || source.bias_lane)).filter(Boolean)),
   )
-  const title = `${topic.title}: ${row.claim || row.title || topic.signal}`
+  const title = cleanStoryTitle(row.claim || row.title || topic.signal, topic.id)
 
   return {
     title,
@@ -394,7 +513,7 @@ function parseAgentArticleDraft(content: string): Omit<GeneratedArticleDraft, "m
 
   try {
     const parsed = JSON.parse(match[0]) as Record<string, unknown>
-    const title = shorten(parsed.title, 180)
+    const title = cleanStoryTitle(parsed.title)
     const deck = shorten(parsed.deck, 320)
     const body = jsonArray(parsed.body)
       .map((item) => shorten(item, 900))
@@ -1247,10 +1366,12 @@ export async function publishFrontPageEditionInRecursiv() {
 
   const articles = articlesResult.data.rows.map((row) => {
     const item = jsonObject(row)
+    const topicId = textField(item.topic_id)
+    const title = cleanStoryTitle(item.title, topicId)
     return {
-      title: shorten(item.title, 180),
-      href: textField(item.source_url) || `/news/${textField(item.slug).replace(/^brief-/, "")}`,
-      topicId: textField(item.topic_id),
+      title,
+      href: publicNewsHref(textField(item.slug), title, topicId),
+      topicId,
       source: shorten(item.source_name, 80) || "Inverted World",
       heat: asNumber(item.heat),
       publishedAt: textField(item.published_at),
@@ -1258,11 +1379,14 @@ export async function publishFrontPageEditionInRecursiv() {
   })
   const dossiers = dossiersResult.data.rows.map((row) => {
     const item = jsonObject(row)
+    const topicId = textField(item.topic_id)
+    const title = cleanStoryTitle(item.title, topicId)
+    const slug = publicNewsSlug(textField(item.slug), title, topicId)
     return {
-      title: shorten(item.title, 180),
-      href: `/news/${textField(item.slug)}`,
-      slug: textField(item.slug),
-      topicId: textField(item.topic_id),
+      title,
+      href: `/news/${slug}`,
+      slug,
+      topicId,
       evidenceGrade: textField(item.evidence_grade),
       confidenceScore: asNumber(item.confidence_score),
       xVelocityScore: asNumber(item.x_velocity_score),
@@ -1298,16 +1422,18 @@ export async function publishFrontPageEditionInRecursiv() {
   const countMetrics = Object.fromEntries(
     countTables.map((table, index) => [table, asNumber(countResults[index]?.data.rows[0]?.count)]),
   )
-  const leadDossier = dossiers[0]
-  const leadArticle = articles[0]
   const editionDate = new Date().toISOString().slice(0, 10)
   const slug = `front-page-${editionDate}`
-  const headline = leadArticle?.title || leadDossier?.title || "Inverted World front page"
+  const editionArticles = diversifyFrontPageItems(articles, 5, 2)
+  const editionDossiers = diversifyFrontPageItems(dossiers, 6, 2)
+  const editionSignals = diversifyFrontPageItems(xSignals, 5, 2)
+  const editionVideos = diversifyFrontPageItems(archiveVideos, 4, 2)
+  const headline = cleanStoryTitle(
+    editionArticles[0]?.title || editionDossiers[0]?.title || "Inverted World front page",
+    editionArticles[0]?.topicId || editionDossiers[0]?.topicId,
+    "Inverted World front page",
+  )
   const deck = `Today's edition tracks ${articles.length} stories, ${xSignals.length} X signals, and ${archiveVideos.length} Tales archive links across the conspiracy-world desk.`
-  const editionArticles = articles.slice(0, 5)
-  const editionDossiers = dossiers.slice(0, 6)
-  const editionSignals = xSignals.slice(0, 5)
-  const editionVideos = archiveVideos.slice(0, 4)
   const sections = {
     leadDossier: editionDossiers[0],
     leadArticle: editionArticles[0],
@@ -1348,17 +1474,41 @@ export async function publishFrontPageEditionInRecursiv() {
         metadata,
         updated_at
       )
-      VALUES ($1, $2::date, $3, $4, $5, $6, $7::jsonb, $8::jsonb, now(), $9::jsonb, now())`,
+      VALUES (
+        $1,
+        $2::date,
+        $3,
+        $4,
+        $5,
+        $6,
+        jsonb_build_object(
+          'leadDossier', $7::jsonb,
+          'leadArticle', $8::jsonb,
+          'articles', $9::jsonb,
+          'dossiers', $10::jsonb,
+          'xSignals', $11::jsonb,
+          'archiveVideos', $12::jsonb
+        ),
+        $13::jsonb,
+        now(),
+        $14::jsonb,
+        now()
+      )`,
     params: [
       slug,
       editionDate,
       headline,
       deck,
       "published",
-      leadDossier?.slug || "",
-      JSON.stringify(sections),
+      editionDossiers[0]?.slug || "",
+      JSON.stringify(sections.leadDossier || null),
+      JSON.stringify(sections.leadArticle || null),
+      JSON.stringify(sections.articles),
+      JSON.stringify(sections.dossiers),
+      JSON.stringify(sections.xSignals),
+      JSON.stringify(sections.archiveVideos),
       JSON.stringify(metrics),
-      JSON.stringify({ generatedBy: "recursiv-front-page-edition-v1" }),
+      JSON.stringify({ generatedBy: "recursiv-front-page-edition-v2", boundedParams: true }),
     ],
   })
 
