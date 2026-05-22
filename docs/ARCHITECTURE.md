@@ -24,7 +24,7 @@ The site is still mostly a live-rendered frontend with fetch helpers. It is not 
 - Recursiv tables now exist for `channel_items`, `coverage_snapshots`, `x_signals`, `article_drafts`, and `generated_assets`, but only the YouTube archive seed has been proven live so far;
 - The next product layer is `claim_dossiers`, `claim_sources`, and `claim_chat_messages`: Ground News-style coverage pages for conspiracy/anomaly claims with source split, X velocity, evidence grading, Tales archive context, viral headline variants, and AI chat history.
 - scheduled Recursiv jobs are implemented as authenticated route targets and provisionable jobs, but they should only be enabled after the Recursiv-hosted URL and `CRON_SECRET` are live;
-- AI article generation is implemented as a Recursiv job handler over published claim dossiers; image generation still needs recurring production proof for generated assets;
+- AI article generation is implemented as a Recursiv job handler over published claim dossiers; image generation tries Recursiv media first and stores a generated SVG fallback asset when the media endpoint is unavailable;
 - Vercel should not own YouTube, X, Brave, OpenRouter, or image-generation keys;
 - the archive is complete only when a backend with the YouTube key paginates the full uploads playlist.
 

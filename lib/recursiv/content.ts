@@ -197,6 +197,7 @@ function articleRowToArticle(row: ArticleDraftRow): IntelligenceArticle {
     thumbnail: {
       ...defaultThumbnail(topicId),
       ...(thumbnail as Partial<IntelligenceArticle["thumbnail"]>),
+      imageUrl: row.asset_url || (typeof metadata.assetUrl === "string" ? metadata.assetUrl : undefined),
     },
     body: body.length ? body : ["The Recursiv research desk has published this item without a rendered body yet."],
     thumbnailPrompt: row.thumbnail_prompt || (typeof metadata.thumbnailPrompt === "string" ? metadata.thumbnailPrompt : ""),

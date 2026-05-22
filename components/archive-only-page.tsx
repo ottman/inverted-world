@@ -405,16 +405,23 @@ function LiveFeed({ topicTitle, articles }: { topicTitle: string; articles: Inte
             href={article.sourceUrl}
             target={article.sourceUrl.startsWith("/") ? undefined : "_blank"}
             rel={article.sourceUrl.startsWith("/") ? undefined : "noreferrer"}
-            className="group block bg-[#050504]/36 p-2.5 transition hover:bg-[#070706]/58"
+            className="group grid gap-3 bg-[#050504]/36 p-2.5 transition hover:bg-[#070706]/58 data-[image=true]:grid-cols-[72px_minmax(0,1fr)]"
+            data-image={Boolean(article.thumbnail.imageUrl)}
           >
-            <span className="flex items-start justify-between gap-3">
-              <span className="iw-serif text-xl leading-[1.05] text-[#fff8e6] group-hover:text-[#df2f2f]">{article.title}</span>
-              <ArrowUpRight className="mt-0.5 h-4 w-4 shrink-0 text-[#f4efe2]/38 group-hover:text-[#df2f2f]" />
-            </span>
-            <span className="mt-2 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-[#f4efe2]/42">
-              <span>{article.source}</span>
-              <span>/</span>
-              <span>{normalizeDate(article.publishedAt)}</span>
+            {article.thumbnail.imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={article.thumbnail.imageUrl} alt="" className="aspect-square h-[72px] w-[72px] object-cover opacity-88" />
+            ) : null}
+            <span className="min-w-0">
+              <span className="flex items-start justify-between gap-3">
+                <span className="iw-serif text-xl leading-[1.05] text-[#fff8e6] group-hover:text-[#df2f2f]">{article.title}</span>
+                <ArrowUpRight className="mt-0.5 h-4 w-4 shrink-0 text-[#f4efe2]/38 group-hover:text-[#df2f2f]" />
+              </span>
+              <span className="mt-2 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-[#f4efe2]/42">
+                <span>{article.source}</span>
+                <span>/</span>
+                <span>{normalizeDate(article.publishedAt)}</span>
+              </span>
             </span>
           </a>
         ))}

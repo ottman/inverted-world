@@ -14,6 +14,7 @@ export type IntelligenceArticle = {
     glyph: string
     sigil: string
     palette: string
+    imageUrl?: string
   }
   body: string[]
   thumbnailPrompt: string
