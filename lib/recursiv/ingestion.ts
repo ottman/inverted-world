@@ -613,7 +613,7 @@ export async function reclassifyYouTubeArchiveInRecursiv() {
 
 function topicPulseConcurrency() {
   const configured = Math.trunc(Number(process.env.TOPIC_PULSE_CONCURRENCY || ""))
-  return Number.isFinite(configured) && configured > 0 ? Math.min(configured, 4) : 2
+  return Number.isFinite(configured) && configured > 0 ? Math.min(configured, 4) : 3
 }
 
 async function runTopicPulseForTopic(
