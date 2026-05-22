@@ -254,6 +254,23 @@ function cleanDossierTitle(value: string | undefined, topicId: string) {
   return title || fallback
 }
 
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[''"]/g, "")
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 96)
+    .replace(/-+$/g, "")
+}
+
+function publicDossierSlug(rowSlug: string | undefined, title: string, topicId: string) {
+  const cleanTitle = slugify(title)
+  if (cleanTitle) return `${topicId}-${cleanTitle}`
+  return rowSlug || "claim-dossier"
+}
+
 function cleanDossierDeck(value: string | undefined, topicId: string) {
   const fallback = `A sourced ${topicDisplayTitle(topicId)} file with records, social velocity, skeptical reads, and Tales archive context.`
   const deck = value?.trim() || fallback
@@ -419,10 +436,11 @@ function claimDossierRowToDossier(row: ClaimDossierRow): ClaimDossier {
   const metadata = jsonObject(row.metadata)
   const publishedAt = safeDate(row.published_at || row.generated_at) || new Date().toISOString().slice(0, 10)
   const title = cleanDossierTitle(row.title, topicId)
+  const rawSlug = row.slug || row.id || "claim-dossier"
 
   return {
     id: row.id || row.slug || "claim-dossier",
-    slug: row.slug || row.id || "claim-dossier",
+    slug: publicDossierSlug(rawSlug, title, topicId),
     title,
     deck: cleanDossierDeck(row.deck, topicId),
     topicId,
@@ -444,7 +462,10 @@ function claimDossierRowToDossier(row: ClaimDossierRow): ClaimDossier {
     viralHeadlines: jsonArray(row.viral_headlines).map(String).filter(Boolean),
     chatPrompt: row.chat_prompt || "",
     publishedAt,
-    metadata,
+    metadata: {
+      ...metadata,
+      rawSlug,
+    },
   }
 }
 
