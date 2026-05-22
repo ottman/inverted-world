@@ -79,8 +79,9 @@ export const topics: ContentTopic[] = [
   {
     id: "epstein-networks",
     title: "Power Web",
-    signal: "Court records, elite access networks, blackmail claims, institutional ties",
-    query: '"Jeffrey Epstein" OR Maxwell OR "client list" OR "blackmail network" OR "elite network" court records documents',
+    signal: "Court records, elite access networks, blackmail claims, donor power, institutional capture",
+    query:
+      '"Jeffrey Epstein" OR Maxwell OR "client list" OR "blackmail network" OR "elite network" OR "institutional corruption" OR "donor class" OR WEF OR Davos court records documents',
     stance: "Use court filings and primary records before narratives. Flag allegations, sealed gaps, and confirmed facts separately.",
     documents: ["CourtListener", "DOJ releases", "Federal court dockets", "SEC and nonprofit filings"],
   },

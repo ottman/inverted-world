@@ -111,6 +111,8 @@ type ClaimChatMessageRow = RecursivRow & {
   created_at?: string
 }
 
+const DOSSIER_RELATED_VIDEO_TARGET = 6
+
 export type ClaimSourceLink = {
   title: string
   url: string
@@ -224,6 +226,23 @@ function safeDate(value?: string) {
 
 function topicTitle(topicId?: string) {
   return topics.find((topic) => topic.id === topicId)?.title.toUpperCase() || "INVERTED WORLD"
+}
+
+function topicDisplayTitle(topicId?: string) {
+  return topics.find((topic) => topic.id === topicId)?.title || "Inverted World"
+}
+
+function cleanDossierDeck(value: string | undefined, topicId: string) {
+  const fallback = `A sourced ${topicDisplayTitle(topicId)} file with records, social velocity, skeptical reads, and Tales archive context.`
+  const deck = value?.trim() || fallback
+  if (
+    /Ground News/i.test(deck) ||
+    /source split.*X velocity.*evidence grade/i.test(deck) ||
+    /dossier for\s+[A-Za-z -]+:/i.test(deck)
+  ) {
+    return fallback
+  }
+  return deck
 }
 
 function defaultThumbnail(topicId?: string) {
@@ -377,7 +396,7 @@ function claimDossierRowToDossier(row: ClaimDossierRow): ClaimDossier {
     id: row.id || row.slug || "claim-dossier",
     slug: row.slug || row.id || "claim-dossier",
     title: row.title || "Inverted World dossier",
-    deck: row.deck || "A Recursiv-built claim dossier from news, X, records, and the Tales archive.",
+    deck: cleanDossierDeck(row.deck, topicId),
     topicId,
     topic: topicTitle(topicId),
     claim: row.claim || row.title || "The live claim is still being mapped.",
@@ -399,6 +418,106 @@ function claimDossierRowToDossier(row: ClaimDossierRow): ClaimDossier {
     publishedAt,
     metadata,
   }
+}
+
+function normalizedUrlKey(value?: string) {
+  if (!value) return ""
+  try {
+    const url = new URL(value)
+    return `${url.hostname.replace(/^www\./, "")}${url.pathname}`.toLowerCase()
+  } catch {
+    return value.toLowerCase().replace(/[?#].*$/, "")
+  }
+}
+
+function normalizedTextKey(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/^[^:]{2,40}:\s*/, "")
+    .replace(/[''"]/g, "")
+    .replace(/\b(the|a|an|and|or|after|following|amid|over|into|from|with|to|of|for|on|in|as)\b/g, " ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .slice(0, 10)
+    .join(" ")
+}
+
+function dossierDedupKey(dossier: ClaimDossier) {
+  const leadSource = normalizedUrlKey(dossier.sourceLinks[0]?.url)
+  if (leadSource) return `${dossier.topicId}:source:${leadSource}`
+  return `${dossier.topicId}:title:${normalizedTextKey(dossier.title || dossier.claim)}`
+}
+
+function dedupeDossiers(dossiers: ClaimDossier[]) {
+  const seen = new Set<string>()
+  return dossiers.filter((dossier) => {
+    const key = dossierDedupKey(dossier)
+    if (!key || seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
+function videoKey(video: ChannelVideo) {
+  return video.videoId || video.href
+}
+
+async function fetchTopicArchiveVideos(topicId: string, limit = DOSSIER_RELATED_VIDEO_TARGET) {
+  const rows = await queryInvertedWorldDatabase<ChannelItemRow>(
+    `SELECT
+      source_id,
+      source_url,
+      title,
+      description,
+      published_at,
+      topic_id,
+      thumbnail_url,
+      embed_url,
+      kind,
+      metadata
+    FROM channel_items
+    WHERE source = 'youtube' AND topic_id = $1
+    ORDER BY CASE WHEN kind = 'episode' THEN 0 ELSE 1 END, published_at DESC NULLS LAST, created_at DESC
+    LIMIT $2`,
+    [topicId, Math.max(1, Math.min(limit, 12))],
+  )
+
+  return rows?.map(channelRowToVideo) ?? []
+}
+
+async function hydrateDossierRelatedVideos(dossiers: ClaimDossier[]) {
+  const sparseTopicIds = Array.from(
+    new Set(
+      dossiers
+        .filter((dossier) => dossier.relatedVideos.length < DOSSIER_RELATED_VIDEO_TARGET)
+        .map((dossier) => dossier.topicId),
+    ),
+  )
+  if (!sparseTopicIds.length) return dossiers
+
+  const fallbackPairs = await Promise.all(
+    sparseTopicIds.map(async (topicId) => [topicId, await fetchTopicArchiveVideos(topicId)] as const),
+  )
+  const fallbackByTopic = new Map(fallbackPairs)
+
+  return dossiers.map((dossier) => {
+    if (dossier.relatedVideos.length >= DOSSIER_RELATED_VIDEO_TARGET) return dossier
+
+    const seen = new Set(dossier.relatedVideos.map(videoKey))
+    const fallback = (fallbackByTopic.get(dossier.topicId) || []).filter((video) => {
+      const key = videoKey(video)
+      if (!key || seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+    const relatedVideos = [...dossier.relatedVideos, ...fallback].slice(0, DOSSIER_RELATED_VIDEO_TARGET)
+    return {
+      ...dossier,
+      relatedVideos,
+      relatedVideoCount: Math.max(dossier.relatedVideoCount, relatedVideos.length),
+    }
+  })
 }
 
 function frontPageEditionRowToEdition(row: FrontPageEditionRow): FrontPageEdition {
@@ -620,8 +739,9 @@ export async function fetchRecursivXSignalsForTopic(topicId: string, options: { 
 
 export async function fetchRecursivClaimDossiers(options: { limit?: number; topicId?: string } = {}) {
   const limit = Math.max(1, Math.min(Math.trunc(options.limit || 24), 50))
+  const queryLimit = Math.max(limit, Math.min(limit * 4, 100))
   const where = options.topicId ? "WHERE status = 'published' AND topic_id = $2" : "WHERE status = 'published'"
-  const params = options.topicId ? [limit, options.topicId] : [limit]
+  const params = options.topicId ? [queryLimit, options.topicId] : [queryLimit]
   const rows = await queryInvertedWorldDatabase<ClaimDossierRow>(
     `SELECT
       id,
@@ -655,7 +775,11 @@ export async function fetchRecursivClaimDossiers(options: { limit?: number; topi
     params,
   )
 
-  return rows?.map(claimDossierRowToDossier) ?? null
+  if (!rows?.length) return null
+
+  const dossiers = dedupeDossiers(rows.map(claimDossierRowToDossier))
+  const hydrated = await hydrateDossierRelatedVideos(dossiers)
+  return hydrated.slice(0, limit)
 }
 
 export async function getRecursivClaimDossier(slug: string) {
@@ -691,7 +815,9 @@ export async function getRecursivClaimDossier(slug: string) {
     [slug],
   )
 
-  return rows?.[0] ? claimDossierRowToDossier(rows[0]) : null
+  if (!rows?.[0]) return null
+  const [dossier] = await hydrateDossierRelatedVideos([claimDossierRowToDossier(rows[0])])
+  return dossier
 }
 
 export async function getLatestRecursivFrontPageEdition() {

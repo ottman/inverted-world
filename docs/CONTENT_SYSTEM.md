@@ -193,3 +193,5 @@ npm run recursiv:sync
 `recursiv:provision` creates the Recursiv database, schema, storage bucket, and agent access. `recursiv:sync` writes `data/generated/channel-archive.json` and upserts the current public YouTube archive into `channel_items`.
 
 `recursiv:backfill:x` is a local/proof ingestion path for widening stored X coverage without exposing provider keys to public requests. It reads the protected local provider env file when present, filters X results through topic terms and trusted source accounts, and upserts only normalized rows into Recursiv `x_signals`. By default it only replaces previous local-backfill rows after the new fetch has accepted rows; pass `--keep-existing` to append/refresh without clearing previous local-backfill rows.
+
+`recursiv:health` prints a non-secret provider health report for local proof. The authenticated hosted job `/api/recursiv/jobs/provider-health` runs the same class of checks inside the Recursiv-hosted app and persists the redacted result into `pipeline_runs` under `job_name = 'provider-health'`. It reports whether provider paths are missing, live, or errored without returning API keys or secret values.

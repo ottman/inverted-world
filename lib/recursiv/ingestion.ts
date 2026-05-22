@@ -590,9 +590,8 @@ export async function reclassifyYouTubeArchiveInRecursiv() {
         ELSE 'A sourced Inverted World file with records, social velocity, skeptical reads, and Tales archive context.'
       END,
       updated_at = now()
-      WHERE deck ILIKE '%Ground News-style dossier for %'
-        OR deck ILIKE '%dossier: source split, X velocity, evidence grade, and Tales archive context.%'
-        OR deck ILIKE '%: source split, X velocity, evidence grade, and Tales archive context.%'
+      WHERE deck ILIKE '%Ground News%'
+        OR (deck ILIKE '%source split%' AND deck ILIKE '%X velocity%' AND deck ILIKE '%evidence grade%')
       RETURNING id`,
   })
 

@@ -14,12 +14,13 @@ const topicXQueries: Record<string, string[]> = {
     '(Snowden OR Assange OR whistleblower OR "intelligence community")',
   ],
   "epstein-networks": [
-    '("Jeffrey Epstein" OR Epstein OR Maxwell OR "Epstein files")',
-    '("client list" OR "flight logs" OR "sealed documents" OR "court records")',
-    '(Giuffre OR "Prince Andrew" OR "JPMorgan Epstein" OR "Epstein island")',
-    '("DOJ Epstein" OR "Epstein documents" OR "unsealed Epstein")',
+    '("Jeffrey Epstein" OR Epstein OR Maxwell OR "Epstein files" OR "client list")',
     '("blackmail network" OR "elite network" OR "elite access" OR "institutional corruption")',
-    '("Les Wexner" OR "Bill Clinton" OR "Ghislaine Maxwell" OR "Zorro Ranch")',
+    '("donor class" OR "dark money" OR "lobbying network" OR "power network" OR "elite capture")',
+    '("court records" OR "sealed documents" OR "flight logs" OR "unsealed documents")',
+    '(Giuffre OR "Prince Andrew" OR "JPMorgan Epstein" OR "Epstein island" OR "Zorro Ranch")',
+    '("WEF" OR Davos OR Bilderberg OR BlackRock OR Vanguard OR "World Economic Forum")',
+    '("Diddy" OR "Les Wexner" OR "Bill Clinton" OR "Ghislaine Maxwell" OR Mossad)',
   ],
   "cryptids-paranormal": [
     '(Bigfoot OR Sasquatch OR cryptid OR Mothman OR Dogman)',

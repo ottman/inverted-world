@@ -54,7 +54,7 @@ export default async function NewsPage() {
       title="Inverted World News"
       breakingItems={breakingItems}
       heroTitle="Claim Dossiers"
-      heroDescription="News coverage, X velocity, source split, evidence grading, and Tales archive context."
+      heroDescription="Daily source clusters, viral social signal, evidence labels, and archive context from the Inverted World beat."
     >
       {edition ? (
         <section className={cn("mb-6 grid gap-4 p-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(320px,0.55fr)]", archiveSurface)}>
