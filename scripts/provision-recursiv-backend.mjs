@@ -155,7 +155,7 @@ function readApiKeyFromFile() {
 }
 
 function jobHandlerCode(endpoint) {
-  return `export default async function handler() {
+  return `async () => {
   const baseUrl = process.env.INVERTED_WORLD_SITE_URL || "${DEFAULT_SITE_URL}";
   const secret = process.env.CRON_SECRET || "";
   const response = await fetch(new URL("${endpoint}", baseUrl), {

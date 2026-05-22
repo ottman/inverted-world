@@ -141,7 +141,8 @@ export async function ensureInvertedWorldSchema() {
 
 export async function syncYouTubeArchiveToRecursiv() {
   const { sdk, config } = await ensureInvertedWorldSchema()
-  const videos = (await fetchYouTubeDataApi()) || (await fetchYouTubeRss())
+  const fullSync = process.env.YOUTUBE_ARCHIVE_FULL_SYNC === "1"
+  const videos = fullSync ? (await fetchYouTubeDataApi()) || (await fetchYouTubeRss()) : await fetchYouTubeRss()
 
   for (const video of videos) {
     await sdk.databases.query({
@@ -188,7 +189,7 @@ export async function syncYouTubeArchiveToRecursiv() {
     })
   }
 
-  return { synced: videos.length, sourceMode: process.env.YOUTUBE_API_KEY ? "youtube-data-api" : "rss" }
+  return { synced: videos.length, sourceMode: fullSync && process.env.YOUTUBE_API_KEY ? "youtube-data-api" : "rss" }
 }
 
 export async function syncTopicPulseToRecursiv() {
