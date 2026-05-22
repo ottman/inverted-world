@@ -1,0 +1,1940 @@
+{
+  "generatedAt": "2026-05-22T22:49:29.159Z",
+  "source": "recursiv-normalized-seed-snapshot",
+  "mediaItems": [
+    {
+      "slug": "war-uap-release-02-index",
+      "title": "Release 02 UAP media package",
+      "source": "Department of War",
+      "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02",
+      "kind": "archive",
+      "viewer": "link",
+      "topic_ids": [
+        "uap-disclosure",
+        "secret-programs"
+      ],
+      "summary": "The official release hub for UAP videos, images, and documents. The media library uses this as a source for new primary material.",
+      "published_at": "2026-05-22T00:00:00.000Z",
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "Release hub",
+      "agency": "Department of War",
+      "collection": "PURSUE",
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "war-uap-release-02-senior-usic-narrative",
+      "title": "Senior U.S. intelligence officer UAP narrative",
+      "source": "Department of War / ODNI",
+      "source_url": "https://www.war.gov/medialink/ufo/052226/release_02/documents/ODNI-UAP-D001_USPER_Narrative_Senior_USIC.pdf",
+      "kind": "document",
+      "viewer": "pdf",
+      "topic_ids": [
+        "uap-disclosure",
+        "secret-programs"
+      ],
+      "summary": "A primary-source UAP release document from the official Release 02 media package, ready to read inline beside related Inverted World coverage.",
+      "published_at": "2026-05-22T00:00:00.000Z",
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "PDF",
+      "agency": "ODNI",
+      "collection": "PURSUE Release 02",
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "ApaRfQOuUO4",
+      "title": "APOCALYPTIC",
+      "source": "Tales From the Inverted World",
+      "source_url": "https://www.youtube.com/watch?v=ApaRfQOuUO4",
+      "kind": "video",
+      "viewer": "youtube",
+      "topic_ids": [
+        "cryptids-paranormal"
+      ],
+      "summary": "Tales archive video in the High Strangeness lane.",
+      "published_at": "2026-05-18T00:00:00.000Z",
+      "embed_url": "https://www.youtube.com/embed/ApaRfQOuUO4?rel=0",
+      "thumbnail_url": "https://i2.ytimg.com/vi/ApaRfQOuUO4/hqdefault.jpg",
+      "file_type": "YouTube",
+      "agency": null,
+      "collection": "Tales archive",
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "buV734vffR0",
+      "title": "BERMUDA TRIANGLE MYSTERY SOLVED",
+      "source": "Tales From the Inverted World",
+      "source_url": "https://www.youtube.com/watch?v=buV734vffR0",
+      "kind": "video",
+      "viewer": "youtube",
+      "topic_ids": [
+        "space-anomalies"
+      ],
+      "summary": "Tales archive video in the Off-World Signals lane.",
+      "published_at": "2026-05-18T00:00:00.000Z",
+      "embed_url": "https://www.youtube.com/embed/buV734vffR0?rel=0",
+      "thumbnail_url": "https://i3.ytimg.com/vi/buV734vffR0/hqdefault.jpg",
+      "file_type": "YouTube",
+      "agency": null,
+      "collection": "Tales archive",
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "8cSaStj158I",
+      "title": "COVID COVERUP",
+      "source": "Tales From the Inverted World",
+      "source_url": "https://www.youtube.com/watch?v=8cSaStj158I",
+      "kind": "video",
+      "viewer": "youtube",
+      "topic_ids": [
+        "secret-programs"
+      ],
+      "summary": "Tales archive video in the Declassified lane.",
+      "published_at": "2026-05-18T00:00:00.000Z",
+      "embed_url": "https://www.youtube.com/embed/8cSaStj158I?rel=0",
+      "thumbnail_url": "https://i1.ytimg.com/vi/8cSaStj158I/hqdefault.jpg",
+      "file_type": "YouTube",
+      "agency": null,
+      "collection": "Tales archive",
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "N1t2XSzrnfk",
+      "title": "TRUMP BRIEFED ON UFO RETRIEVAL PROGRAM",
+      "source": "Tales From the Inverted World",
+      "source_url": "https://www.youtube.com/watch?v=N1t2XSzrnfk",
+      "kind": "video",
+      "viewer": "youtube",
+      "topic_ids": [
+        "uap-disclosure"
+      ],
+      "summary": "Tales archive video in the Skywatch lane.",
+      "published_at": "2026-05-18T00:00:00.000Z",
+      "embed_url": "https://www.youtube.com/embed/N1t2XSzrnfk?rel=0",
+      "thumbnail_url": "https://i3.ytimg.com/vi/N1t2XSzrnfk/hqdefault.jpg",
+      "file_type": "YouTube",
+      "agency": null,
+      "collection": "Tales archive",
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "3WyKJa_F_Wg",
+      "title": "THERES NO TREAM IN POLITICS #shorts",
+      "source": "Tales From the Inverted World",
+      "source_url": "https://www.youtube.com/shorts/3WyKJa_F_Wg",
+      "kind": "video",
+      "viewer": "youtube",
+      "topic_ids": [
+        "epstein-networks"
+      ],
+      "summary": "Tales archive video in the Power Web lane.",
+      "published_at": "2026-05-16T00:00:00.000Z",
+      "embed_url": "https://www.youtube.com/embed/3WyKJa_F_Wg?rel=0",
+      "thumbnail_url": "https://i4.ytimg.com/vi/3WyKJa_F_Wg/hqdefault.jpg",
+      "file_type": "YouTube Short",
+      "agency": null,
+      "collection": "Tales archive",
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "BxI3cT1k45w",
+      "title": "FEEDING INTO THE HYSTERIA #shorts",
+      "source": "Tales From the Inverted World",
+      "source_url": "https://www.youtube.com/shorts/BxI3cT1k45w",
+      "kind": "video",
+      "viewer": "youtube",
+      "topic_ids": [
+        "secret-programs"
+      ],
+      "summary": "Tales archive video in the Declassified lane.",
+      "published_at": "2026-05-15T00:00:00.000Z",
+      "embed_url": "https://www.youtube.com/embed/BxI3cT1k45w?rel=0",
+      "thumbnail_url": "https://i3.ytimg.com/vi/BxI3cT1k45w/hqdefault.jpg",
+      "file_type": "YouTube Short",
+      "agency": null,
+      "collection": "Tales archive",
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "oiMLnd_4aHY",
+      "title": "THEY WANT YOU TO FEEL INSANE",
+      "source": "Tales From the Inverted World",
+      "source_url": "https://www.youtube.com/watch?v=oiMLnd_4aHY",
+      "kind": "video",
+      "viewer": "youtube",
+      "topic_ids": [
+        "secret-programs"
+      ],
+      "summary": "Tales archive video in the Declassified lane.",
+      "published_at": "2026-05-15T00:00:00.000Z",
+      "embed_url": "https://www.youtube.com/embed/oiMLnd_4aHY?rel=0",
+      "thumbnail_url": "https://i4.ytimg.com/vi/oiMLnd_4aHY/hqdefault.jpg",
+      "file_type": "YouTube",
+      "agency": null,
+      "collection": "Tales archive",
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "D2-R8FERWoM",
+      "title": "BERMUDA TRIANGLE & FLOATING DATA CENTERS",
+      "source": "Tales From the Inverted World",
+      "source_url": "https://www.youtube.com/watch?v=D2-R8FERWoM",
+      "kind": "video",
+      "viewer": "youtube",
+      "topic_ids": [
+        "ai-technocracy"
+      ],
+      "summary": "Tales archive video in the Machine State lane.",
+      "published_at": "2026-05-14T00:00:00.000Z",
+      "embed_url": "https://www.youtube.com/embed/D2-R8FERWoM?rel=0",
+      "thumbnail_url": "https://i1.ytimg.com/vi/D2-R8FERWoM/hqdefault.jpg",
+      "file_type": "YouTube",
+      "agency": null,
+      "collection": "Tales archive",
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "f_bplTaaDJQ",
+      "title": "Data Centers HERE, Data Centers THERE, Data Centers EVERYWHERE #shorts",
+      "source": "Tales From the Inverted World",
+      "source_url": "https://www.youtube.com/shorts/f_bplTaaDJQ",
+      "kind": "video",
+      "viewer": "youtube",
+      "topic_ids": [
+        "ai-technocracy"
+      ],
+      "summary": "Tales archive video in the Machine State lane.",
+      "published_at": "2026-05-14T00:00:00.000Z",
+      "embed_url": "https://www.youtube.com/embed/f_bplTaaDJQ?rel=0",
+      "thumbnail_url": "https://i3.ytimg.com/vi/f_bplTaaDJQ/hqdefault.jpg",
+      "file_type": "YouTube Short",
+      "agency": null,
+      "collection": "Tales archive",
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "5v5RPBw7oos",
+      "title": "LUNA PLANNING MKULTRA HEARING",
+      "source": "Tales From the Inverted World",
+      "source_url": "https://www.youtube.com/watch?v=5v5RPBw7oos",
+      "kind": "video",
+      "viewer": "youtube",
+      "topic_ids": [
+        "secret-programs"
+      ],
+      "summary": "Tales archive video in the Declassified lane.",
+      "published_at": "2026-05-13T00:00:00.000Z",
+      "embed_url": "https://www.youtube.com/embed/5v5RPBw7oos?rel=0",
+      "thumbnail_url": "https://i2.ytimg.com/vi/5v5RPBw7oos/hqdefault.jpg",
+      "file_type": "YouTube",
+      "agency": null,
+      "collection": "Tales archive",
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "czJEpZvDJ3A",
+      "title": "THE ERA OF THE CONSPIRACY THEORIST #shorts",
+      "source": "Tales From the Inverted World",
+      "source_url": "https://www.youtube.com/shorts/czJEpZvDJ3A",
+      "kind": "video",
+      "viewer": "youtube",
+      "topic_ids": [
+        "secret-programs"
+      ],
+      "summary": "Tales archive video in the Declassified lane.",
+      "published_at": "2026-05-13T00:00:00.000Z",
+      "embed_url": "https://www.youtube.com/embed/czJEpZvDJ3A?rel=0",
+      "thumbnail_url": "https://i4.ytimg.com/vi/czJEpZvDJ3A/hqdefault.jpg",
+      "file_type": "YouTube Short",
+      "agency": null,
+      "collection": "Tales archive",
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "Jn4SAKfonCQ",
+      "title": "4-FOOT-BEINGS IN UFO FILES ARE NOT KEVIN HART",
+      "source": "Tales From the Inverted World",
+      "source_url": "https://www.youtube.com/watch?v=Jn4SAKfonCQ",
+      "kind": "video",
+      "viewer": "youtube",
+      "topic_ids": [
+        "uap-disclosure"
+      ],
+      "summary": "Tales archive video in the Skywatch lane.",
+      "published_at": "2026-05-12T00:00:00.000Z",
+      "embed_url": "https://www.youtube.com/embed/Jn4SAKfonCQ?rel=0",
+      "thumbnail_url": "https://i3.ytimg.com/vi/Jn4SAKfonCQ/hqdefault.jpg",
+      "file_type": "YouTube",
+      "agency": null,
+      "collection": "Tales archive",
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "cLgGJWS6abM",
+      "title": "DISTRACTION AFTER DISTRACTION #shorts",
+      "source": "Tales From the Inverted World",
+      "source_url": "https://www.youtube.com/shorts/cLgGJWS6abM",
+      "kind": "video",
+      "viewer": "youtube",
+      "topic_ids": [
+        "secret-programs"
+      ],
+      "summary": "Tales archive video in the Declassified lane.",
+      "published_at": "2026-05-12T00:00:00.000Z",
+      "embed_url": "https://www.youtube.com/embed/cLgGJWS6abM?rel=0",
+      "thumbnail_url": "https://i4.ytimg.com/vi/cLgGJWS6abM/hqdefault.jpg",
+      "file_type": "YouTube Short",
+      "agency": null,
+      "collection": "Tales archive",
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "k27iBDWl0DI",
+      "title": "BABA VANGA'S 2026 PREDICTIONS",
+      "source": "Tales From the Inverted World",
+      "source_url": "https://www.youtube.com/watch?v=k27iBDWl0DI",
+      "kind": "video",
+      "viewer": "youtube",
+      "topic_ids": [
+        "cryptids-paranormal"
+      ],
+      "summary": "Tales archive video in the High Strangeness lane.",
+      "published_at": "2026-05-11T00:00:00.000Z",
+      "embed_url": "https://www.youtube.com/embed/k27iBDWl0DI?rel=0",
+      "thumbnail_url": "https://i4.ytimg.com/vi/k27iBDWl0DI/hqdefault.jpg",
+      "file_type": "YouTube",
+      "agency": null,
+      "collection": "Tales archive",
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "gBH6UjvSXnQ",
+      "title": "The Note Epstein Left Behind",
+      "source": "Tales From the Inverted World",
+      "source_url": "https://www.youtube.com/watch?v=gBH6UjvSXnQ",
+      "kind": "video",
+      "viewer": "youtube",
+      "topic_ids": [
+        "epstein-networks"
+      ],
+      "summary": "Tales archive video in the Power Web lane.",
+      "published_at": "2026-05-11T00:00:00.000Z",
+      "embed_url": "https://www.youtube.com/embed/gBH6UjvSXnQ?rel=0",
+      "thumbnail_url": "https://i4.ytimg.com/vi/gBH6UjvSXnQ/hqdefault.jpg",
+      "file_type": "YouTube",
+      "agency": null,
+      "collection": "Tales archive",
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "-5b5DSUTAZg",
+      "title": "The Note Epstein Left Behind #shorts",
+      "source": "Tales From the Inverted World",
+      "source_url": "https://www.youtube.com/shorts/-5b5DSUTAZg",
+      "kind": "video",
+      "viewer": "youtube",
+      "topic_ids": [
+        "epstein-networks"
+      ],
+      "summary": "Tales archive video in the Power Web lane.",
+      "published_at": "2026-05-08T00:00:00.000Z",
+      "embed_url": "https://www.youtube.com/embed/-5b5DSUTAZg?rel=0",
+      "thumbnail_url": "https://i.ytimg.com/vi/-5b5DSUTAZg/hqdefault.jpg",
+      "file_type": "YouTube Short",
+      "agency": null,
+      "collection": "Tales archive",
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "p-mB7J32RzI",
+      "title": "Zorro Ranch Murders and Clavicular Absconds to Epstein Island | Ep. 211",
+      "source": "Tales From the Inverted World",
+      "source_url": "https://www.youtube.com/watch?v=p-mB7J32RzI",
+      "kind": "video",
+      "viewer": "youtube",
+      "topic_ids": [
+        "epstein-networks"
+      ],
+      "summary": "Tales archive video in the Power Web lane.",
+      "published_at": "2026-04-29T00:00:00.000Z",
+      "embed_url": "https://www.youtube.com/embed/p-mB7J32RzI?rel=0",
+      "thumbnail_url": "https://i.ytimg.com/vi/p-mB7J32RzI/hqdefault.jpg",
+      "file_type": "YouTube",
+      "agency": null,
+      "collection": "Tales archive",
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "7ONgJMfIeT0",
+      "title": "Evil Worms Its Way into EVERY Institution #shorts",
+      "source": "Tales From the Inverted World",
+      "source_url": "https://www.youtube.com/shorts/7ONgJMfIeT0",
+      "kind": "video",
+      "viewer": "youtube",
+      "topic_ids": [
+        "epstein-networks"
+      ],
+      "summary": "Tales archive video in the Power Web lane.",
+      "published_at": "2026-04-16T00:00:00.000Z",
+      "embed_url": "https://www.youtube.com/embed/7ONgJMfIeT0?rel=0",
+      "thumbnail_url": "https://i.ytimg.com/vi/7ONgJMfIeT0/hqdefault.jpg",
+      "file_type": "YouTube Short",
+      "agency": null,
+      "collection": "Tales archive",
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "YRj1xgYHG9A",
+      "title": "Are We Still Talking About Jeffrey Epstein? #shorts",
+      "source": "Tales From the Inverted World",
+      "source_url": "https://www.youtube.com/shorts/YRj1xgYHG9A",
+      "kind": "video",
+      "viewer": "youtube",
+      "topic_ids": [
+        "epstein-networks"
+      ],
+      "summary": "Tales archive video in the Power Web lane.",
+      "published_at": "2026-04-03T00:00:00.000Z",
+      "embed_url": "https://www.youtube.com/embed/YRj1xgYHG9A?rel=0",
+      "thumbnail_url": "https://i.ytimg.com/vi/YRj1xgYHG9A/hqdefault.jpg",
+      "file_type": "YouTube Short",
+      "agency": null,
+      "collection": "Tales archive",
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "nsa-mkultra-gottlieb-testimony",
+      "title": "CIA MKULTRA chief testimony, 50 years later",
+      "source": "National Security Archive",
+      "source_url": "https://nsarchive.gwu.edu/briefing-book/intelligence/2025-09-04/top-secret-testimony-cias-mkultra-chief-50-years-later",
+      "kind": "document",
+      "viewer": "link",
+      "topic_ids": [
+        "secret-programs"
+      ],
+      "summary": "A clean primary-source landing point for the Gottlieb testimony story, connecting declassified records with current Inverted World coverage.",
+      "published_at": "2025-09-04T00:00:00.000Z",
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "Archive briefing",
+      "agency": "National Security Archive",
+      "collection": "MKULTRA",
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "aaro-all-domain-anomaly-resolution-office-public-reporting",
+      "title": "All-domain Anomaly Resolution Office public reporting",
+      "source": "AARO",
+      "source_url": "https://www.aaro.mil/",
+      "kind": "archive",
+      "viewer": "link",
+      "topic_ids": [
+        "uap-disclosure"
+      ],
+      "summary": "Primary government source for Skywatch coverage.",
+      "published_at": null,
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "government",
+      "agency": "AARO",
+      "collection": null,
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "cia-cia-crest-and-reading-room",
+      "title": "CIA CREST and Reading Room",
+      "source": "CIA",
+      "source_url": "https://www.cia.gov/readingroom/",
+      "kind": "archive",
+      "viewer": "link",
+      "topic_ids": [
+        "secret-programs",
+        "uap-disclosure"
+      ],
+      "summary": "Primary archive source for Declassified, Skywatch coverage.",
+      "published_at": null,
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "archive",
+      "agency": "CIA",
+      "collection": null,
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "cia-cia-reading-room-mkultra-search",
+      "title": "CIA Reading Room MKULTRA search",
+      "source": "CIA",
+      "source_url": "https://www.cia.gov/readingroom/search/site/MKULTRA",
+      "kind": "archive",
+      "viewer": "link",
+      "topic_ids": [
+        "secret-programs"
+      ],
+      "summary": "Primary archive source for Declassified coverage.",
+      "published_at": null,
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "archive",
+      "agency": "CIA",
+      "collection": null,
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "cisa-cisa-artificial-intelligence-security-resources",
+      "title": "CISA artificial intelligence security resources",
+      "source": "CISA",
+      "source_url": "https://www.cisa.gov/ai",
+      "kind": "archive",
+      "viewer": "link",
+      "topic_ids": [
+        "ai-technocracy"
+      ],
+      "summary": "Primary government source for Machine State coverage.",
+      "published_at": null,
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "government",
+      "agency": "CISA",
+      "collection": null,
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "common-crawl-common-crawl-open-web-corpus",
+      "title": "Common Crawl open web corpus",
+      "source": "Common Crawl",
+      "source_url": "https://commoncrawl.org/",
+      "kind": "archive",
+      "viewer": "link",
+      "topic_ids": [
+        "uap-disclosure",
+        "secret-programs",
+        "epstein-networks",
+        "cryptids-paranormal",
+        "ai-technocracy",
+        "space-anomalies"
+      ],
+      "summary": "Primary archive source for Skywatch, Declassified, Power Web, High Strangeness, Machine State, Off-World Signals coverage.",
+      "published_at": null,
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "archive",
+      "agency": "Common Crawl",
+      "collection": null,
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "congress-gov-congress-gov-uap-search",
+      "title": "Congress.gov UAP search",
+      "source": "Congress.gov",
+      "source_url": "https://www.congress.gov/search?q=%7B%22search%22%3A%22UAP%22%7D",
+      "kind": "archive",
+      "viewer": "link",
+      "topic_ids": [
+        "uap-disclosure",
+        "secret-programs"
+      ],
+      "summary": "Primary government source for Skywatch, Declassified coverage.",
+      "published_at": null,
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "government",
+      "agency": "Congress.gov",
+      "collection": null,
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "free-law-project-courtlistener-opinion-and-docket-search",
+      "title": "CourtListener opinion and docket search",
+      "source": "Free Law Project",
+      "source_url": "https://www.courtlistener.com/",
+      "kind": "archive",
+      "viewer": "link",
+      "topic_ids": [
+        "epstein-networks",
+        "secret-programs"
+      ],
+      "summary": "Primary legal source for Power Web, Declassified coverage.",
+      "published_at": null,
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "legal",
+      "agency": "Free Law Project",
+      "collection": null,
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "doj-doj-foia-reference-guide",
+      "title": "DOJ FOIA reference guide",
+      "source": "DOJ",
+      "source_url": "https://www.justice.gov/oip/doj-reference-guide",
+      "kind": "archive",
+      "viewer": "link",
+      "topic_ids": [
+        "epstein-networks",
+        "secret-programs"
+      ],
+      "summary": "Primary government source for Power Web, Declassified coverage.",
+      "published_at": null,
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "government",
+      "agency": "DOJ",
+      "collection": null,
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "fbi-fbi-vault-jeffrey-epstein-files",
+      "title": "FBI Vault Jeffrey Epstein files",
+      "source": "FBI",
+      "source_url": "https://vault.fbi.gov/jeffrey-epstein",
+      "kind": "archive",
+      "viewer": "link",
+      "topic_ids": [
+        "epstein-networks"
+      ],
+      "summary": "Primary archive source for Power Web coverage.",
+      "published_at": null,
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "archive",
+      "agency": "FBI",
+      "collection": null,
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "national-archives-federal-register-document-search",
+      "title": "Federal Register document search",
+      "source": "National Archives",
+      "source_url": "https://www.federalregister.gov/",
+      "kind": "archive",
+      "viewer": "link",
+      "topic_ids": [
+        "ai-technocracy",
+        "secret-programs",
+        "space-anomalies"
+      ],
+      "summary": "Primary government source for Machine State, Declassified, Off-World Signals coverage.",
+      "published_at": null,
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "government",
+      "agency": "National Archives",
+      "collection": null,
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "foia-gov-foia-gov-request-and-agency-records-portal",
+      "title": "FOIA.gov request and agency records portal",
+      "source": "FOIA.gov",
+      "source_url": "https://www.foia.gov/",
+      "kind": "archive",
+      "viewer": "link",
+      "topic_ids": [
+        "secret-programs",
+        "epstein-networks",
+        "ai-technocracy"
+      ],
+      "summary": "Primary government source for Declassified, Power Web, Machine State coverage.",
+      "published_at": null,
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "government",
+      "agency": "FOIA.gov",
+      "collection": null,
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "gdelt-gdelt-global-news-index",
+      "title": "GDELT global news index",
+      "source": "GDELT",
+      "source_url": "https://www.gdeltproject.org/",
+      "kind": "archive",
+      "viewer": "link",
+      "topic_ids": [
+        "uap-disclosure",
+        "secret-programs",
+        "epstein-networks",
+        "cryptids-paranormal",
+        "ai-technocracy",
+        "space-anomalies"
+      ],
+      "summary": "Primary news-index source for Skywatch, Declassified, Power Web, High Strangeness, Machine State, Off-World Signals coverage.",
+      "published_at": null,
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "news-index",
+      "agency": "GDELT",
+      "collection": null,
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "govinfo-govinfo-congressional-and-federal-records",
+      "title": "GovInfo congressional and federal records",
+      "source": "GovInfo",
+      "source_url": "https://www.govinfo.gov/",
+      "kind": "archive",
+      "viewer": "link",
+      "topic_ids": [
+        "secret-programs",
+        "ai-technocracy",
+        "uap-disclosure"
+      ],
+      "summary": "Primary government source for Declassified, Machine State, Skywatch coverage.",
+      "published_at": null,
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "government",
+      "agency": "GovInfo",
+      "collection": null,
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "internet-archive-internet-archive-tv-news-search",
+      "title": "Internet Archive TV News Search",
+      "source": "Internet Archive",
+      "source_url": "https://archive.org/details/tv",
+      "kind": "archive",
+      "viewer": "link",
+      "topic_ids": [
+        "uap-disclosure",
+        "secret-programs",
+        "epstein-networks",
+        "cryptids-paranormal",
+        "ai-technocracy",
+        "space-anomalies"
+      ],
+      "summary": "Primary news-index source for Skywatch, Declassified, Power Web, High Strangeness, Machine State, Off-World Signals coverage.",
+      "published_at": null,
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "news-index",
+      "agency": "Internet Archive",
+      "collection": null,
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "library-of-congress-library-of-congress-folklife-collections",
+      "title": "Library of Congress Folklife collections",
+      "source": "Library of Congress",
+      "source_url": "https://www.loc.gov/folklife/",
+      "kind": "archive",
+      "viewer": "link",
+      "topic_ids": [
+        "cryptids-paranormal"
+      ],
+      "summary": "Primary archive source for High Strangeness coverage.",
+      "published_at": null,
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "archive",
+      "agency": "Library of Congress",
+      "collection": null,
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "muckrock-muckrock-foia-archive",
+      "title": "MuckRock FOIA archive",
+      "source": "MuckRock",
+      "source_url": "https://www.muckrock.com/foi/",
+      "kind": "archive",
+      "viewer": "link",
+      "topic_ids": [
+        "secret-programs",
+        "epstein-networks",
+        "ai-technocracy"
+      ],
+      "summary": "Primary archive source for Declassified, Power Web, Machine State coverage.",
+      "published_at": null,
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "archive",
+      "agency": "MuckRock",
+      "collection": null,
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "nasa-ads-nasa-ads-astrophysics-literature",
+      "title": "NASA ADS astrophysics literature",
+      "source": "NASA ADS",
+      "source_url": "https://ui.adsabs.harvard.edu/",
+      "kind": "archive",
+      "viewer": "link",
+      "topic_ids": [
+        "space-anomalies"
+      ],
+      "summary": "Primary science source for Off-World Signals coverage.",
+      "published_at": null,
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "science",
+      "agency": "NASA ADS",
+      "collection": null,
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "nasa-cneos-nasa-center-for-near-earth-object-studies-fireball-data",
+      "title": "NASA Center for Near Earth Object Studies fireball data",
+      "source": "NASA CNEOS",
+      "source_url": "https://cneos.jpl.nasa.gov/fireballs/",
+      "kind": "archive",
+      "viewer": "link",
+      "topic_ids": [
+        "space-anomalies"
+      ],
+      "summary": "Primary science source for Off-World Signals coverage.",
+      "published_at": null,
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "science",
+      "agency": "NASA CNEOS",
+      "collection": null,
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "nasa-nasa-exoplanet-archive",
+      "title": "NASA Exoplanet Archive",
+      "source": "NASA",
+      "source_url": "https://exoplanetarchive.ipac.caltech.edu/",
+      "kind": "archive",
+      "viewer": "link",
+      "topic_ids": [
+        "space-anomalies"
+      ],
+      "summary": "Primary science source for Off-World Signals coverage.",
+      "published_at": null,
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "science",
+      "agency": "NASA",
+      "collection": null,
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "nasa-nasa-technical-reports-server",
+      "title": "NASA Technical Reports Server",
+      "source": "NASA",
+      "source_url": "https://ntrs.nasa.gov/",
+      "kind": "archive",
+      "viewer": "link",
+      "topic_ids": [
+        "space-anomalies",
+        "ai-technocracy"
+      ],
+      "summary": "Primary science source for Off-World Signals, Machine State coverage.",
+      "published_at": null,
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "science",
+      "agency": "NASA",
+      "collection": null,
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "nasa-nasa-uap-independent-study",
+      "title": "NASA UAP Independent Study",
+      "source": "NASA",
+      "source_url": "https://science.nasa.gov/uap/",
+      "kind": "archive",
+      "viewer": "link",
+      "topic_ids": [
+        "uap-disclosure",
+        "space-anomalies"
+      ],
+      "summary": "Primary government source for Skywatch, Off-World Signals coverage.",
+      "published_at": null,
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "government",
+      "agency": "NASA",
+      "collection": null,
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "national-archives-national-archives-research-catalog",
+      "title": "National Archives research catalog",
+      "source": "National Archives",
+      "source_url": "https://catalog.archives.gov/",
+      "kind": "archive",
+      "viewer": "link",
+      "topic_ids": [
+        "secret-programs",
+        "uap-disclosure",
+        "space-anomalies"
+      ],
+      "summary": "Primary archive source for Declassified, Skywatch, Off-World Signals coverage.",
+      "published_at": null,
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "archive",
+      "agency": "National Archives",
+      "collection": null,
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "national-security-archive-national-security-archive-declassified-collections",
+      "title": "National Security Archive declassified collections",
+      "source": "National Security Archive",
+      "source_url": "https://nsarchive.gwu.edu/",
+      "kind": "archive",
+      "viewer": "link",
+      "topic_ids": [
+        "secret-programs",
+        "uap-disclosure"
+      ],
+      "summary": "Primary archive source for Declassified, Skywatch coverage.",
+      "published_at": null,
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "archive",
+      "agency": "National Security Archive",
+      "collection": null,
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "nih-nih-pubmed-biomedical-literature",
+      "title": "NIH PubMed biomedical literature",
+      "source": "NIH",
+      "source_url": "https://pubmed.ncbi.nlm.nih.gov/",
+      "kind": "archive",
+      "viewer": "link",
+      "topic_ids": [
+        "secret-programs",
+        "ai-technocracy"
+      ],
+      "summary": "Primary science source for Declassified, Machine State coverage.",
+      "published_at": null,
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "science",
+      "agency": "NIH",
+      "collection": null,
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "nist-nist-ai-risk-management-framework",
+      "title": "NIST AI Risk Management Framework",
+      "source": "NIST",
+      "source_url": "https://www.nist.gov/itl/ai-risk-management-framework",
+      "kind": "archive",
+      "viewer": "link",
+      "topic_ids": [
+        "ai-technocracy"
+      ],
+      "summary": "Primary government source for Machine State coverage.",
+      "published_at": null,
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "government",
+      "agency": "NIST",
+      "collection": null,
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "nist-nist-publications-search",
+      "title": "NIST publications search",
+      "source": "NIST",
+      "source_url": "https://www.nist.gov/publications",
+      "kind": "archive",
+      "viewer": "link",
+      "topic_ids": [
+        "ai-technocracy",
+        "secret-programs"
+      ],
+      "summary": "Primary science source for Machine State, Declassified coverage.",
+      "published_at": null,
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "science",
+      "agency": "NIST",
+      "collection": null,
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "noaa-noaa-space-weather-prediction-center",
+      "title": "NOAA Space Weather Prediction Center",
+      "source": "NOAA",
+      "source_url": "https://www.swpc.noaa.gov/",
+      "kind": "archive",
+      "viewer": "link",
+      "topic_ids": [
+        "space-anomalies"
+      ],
+      "summary": "Primary science source for Off-World Signals coverage.",
+      "published_at": null,
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "science",
+      "agency": "NOAA",
+      "collection": null,
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "odni-odni-uap-and-national-intelligence-report-library",
+      "title": "ODNI UAP and national intelligence report library",
+      "source": "ODNI",
+      "source_url": "https://www.dni.gov/index.php/newsroom/reports-publications",
+      "kind": "archive",
+      "viewer": "link",
+      "topic_ids": [
+        "uap-disclosure",
+        "secret-programs"
+      ],
+      "summary": "Primary government source for Skywatch, Declassified coverage.",
+      "published_at": null,
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "government",
+      "agency": "ODNI",
+      "collection": null,
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "u-s-courts-pacer-federal-court-records",
+      "title": "PACER federal court records",
+      "source": "U.S. Courts",
+      "source_url": "https://pacer.uscourts.gov/",
+      "kind": "archive",
+      "viewer": "link",
+      "topic_ids": [
+        "epstein-networks",
+        "secret-programs"
+      ],
+      "summary": "Primary legal source for Power Web, Declassified coverage.",
+      "published_at": null,
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "legal",
+      "agency": "U.S. Courts",
+      "collection": null,
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "regulations-gov-regulations-gov-public-docket-search",
+      "title": "Regulations.gov public docket search",
+      "source": "Regulations.gov",
+      "source_url": "https://www.regulations.gov/",
+      "kind": "archive",
+      "viewer": "link",
+      "topic_ids": [
+        "ai-technocracy",
+        "secret-programs"
+      ],
+      "summary": "Primary government source for Machine State, Declassified coverage.",
+      "published_at": null,
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "government",
+      "agency": "Regulations.gov",
+      "collection": null,
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "sec-sec-edgar-company-and-institution-filings",
+      "title": "SEC EDGAR company and institution filings",
+      "source": "SEC",
+      "source_url": "https://www.sec.gov/edgar/search/",
+      "kind": "archive",
+      "viewer": "link",
+      "topic_ids": [
+        "epstein-networks",
+        "ai-technocracy"
+      ],
+      "summary": "Primary legal source for Power Web, Machine State coverage.",
+      "published_at": null,
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "legal",
+      "agency": "SEC",
+      "collection": null,
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "smithsonian-smithsonian-collections-search",
+      "title": "Smithsonian collections search",
+      "source": "Smithsonian",
+      "source_url": "https://www.si.edu/search/collection-images",
+      "kind": "archive",
+      "viewer": "link",
+      "topic_ids": [
+        "cryptids-paranormal",
+        "space-anomalies"
+      ],
+      "summary": "Primary archive source for High Strangeness, Off-World Signals coverage.",
+      "published_at": null,
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "archive",
+      "agency": "Smithsonian",
+      "collection": null,
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "doj-sdny-southern-district-of-new-york-public-releases",
+      "title": "Southern District of New York public releases",
+      "source": "DOJ SDNY",
+      "source_url": "https://www.justice.gov/usao-sdny",
+      "kind": "archive",
+      "viewer": "link",
+      "topic_ids": [
+        "epstein-networks",
+        "secret-programs"
+      ],
+      "summary": "Primary legal source for Power Web, Declassified coverage.",
+      "published_at": null,
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "legal",
+      "agency": "DOJ SDNY",
+      "collection": null,
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "fbi-the-fbi-vault",
+      "title": "The FBI Vault",
+      "source": "FBI",
+      "source_url": "https://vault.fbi.gov/",
+      "kind": "archive",
+      "viewer": "link",
+      "topic_ids": [
+        "secret-programs",
+        "epstein-networks"
+      ],
+      "summary": "Primary archive source for Declassified, Power Web coverage.",
+      "published_at": null,
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "archive",
+      "agency": "FBI",
+      "collection": null,
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "slug": "usgs-usgs-earthquake-and-hazard-data",
+      "title": "USGS earthquake and hazard data",
+      "source": "USGS",
+      "source_url": "https://earthquake.usgs.gov/",
+      "kind": "archive",
+      "viewer": "link",
+      "topic_ids": [
+        "space-anomalies"
+      ],
+      "summary": "Primary science source for Off-World Signals coverage.",
+      "published_at": null,
+      "embed_url": null,
+      "thumbnail_url": null,
+      "file_type": "science",
+      "agency": "USGS",
+      "collection": null,
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    }
+  ],
+  "sourceDocuments": [
+    {
+      "id": "cia-cia-crest-and-reading-room",
+      "slug": "cia-cia-crest-and-reading-room",
+      "title": "CIA CREST and Reading Room",
+      "source": "CIA",
+      "url": "https://www.cia.gov/readingroom/",
+      "host": "cia.gov",
+      "kind": "archive",
+      "topic_ids": [
+        "secret-programs",
+        "uap-disclosure"
+      ],
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "id": "cia-cia-reading-room-mkultra-search",
+      "slug": "cia-cia-reading-room-mkultra-search",
+      "title": "CIA Reading Room MKULTRA search",
+      "source": "CIA",
+      "url": "https://www.cia.gov/readingroom/search/site/MKULTRA",
+      "host": "cia.gov",
+      "kind": "archive",
+      "topic_ids": [
+        "secret-programs"
+      ],
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "id": "common-crawl-common-crawl-open-web-corpus",
+      "slug": "common-crawl-common-crawl-open-web-corpus",
+      "title": "Common Crawl open web corpus",
+      "source": "Common Crawl",
+      "url": "https://commoncrawl.org/",
+      "host": "commoncrawl.org",
+      "kind": "archive",
+      "topic_ids": [
+        "uap-disclosure",
+        "secret-programs",
+        "epstein-networks",
+        "cryptids-paranormal",
+        "ai-technocracy",
+        "space-anomalies"
+      ],
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "id": "fbi-fbi-vault-jeffrey-epstein-files",
+      "slug": "fbi-fbi-vault-jeffrey-epstein-files",
+      "title": "FBI Vault Jeffrey Epstein files",
+      "source": "FBI",
+      "url": "https://vault.fbi.gov/jeffrey-epstein",
+      "host": "vault.fbi.gov",
+      "kind": "archive",
+      "topic_ids": [
+        "epstein-networks"
+      ],
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "id": "library-of-congress-library-of-congress-folklife-collections",
+      "slug": "library-of-congress-library-of-congress-folklife-collections",
+      "title": "Library of Congress Folklife collections",
+      "source": "Library of Congress",
+      "url": "https://www.loc.gov/folklife/",
+      "host": "loc.gov",
+      "kind": "archive",
+      "topic_ids": [
+        "cryptids-paranormal"
+      ],
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "id": "muckrock-muckrock-foia-archive",
+      "slug": "muckrock-muckrock-foia-archive",
+      "title": "MuckRock FOIA archive",
+      "source": "MuckRock",
+      "url": "https://www.muckrock.com/foi/",
+      "host": "muckrock.com",
+      "kind": "archive",
+      "topic_ids": [
+        "secret-programs",
+        "epstein-networks",
+        "ai-technocracy"
+      ],
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "id": "national-archives-national-archives-research-catalog",
+      "slug": "national-archives-national-archives-research-catalog",
+      "title": "National Archives research catalog",
+      "source": "National Archives",
+      "url": "https://catalog.archives.gov/",
+      "host": "catalog.archives.gov",
+      "kind": "archive",
+      "topic_ids": [
+        "secret-programs",
+        "uap-disclosure",
+        "space-anomalies"
+      ],
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "id": "national-security-archive-national-security-archive-declassified-collections",
+      "slug": "national-security-archive-national-security-archive-declassified-collections",
+      "title": "National Security Archive declassified collections",
+      "source": "National Security Archive",
+      "url": "https://nsarchive.gwu.edu/",
+      "host": "nsarchive.gwu.edu",
+      "kind": "archive",
+      "topic_ids": [
+        "secret-programs",
+        "uap-disclosure"
+      ],
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "id": "smithsonian-smithsonian-collections-search",
+      "slug": "smithsonian-smithsonian-collections-search",
+      "title": "Smithsonian collections search",
+      "source": "Smithsonian",
+      "url": "https://www.si.edu/search/collection-images",
+      "host": "si.edu",
+      "kind": "archive",
+      "topic_ids": [
+        "cryptids-paranormal",
+        "space-anomalies"
+      ],
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "id": "fbi-the-fbi-vault",
+      "slug": "fbi-the-fbi-vault",
+      "title": "The FBI Vault",
+      "source": "FBI",
+      "url": "https://vault.fbi.gov/",
+      "host": "vault.fbi.gov",
+      "kind": "archive",
+      "topic_ids": [
+        "secret-programs",
+        "epstein-networks"
+      ],
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "id": "aaro-all-domain-anomaly-resolution-office-public-reporting",
+      "slug": "aaro-all-domain-anomaly-resolution-office-public-reporting",
+      "title": "All-domain Anomaly Resolution Office public reporting",
+      "source": "AARO",
+      "url": "https://www.aaro.mil/",
+      "host": "aaro.mil",
+      "kind": "government",
+      "topic_ids": [
+        "uap-disclosure"
+      ],
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "id": "cisa-cisa-artificial-intelligence-security-resources",
+      "slug": "cisa-cisa-artificial-intelligence-security-resources",
+      "title": "CISA artificial intelligence security resources",
+      "source": "CISA",
+      "url": "https://www.cisa.gov/ai",
+      "host": "cisa.gov",
+      "kind": "government",
+      "topic_ids": [
+        "ai-technocracy"
+      ],
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "id": "congress-gov-congress-gov-uap-search",
+      "slug": "congress-gov-congress-gov-uap-search",
+      "title": "Congress.gov UAP search",
+      "source": "Congress.gov",
+      "url": "https://www.congress.gov/search?q=%7B%22search%22%3A%22UAP%22%7D",
+      "host": "congress.gov",
+      "kind": "government",
+      "topic_ids": [
+        "uap-disclosure",
+        "secret-programs"
+      ],
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "id": "doj-doj-foia-reference-guide",
+      "slug": "doj-doj-foia-reference-guide",
+      "title": "DOJ FOIA reference guide",
+      "source": "DOJ",
+      "url": "https://www.justice.gov/oip/doj-reference-guide",
+      "host": "justice.gov",
+      "kind": "government",
+      "topic_ids": [
+        "epstein-networks",
+        "secret-programs"
+      ],
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "id": "national-archives-federal-register-document-search",
+      "slug": "national-archives-federal-register-document-search",
+      "title": "Federal Register document search",
+      "source": "National Archives",
+      "url": "https://www.federalregister.gov/",
+      "host": "federalregister.gov",
+      "kind": "government",
+      "topic_ids": [
+        "ai-technocracy",
+        "secret-programs",
+        "space-anomalies"
+      ],
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "id": "foia-gov-foia-gov-request-and-agency-records-portal",
+      "slug": "foia-gov-foia-gov-request-and-agency-records-portal",
+      "title": "FOIA.gov request and agency records portal",
+      "source": "FOIA.gov",
+      "url": "https://www.foia.gov/",
+      "host": "foia.gov",
+      "kind": "government",
+      "topic_ids": [
+        "secret-programs",
+        "epstein-networks",
+        "ai-technocracy"
+      ],
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "id": "govinfo-govinfo-congressional-and-federal-records",
+      "slug": "govinfo-govinfo-congressional-and-federal-records",
+      "title": "GovInfo congressional and federal records",
+      "source": "GovInfo",
+      "url": "https://www.govinfo.gov/",
+      "host": "govinfo.gov",
+      "kind": "government",
+      "topic_ids": [
+        "secret-programs",
+        "ai-technocracy",
+        "uap-disclosure"
+      ],
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "id": "nasa-nasa-uap-independent-study",
+      "slug": "nasa-nasa-uap-independent-study",
+      "title": "NASA UAP Independent Study",
+      "source": "NASA",
+      "url": "https://science.nasa.gov/uap/",
+      "host": "science.nasa.gov",
+      "kind": "government",
+      "topic_ids": [
+        "uap-disclosure",
+        "space-anomalies"
+      ],
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "id": "nist-nist-ai-risk-management-framework",
+      "slug": "nist-nist-ai-risk-management-framework",
+      "title": "NIST AI Risk Management Framework",
+      "source": "NIST",
+      "url": "https://www.nist.gov/itl/ai-risk-management-framework",
+      "host": "nist.gov",
+      "kind": "government",
+      "topic_ids": [
+        "ai-technocracy"
+      ],
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "id": "odni-odni-uap-and-national-intelligence-report-library",
+      "slug": "odni-odni-uap-and-national-intelligence-report-library",
+      "title": "ODNI UAP and national intelligence report library",
+      "source": "ODNI",
+      "url": "https://www.dni.gov/index.php/newsroom/reports-publications",
+      "host": "dni.gov",
+      "kind": "government",
+      "topic_ids": [
+        "uap-disclosure",
+        "secret-programs"
+      ],
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "id": "department-of-war-odni-pursue-release-02-senior-u-s-intelligence-officer-uap-narrative",
+      "slug": "department-of-war-odni-pursue-release-02-senior-u-s-intelligence-officer-uap-narrative",
+      "title": "PURSUE Release 02 senior U.S. intelligence officer UAP narrative",
+      "source": "Department of War / ODNI",
+      "url": "https://www.war.gov/medialink/ufo/052226/release_02/documents/ODNI-UAP-D001_USPER_Narrative_Senior_USIC.pdf",
+      "host": "war.gov",
+      "kind": "government",
+      "topic_ids": [
+        "uap-disclosure",
+        "secret-programs"
+      ],
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "id": "department-of-war-pursue-release-02-uap-media-and-documents",
+      "slug": "department-of-war-pursue-release-02-uap-media-and-documents",
+      "title": "PURSUE Release 02 UAP media and documents",
+      "source": "Department of War",
+      "url": "https://www.war.gov/UFO/?releaseDate=Release+02",
+      "host": "war.gov",
+      "kind": "government",
+      "topic_ids": [
+        "uap-disclosure",
+        "secret-programs"
+      ],
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "id": "regulations-gov-regulations-gov-public-docket-search",
+      "slug": "regulations-gov-regulations-gov-public-docket-search",
+      "title": "Regulations.gov public docket search",
+      "source": "Regulations.gov",
+      "url": "https://www.regulations.gov/",
+      "host": "regulations.gov",
+      "kind": "government",
+      "topic_ids": [
+        "ai-technocracy",
+        "secret-programs"
+      ],
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "id": "free-law-project-courtlistener-opinion-and-docket-search",
+      "slug": "free-law-project-courtlistener-opinion-and-docket-search",
+      "title": "CourtListener opinion and docket search",
+      "source": "Free Law Project",
+      "url": "https://www.courtlistener.com/",
+      "host": "courtlistener.com",
+      "kind": "legal",
+      "topic_ids": [
+        "epstein-networks",
+        "secret-programs"
+      ],
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "id": "u-s-courts-pacer-federal-court-records",
+      "slug": "u-s-courts-pacer-federal-court-records",
+      "title": "PACER federal court records",
+      "source": "U.S. Courts",
+      "url": "https://pacer.uscourts.gov/",
+      "host": "pacer.uscourts.gov",
+      "kind": "legal",
+      "topic_ids": [
+        "epstein-networks",
+        "secret-programs"
+      ],
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "id": "sec-sec-edgar-company-and-institution-filings",
+      "slug": "sec-sec-edgar-company-and-institution-filings",
+      "title": "SEC EDGAR company and institution filings",
+      "source": "SEC",
+      "url": "https://www.sec.gov/edgar/search/",
+      "host": "sec.gov",
+      "kind": "legal",
+      "topic_ids": [
+        "epstein-networks",
+        "ai-technocracy"
+      ],
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "id": "doj-sdny-southern-district-of-new-york-public-releases",
+      "slug": "doj-sdny-southern-district-of-new-york-public-releases",
+      "title": "Southern District of New York public releases",
+      "source": "DOJ SDNY",
+      "url": "https://www.justice.gov/usao-sdny",
+      "host": "justice.gov",
+      "kind": "legal",
+      "topic_ids": [
+        "epstein-networks",
+        "secret-programs"
+      ],
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "id": "gdelt-gdelt-global-news-index",
+      "slug": "gdelt-gdelt-global-news-index",
+      "title": "GDELT global news index",
+      "source": "GDELT",
+      "url": "https://www.gdeltproject.org/",
+      "host": "gdeltproject.org",
+      "kind": "news-index",
+      "topic_ids": [
+        "uap-disclosure",
+        "secret-programs",
+        "epstein-networks",
+        "cryptids-paranormal",
+        "ai-technocracy",
+        "space-anomalies"
+      ],
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "id": "internet-archive-internet-archive-tv-news-search",
+      "slug": "internet-archive-internet-archive-tv-news-search",
+      "title": "Internet Archive TV News Search",
+      "source": "Internet Archive",
+      "url": "https://archive.org/details/tv",
+      "host": "archive.org",
+      "kind": "news-index",
+      "topic_ids": [
+        "uap-disclosure",
+        "secret-programs",
+        "epstein-networks",
+        "cryptids-paranormal",
+        "ai-technocracy",
+        "space-anomalies"
+      ],
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "id": "nasa-ads-nasa-ads-astrophysics-literature",
+      "slug": "nasa-ads-nasa-ads-astrophysics-literature",
+      "title": "NASA ADS astrophysics literature",
+      "source": "NASA ADS",
+      "url": "https://ui.adsabs.harvard.edu/",
+      "host": "ui.adsabs.harvard.edu",
+      "kind": "science",
+      "topic_ids": [
+        "space-anomalies"
+      ],
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "id": "nasa-cneos-nasa-center-for-near-earth-object-studies-fireball-data",
+      "slug": "nasa-cneos-nasa-center-for-near-earth-object-studies-fireball-data",
+      "title": "NASA Center for Near Earth Object Studies fireball data",
+      "source": "NASA CNEOS",
+      "url": "https://cneos.jpl.nasa.gov/fireballs/",
+      "host": "cneos.jpl.nasa.gov",
+      "kind": "science",
+      "topic_ids": [
+        "space-anomalies"
+      ],
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "id": "nasa-nasa-exoplanet-archive",
+      "slug": "nasa-nasa-exoplanet-archive",
+      "title": "NASA Exoplanet Archive",
+      "source": "NASA",
+      "url": "https://exoplanetarchive.ipac.caltech.edu/",
+      "host": "exoplanetarchive.ipac.caltech.edu",
+      "kind": "science",
+      "topic_ids": [
+        "space-anomalies"
+      ],
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "id": "nasa-nasa-technical-reports-server",
+      "slug": "nasa-nasa-technical-reports-server",
+      "title": "NASA Technical Reports Server",
+      "source": "NASA",
+      "url": "https://ntrs.nasa.gov/",
+      "host": "ntrs.nasa.gov",
+      "kind": "science",
+      "topic_ids": [
+        "space-anomalies",
+        "ai-technocracy"
+      ],
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "id": "nih-nih-pubmed-biomedical-literature",
+      "slug": "nih-nih-pubmed-biomedical-literature",
+      "title": "NIH PubMed biomedical literature",
+      "source": "NIH",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/",
+      "host": "pubmed.ncbi.nlm.nih.gov",
+      "kind": "science",
+      "topic_ids": [
+        "secret-programs",
+        "ai-technocracy"
+      ],
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "id": "nist-nist-publications-search",
+      "slug": "nist-nist-publications-search",
+      "title": "NIST publications search",
+      "source": "NIST",
+      "url": "https://www.nist.gov/publications",
+      "host": "nist.gov",
+      "kind": "science",
+      "topic_ids": [
+        "ai-technocracy",
+        "secret-programs"
+      ],
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "id": "noaa-noaa-space-weather-prediction-center",
+      "slug": "noaa-noaa-space-weather-prediction-center",
+      "title": "NOAA Space Weather Prediction Center",
+      "source": "NOAA",
+      "url": "https://www.swpc.noaa.gov/",
+      "host": "swpc.noaa.gov",
+      "kind": "science",
+      "topic_ids": [
+        "space-anomalies"
+      ],
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    },
+    {
+      "id": "usgs-usgs-earthquake-and-hazard-data",
+      "slug": "usgs-usgs-earthquake-and-hazard-data",
+      "title": "USGS earthquake and hazard data",
+      "source": "USGS",
+      "url": "https://earthquake.usgs.gov/",
+      "host": "earthquake.usgs.gov",
+      "kind": "science",
+      "topic_ids": [
+        "space-anomalies"
+      ],
+      "status": "active",
+      "metadata": {
+        "seededBy": "recursiv-public-snapshot-v1"
+      }
+    }
+  ]
+}

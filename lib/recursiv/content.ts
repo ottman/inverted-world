@@ -1,4 +1,5 @@
 import { researchDocuments, topics, type ChannelVideo, type ResearchDocument } from "@/data/inverted-world"
+import recursivPublicSnapshot from "@/data/generated/recursiv-public-snapshot.json"
 import type { IntelligenceArticle } from "@/data/intelligence-articles"
 import type { ViralXPost } from "@/lib/x-posts"
 import { queryInvertedWorldDatabase, type RecursivRow } from "@/lib/recursiv/database"
@@ -219,7 +220,7 @@ export type SourceDocument = {
 }
 
 export type SourceDocumentsResult = {
-  sourceMode: "recursiv-database" | "static"
+  sourceMode: "recursiv-database" | "recursiv-snapshot" | "static"
   documents: SourceDocument[]
 }
 
@@ -826,6 +827,18 @@ function staticSourceDocuments(options: { topicId?: string; kind?: string } = {}
   }
 }
 
+function snapshotSourceDocuments(options: { topicId?: string; kind?: string } = {}): SourceDocumentsResult | null {
+  const rows = Array.isArray(recursivPublicSnapshot.sourceDocuments)
+    ? (recursivPublicSnapshot.sourceDocuments as SourceDocumentRow[])
+    : []
+  if (!rows.length) return null
+
+  return {
+    sourceMode: "recursiv-snapshot",
+    documents: filterSourceDocuments(rows.map(sourceDocumentRowToDocument), options),
+  }
+}
+
 export async function fetchSourceDocuments(options: { topicId?: string; kind?: string } = {}): Promise<SourceDocumentsResult> {
   const rows = await queryInvertedWorldDatabase<SourceDocumentRow>(
     `SELECT
@@ -844,7 +857,7 @@ export async function fetchSourceDocuments(options: { topicId?: string; kind?: s
     ORDER BY kind, title`,
   )
 
-  if (!rows?.length) return staticSourceDocuments(options)
+  if (!rows?.length) return snapshotSourceDocuments(options) || staticSourceDocuments(options)
 
   return {
     sourceMode: "recursiv-database",

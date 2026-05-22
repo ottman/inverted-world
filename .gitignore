@@ -6,4 +6,6 @@ node_modules
 .env
 .env.local
 .env*.local
-data/generated
+data/generated/*
+!data/generated/
+!data/generated/recursiv-public-snapshot.json

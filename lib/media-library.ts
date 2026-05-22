@@ -7,31 +7,32 @@ import {
   type MediaLibraryItem,
   type ResearchDocument,
 } from "@/data/inverted-world"
+import recursivPublicSnapshot from "@/data/generated/recursiv-public-snapshot.json"
 import { queryInvertedWorldDatabase, type RecursivRow } from "@/lib/recursiv/database"
 
 export type { MediaLibraryItem } from "@/data/inverted-world"
 
 type MediaLibraryRow = RecursivRow & {
-  slug?: string
-  title?: string
-  source?: string
-  source_url?: string
-  kind?: MediaLibraryItem["kind"]
-  viewer?: MediaLibraryItem["viewer"]
+  slug?: string | null
+  title?: string | null
+  source?: string | null
+  source_url?: string | null
+  kind?: MediaLibraryItem["kind"] | null
+  viewer?: MediaLibraryItem["viewer"] | null
   topic_ids?: unknown
-  summary?: string
-  published_at?: string
-  embed_url?: string
-  thumbnail_url?: string
-  file_type?: string
-  agency?: string
-  collection?: string
-  status?: string
+  summary?: string | null
+  published_at?: string | null
+  embed_url?: string | null
+  thumbnail_url?: string | null
+  file_type?: string | null
+  agency?: string | null
+  collection?: string | null
+  status?: string | null
   metadata?: unknown
 }
 
 export type MediaLibraryResult = {
-  sourceMode: "recursiv-database" | "static"
+  sourceMode: "recursiv-database" | "recursiv-snapshot" | "static"
   items: MediaLibraryItem[]
 }
 
@@ -143,12 +144,12 @@ function rowToMediaItem(row: MediaLibraryRow): MediaLibraryItem {
     viewer,
     topicIds,
     summary: row.summary || `Source media for ${topicIds.map(topicTitle).join(", ") || "the archive"}.`,
-    publishedAt: row.published_at,
-    embedUrl: row.embed_url,
-    thumbnailUrl: row.thumbnail_url,
-    fileType: row.file_type,
-    agency: row.agency,
-    collection: row.collection,
+    publishedAt: row.published_at || undefined,
+    embedUrl: row.embed_url || undefined,
+    thumbnailUrl: row.thumbnail_url || undefined,
+    fileType: row.file_type || undefined,
+    agency: row.agency || undefined,
+    collection: row.collection || undefined,
   }
 }
 
@@ -262,6 +263,13 @@ function staticMediaLibraryItems(officialUapItems: MediaLibraryItem[] = []) {
   ])
 }
 
+function snapshotMediaLibraryItems() {
+  const rows = Array.isArray(recursivPublicSnapshot.mediaItems)
+    ? (recursivPublicSnapshot.mediaItems as MediaLibraryRow[])
+    : []
+  return dedupeMediaItems(rows.map(rowToMediaItem))
+}
+
 export async function fetchMediaSeedItemsForSync() {
   const officialUapItems = await fetchOfficialUapReleaseMedia()
   return staticMediaLibraryItems(officialUapItems)
@@ -298,6 +306,14 @@ export async function fetchMediaLibrary(): Promise<MediaLibraryResult> {
     return {
       sourceMode: "recursiv-database",
       items: dedupeMediaItems([...rows.map(rowToMediaItem), ...officialUapItems]),
+    }
+  }
+
+  const snapshotItems = snapshotMediaLibraryItems()
+  if (snapshotItems.length) {
+    return {
+      sourceMode: "recursiv-snapshot",
+      items: dedupeMediaItems([...snapshotItems, ...officialUapItems]),
     }
   }
 
