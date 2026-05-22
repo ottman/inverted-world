@@ -151,9 +151,12 @@ function BreakingTicker({ items }: { items?: BreakingItem[] }) {
     href: `/#topic-${topic.id}`,
     source: topic.title,
   }))
-  const visibleItems = (items?.length ? items : fallbackItems).slice(0, 32)
+  const visibleItems = (items?.length ? items : fallbackItems)
+    .slice(0, 32)
+    .map((item) => ({ ...item, title: cleanTickerTitle(item.title) }))
   const marqueeItems = [...visibleItems, ...visibleItems]
-  const tickerDurationSeconds = Math.max(90, Math.round(visibleItems.length * 7.5))
+  const tickerCharacterCount = visibleItems.reduce((sum, item) => sum + item.title.length + (item.source?.length || 0) + 18, 0)
+  const tickerDurationSeconds = Math.max(150, Math.round(tickerCharacterCount * 0.72))
 
   return (
     <div>
@@ -184,6 +187,15 @@ function BreakingTicker({ items }: { items?: BreakingItem[] }) {
       </div>
     </div>
   )
+}
+
+function cleanTickerTitle(value: string) {
+  let title = value.trim()
+  for (const topic of topics) {
+    const escaped = topic.title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    title = title.replace(new RegExp(`^(?:${escaped}\\s*:\\s*)+`, "i"), "").trim()
+  }
+  return title || value
 }
 
 function SimpleFooter() {

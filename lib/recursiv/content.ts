@@ -254,6 +254,18 @@ function cleanDossierTitle(value: string | undefined, topicId: string) {
   return title || fallback
 }
 
+function cleanPublicTitle(value: string | undefined, topicId: string, fallback = "Inverted World report") {
+  let title = cleanDossierTitle(value, topicId)
+
+  for (const topic of topics) {
+    const escaped = topic.title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    const repeatedPrefix = new RegExp(`^(?:${escaped}\\s*:\\s*)+`, "i")
+    title = title.replace(repeatedPrefix, "").trim()
+  }
+
+  return title || fallback
+}
+
 function slugify(value: string) {
   return value
     .toLowerCase()
@@ -272,11 +284,12 @@ function publicDossierSlug(rowSlug: string | undefined, title: string, topicId: 
 }
 
 function cleanDossierDeck(value: string | undefined, topicId: string) {
-  const fallback = `A sourced ${topicDisplayTitle(topicId)} file with records, social velocity, skeptical reads, and Tales archive context.`
+  const fallback = `Latest sourced reporting in ${topicDisplayTitle(topicId)}, with original links, social context, and related Tales archive material beside it.`
   const deck = value?.trim() || fallback
   if (
     /Ground News/i.test(deck) ||
     /source split.*X velocity.*evidence grade/i.test(deck) ||
+    /^A sourced .* file with records, social velocity, skeptical reads, and Tales archive context\.?$/i.test(deck) ||
     /dossier for\s+[A-Za-z -]+:/i.test(deck)
   ) {
     return fallback
@@ -318,11 +331,15 @@ function articleRowToArticle(row: ArticleDraftRow): IntelligenceArticle {
   const thumbnail = jsonObject(metadata.thumbnail)
   const sourceName = row.source_name || (typeof metadata.sourceName === "string" ? metadata.sourceName : undefined)
   const sourceUrl = row.source_url || (typeof metadata.sourceUrl === "string" ? metadata.sourceUrl : undefined)
+  const title = cleanPublicTitle(row.title, topicId, "Untitled Inverted World report")
 
   return {
     id: row.slug || row.id || "recursiv-article",
-    title: row.title || "Untitled Inverted World report",
-    deck: row.deck || "Published from the Recursiv research desk.",
+    title,
+    deck: cleanDossierDeck(
+      row.deck || `Latest sourced reporting in the ${topicDisplayTitle(topicId)} lane, with original links and archive context attached.`,
+      topicId,
+    ),
     topicId,
     topic: topicTitle(topicId),
     publishedAt: safeDate(row.published_at) || new Date().toISOString().slice(0, 10),
@@ -334,8 +351,10 @@ function articleRowToArticle(row: ArticleDraftRow): IntelligenceArticle {
       ...(thumbnail as Partial<IntelligenceArticle["thumbnail"]>),
       imageUrl: row.asset_url || (typeof metadata.assetUrl === "string" ? metadata.assetUrl : undefined),
     },
-    body: body.length ? body : ["The Recursiv research desk has published this item without a rendered body yet."],
-    thumbnailPrompt: row.thumbnail_prompt || (typeof metadata.thumbnailPrompt === "string" ? metadata.thumbnailPrompt : ""),
+    body: body.length ? body : ["This story is still being written. Start with the source links and related archive material below."],
+    thumbnailPrompt:
+      row.thumbnail_prompt ||
+      (typeof metadata.thumbnailPrompt === "string" ? metadata.thumbnailPrompt.replace(row.title || "", title) : ""),
   }
 }
 
@@ -839,7 +858,7 @@ export async function getRecursivPublishedArticle(articleId: string) {
 }
 
 export async function fetchRecursivXSignalsForTopic(topicId: string, options: { limit?: number } = {}) {
-  const limit = Math.max(1, Math.min(Math.trunc(options.limit || 12), 24))
+  const limit = Math.max(1, Math.min(Math.trunc(options.limit || 18), 48))
   const rows = await queryInvertedWorldDatabase<XSignalRow>(
     `SELECT
       x_id,

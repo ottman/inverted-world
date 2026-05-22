@@ -194,6 +194,13 @@ export function ArchiveOnlyPage({
     }
   }
 
+  function selectVideo(video: ChannelVideo) {
+    setSelectedVideo(video)
+    window.requestAnimationFrame(() => {
+      document.getElementById("watch")?.scrollIntoView({ behavior: "smooth", block: "start" })
+    })
+  }
+
   return (
     <InvertedPageShell
       eyebrow="LIVE Mon - Thurs at 10 p.m. EST"
@@ -202,7 +209,7 @@ export function ArchiveOnlyPage({
       heroTitle="Tales From The Inverted World"
       heroDescription=""
     >
-      <section className="grid gap-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.55fr)]">
+      <section id="watch" className="scroll-mt-28 grid gap-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.55fr)]">
         <div className={cn("p-2 sm:p-3", archiveSurface)}>
           <div className="relative aspect-video overflow-hidden bg-[#050504]/60">
             <iframe
@@ -233,7 +240,7 @@ export function ArchiveOnlyPage({
                 rel={leadVideoIsArchiveItem ? undefined : "noreferrer"}
                 className="inline-flex h-10 items-center gap-2 bg-[#df2f2f]/10 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-[#df2f2f]/18"
               >
-                {leadVideoIsArchiveItem ? "Video page" : "Watch live"}
+                {leadVideoIsArchiveItem ? "Details" : "Watch live"}
                 <ArrowUpRight className="h-4 w-4" />
               </a>
             )}
@@ -287,7 +294,7 @@ export function ArchiveOnlyPage({
                   <LiveFeed topicTitle={topic.title} articles={feed} />
                   <XSignalLane topic={topic} posts={xPosts} />
                 </div>
-                <VideoGrid videos={visibleTopicVideos} />
+                <VideoGrid videos={visibleTopicVideos} activeVideoKey={leadVideo ? videoKey(leadVideo) : undefined} onSelect={selectVideo} />
               </div>
             </section>
           )
@@ -330,7 +337,7 @@ function TopicIndex({
 
 function XSignalLane({ topic, posts }: { topic: ContentTopic; posts: ViralXPost[] }) {
   const signalUrl = `/x/${topic.id}`
-  const visiblePosts = posts.slice(0, 1)
+  const visiblePosts = posts.slice(0, 3)
 
   return (
     <section className="bg-[#050504]/30 p-3">
@@ -343,7 +350,7 @@ function XSignalLane({ topic, posts }: { topic: ContentTopic; posts: ViralXPost[
           href={signalUrl}
           className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#dff7ff] transition hover:text-[#df2f2f]"
         >
-          Signal page
+          More X
           <ArrowUpRight className="h-3.5 w-3.5" />
         </a>
       </div>
@@ -363,7 +370,7 @@ function EmbeddedTweetGrid({ posts, topicId }: { posts: ViralXPost[]; topicId: s
         rel={topic ? "noreferrer" : undefined}
         className="block bg-black p-4 text-sm leading-6 text-[#f4efe2]/62 transition hover:text-[#fff8e6]"
       >
-        No ranked posts passed the filters yet. Open the live X search.
+        Open live X search for this lane.
       </a>
     )
   }
@@ -377,21 +384,10 @@ function EmbeddedTweetGrid({ posts, topicId }: { posts: ViralXPost[]; topicId: s
           tabIndex={0}
           onClick={() => openInAppSignal(post.topicId || topicId)}
           onKeyDown={(event) => handleSignalKey(event, post.topicId || topicId)}
-          className="block cursor-pointer overflow-hidden bg-black p-2"
+          className="block cursor-pointer bg-black/72 p-3 transition hover:bg-black"
         >
-          <div className="iw-compact-tweet">
-            <blockquote
-              className="twitter-tweet iw-tweet-blockquote"
-              data-theme="dark"
-              data-dnt="true"
-              data-cards="hidden"
-              data-conversation="none"
-              data-width="260"
-            >
-              <a href={post.url}>{post.text}</a>
-            </blockquote>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 pt-2 text-[10px] uppercase tracking-[0.12em] text-[#f4efe2]/44">
+          <p className="line-clamp-4 text-sm leading-5 text-[#f4efe2]/74">{post.text}</p>
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-[#f4efe2]/44">
             {post.username && <span>@{post.username}</span>}
             <span>{postMetricLabel(post)}</span>
           </div>
@@ -495,20 +491,29 @@ function LiveFeed({ topicTitle, articles }: { topicTitle: string; articles: Inte
   )
 }
 
-function VideoGrid({ videos }: { videos: ChannelVideo[] }) {
+function VideoGrid({
+  videos,
+  activeVideoKey,
+  onSelect,
+}: {
+  videos: ChannelVideo[]
+  activeVideoKey?: string
+  onSelect: (video: ChannelVideo) => void
+}) {
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       {videos.map((video) => {
-        const href = video.videoId ? `/archive/${video.videoId}` : video.href
-        const external = href.startsWith("http")
+        const active = activeVideoKey === videoKey(video)
         return (
-          <a
+          <button
+            type="button"
             key={videoKey(video)}
-            href={href}
-            target={external ? "_blank" : undefined}
-            rel={external ? "noreferrer" : undefined}
-            className="group overflow-hidden bg-[#050504]/36 transition hover:bg-[#070706]/62"
-            aria-label={`Open ${video.title}`}
+            onClick={() => onSelect(video)}
+            className={cn(
+              "group overflow-hidden bg-[#050504]/36 text-left transition hover:bg-[#070706]/62",
+              active && "ring-1 ring-[#df2f2f]/55",
+            )}
+            aria-label={`Play ${video.title}`}
           >
             <span className="relative block aspect-video w-full bg-[#050504]/70 text-left">
               {video.thumbnail && (
@@ -524,12 +529,11 @@ function VideoGrid({ videos }: { videos: ChannelVideo[] }) {
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
                 <span className="text-xs uppercase tracking-[0.12em] text-[#f4efe2]/42">{video.date || "upload"}</span>
                 <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.1em] text-[#dff7ff] transition group-hover:text-[#df2f2f]">
-                  Open
-                  <ArrowUpRight className="h-3.5 w-3.5" />
+                  {active ? "Playing" : "Play"}
                 </span>
               </div>
             </div>
-          </a>
+          </button>
         )
       })}
       {!videos.length && (

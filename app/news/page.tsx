@@ -49,6 +49,7 @@ export default async function NewsPage() {
   const editionArticles = sectionArray(edition?.sections.articles).slice(0, 5)
   const editionSignals = sectionArray(edition?.sections.xSignals).slice(0, 5)
   const validNewsHrefs = new Set(dossiers.map((dossier) => `/news/${dossier.slug}`))
+  const dossierByHref = new Map(dossiers.map((dossier) => [`/news/${dossier.slug}`, dossier]))
   const breakingItems: BreakingItem[] = dossiers.slice(0, 18).map((dossier) => ({
     title: dossier.title,
     href: `/news/${dossier.slug}`,
@@ -60,8 +61,8 @@ export default async function NewsPage() {
       eyebrow="Conspiracy-world intelligence desk"
       title="Inverted World News"
       breakingItems={breakingItems}
-      heroTitle="Claim Dossiers"
-      heroDescription="Daily source clusters, viral social signal, evidence labels, and archive context from the Inverted World beat."
+      heroTitle="Latest Stories"
+      heroDescription="Source-first reporting on the unexplained, the classified, elite networks, anomalous science, AI power, and the stories moving fastest through independent media."
     >
       {edition ? (
         <section className={cn("mb-6 grid gap-4 p-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(320px,0.55fr)]", archiveSurface)}>
@@ -79,18 +80,22 @@ export default async function NewsPage() {
           <div className="grid gap-3 bg-black/24 p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#df2f2f]">Edition Leads</p>
             <div className="grid gap-2">
-              {editionArticles.map((article) => (
-                <a
-                  key={textField(article.href) || textField(article.title)}
-                  href={safeEditionHref(textField(article.href), validNewsHrefs)}
-                  className="grid gap-1 bg-black/28 p-3 transition hover:bg-black/54"
-                >
-                  <span className="text-sm leading-5 text-[#fff8e6]">{textField(article.title)}</span>
-                  <span className="text-[10px] uppercase tracking-[0.12em] text-[#f4efe2]/42">
-                    {textField(article.source) || "Inverted World"} / heat {Number(article.heat || 0)}
-                  </span>
-                </a>
-              ))}
+              {editionArticles.map((article) => {
+                const href = safeEditionHref(textField(article.href), validNewsHrefs)
+                const linkedDossier = dossierByHref.get(href.replace(/\/$/, ""))
+                return (
+                  <a
+                    key={textField(article.href) || textField(article.title)}
+                    href={href}
+                    className="grid gap-1 bg-black/28 p-3 transition hover:bg-black/54"
+                  >
+                    <span className="text-sm leading-5 text-[#fff8e6]">{linkedDossier?.title || textField(article.title)}</span>
+                    <span className="text-[10px] uppercase tracking-[0.12em] text-[#f4efe2]/42">
+                      {textField(article.source) || "Inverted World"} / heat {Number(article.heat || 0)}
+                    </span>
+                  </a>
+                )
+              })}
             </div>
           </div>
           {editionSignals.length ? (
@@ -126,7 +131,7 @@ export default async function NewsPage() {
               <p className="mt-5 max-w-3xl text-lg leading-7 text-[#f4efe2]/72">{lead.summary}</p>
             </div>
             <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#fff8e6]">
-              Open dossier
+              Read story
               <ArrowUpRight className="h-4 w-4 text-[#df2f2f]" />
             </div>
           </a>
@@ -136,7 +141,7 @@ export default async function NewsPage() {
             <Metric icon={<Radio className="h-4 w-4" />} label="X Velocity" value={formatScore(lead.xVelocityScore)} />
             <Metric icon={<Bot className="h-4 w-4" />} label="Ask AI" value="Grounded" />
             <div className="bg-black/30 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#df2f2f]">Viral Frames</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#df2f2f]">Angles To Watch</p>
               <div className="mt-3 grid gap-2">
                 {lead.viralHeadlines.slice(0, 4).map((headline) => (
                   <p key={headline} className="text-sm leading-5 text-[#f4efe2]/72">
@@ -149,7 +154,7 @@ export default async function NewsPage() {
         </section>
       ) : (
         <section className={cn("grid gap-4 p-6 text-sm leading-6 text-[#f4efe2]/62", archiveSurface)}>
-          <p>No published claim dossiers are ready yet. Start with the archive, live X lanes, or source documents while the desk fills in.</p>
+          <p>No published stories are ready yet. Start with the archive, live X lanes, or source documents while the desk fills in.</p>
           <div className="flex flex-wrap gap-2">
             <a href="/archive" className="bg-black/30 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-black/54">
               Archive

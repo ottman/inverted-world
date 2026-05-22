@@ -83,8 +83,8 @@ export function DossierChat({ slug }: { slug: string }) {
   return (
     <section className="grid gap-3 bg-[#050504]/42 p-4">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="iw-serif text-3xl leading-none text-[#fff8e6]">Ask The Dossier</h2>
-        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#df2f2f]">Recursiv AI</span>
+        <h2 className="iw-serif text-3xl leading-none text-[#fff8e6]">Ask This Story</h2>
+        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#df2f2f]">AI</span>
       </div>
 
       <div className="grid min-h-[120px] gap-3">
@@ -104,7 +104,7 @@ export function DossierChat({ slug }: { slug: string }) {
           ))
         ) : (
           <div className="grid place-items-center bg-black/28 p-4 text-center text-sm leading-6 text-[#f4efe2]/54">
-            Ask what is documented, what is alleged, what is missing, or what would change the evidence grade.
+            Ask what is documented, what is alleged, what is missing, or which sources matter most.
           </div>
         )}
       </div>

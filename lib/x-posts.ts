@@ -49,7 +49,7 @@ const TOPIC_SOURCE_X_ACCOUNT_SETS = Object.fromEntries(
   ]),
 )
 const TOPIC_SOURCE_ACCOUNT_SCORE_BONUS = 175
-const DEFAULT_TOPIC_QUERY_PACK_LIMIT = 4
+const DEFAULT_TOPIC_QUERY_PACK_LIMIT = 6
 const TOPIC_X_SCORE_FLOORS: Record<string, number> = {
   "uap-disclosure": 250,
   "secret-programs": 140,
@@ -862,7 +862,7 @@ export async function fetchViralXPostsForTopic(
   topicId: string,
   options: { limit?: number; allowProfileReader?: boolean } & ProviderFallbackOptions = {},
 ) {
-  const limit = Math.max(1, Math.min(Math.trunc(options.limit || 12), 24))
+  const limit = Math.max(1, Math.min(Math.trunc(options.limit || 18), 48))
   const recursivPosts = (await fetchRecursivXSignalsForTopic(topicId, { limit })) || []
   const recursivRankedPosts = mergeWithSeededPosts(topicId, recursivPosts, limit)
   if (recursivRankedPosts.length >= limit || !allowProviderFallbacks(options)) return recursivRankedPosts

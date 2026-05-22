@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 export const metadata: Metadata = {
   title: "How It Works | Inverted World",
   description:
-    "How Inverted World combines the Tales archive, live news, X velocity, source documents, Recursiv jobs, and AI-assisted dossiers.",
+    "How Inverted World turns the Tales archive, live news, X signal, source documents, and AI research into a daily independent media desk.",
   alternates: {
     canonical: "/how-it-works",
   },
@@ -15,27 +15,27 @@ export const metadata: Metadata = {
 const systemSteps = [
   {
     title: "Archive First",
-    body: "Every Tales From the Inverted World upload becomes a durable research object: video page, topic lane, source context, transcript when available, and related coverage.",
+    body: "The show is the center of gravity. Episodes and shorts are organized into topic lanes so new readers can move from a current story back into the full Tales archive.",
   },
   {
     title: "Signal Intake",
-    body: "Topic jobs collect live news links, X posts, official records, court material, FOIA archives, YouTube updates, and source documents across each lane.",
+    body: "The desk watches live news, X, official records, court material, FOIA archives, YouTube updates, and source documents across the strange and contested beats.",
   },
   {
-    title: "Claim Clustering",
-    body: "The system groups posts and articles around the same claim, event, person, document, agency, or anomaly so readers can see the story instead of isolated links.",
+    title: "Story Clustering",
+    body: "Related posts, articles, documents, names, agencies, and events are grouped together so readers see the story instead of a pile of disconnected links.",
   },
   {
-    title: "Evidence Labels",
-    body: "AI assists with source extraction, bias contrast, timeline building, headline drafting, and evidence grading. Source links stay attached so claims can be checked directly.",
+    title: "Source Contrast",
+    body: "AI helps compare mainstream coverage, independent media, primary records, skeptical reads, and social velocity while keeping the original links close to the story.",
   },
   {
-    title: "Published Dossiers",
-    body: "Strong clusters become living dossiers with weird reads, skeptical reads, confirmed facts, open questions, X velocity, related videos, and generated visual assets.",
+    title: "Readable Stories",
+    body: "Strong clusters become clean articles with the baseline facts first, then source links, open questions, X momentum, and related Tales context for deeper research.",
   },
   {
     title: "Reader Research",
-    body: "The long-term product is a chat-enabled research room where users can interrogate each story, ask for opposing arguments, and trace claims back to primary material.",
+    body: "Readers can keep going: open the source, watch the related episode, follow the X lane, or ask AI to explain what is known, disputed, missing, and worth checking next.",
   },
 ]
 
@@ -45,23 +45,24 @@ export default function HowItWorksPage() {
       eyebrow="Research system"
       title="How It Works"
       heroTitle="How It Works"
-      heroDescription="A daily intelligence desk for the unexplained, the classified, the misreported, and the stories moving fastest through independent media."
+      heroDescription="A daily independent media desk for the unexplained, the classified, the misreported, and the stories moving fastest online."
     >
       <div className="grid gap-5">
         <section className={cn("p-4 sm:p-5", archiveSurface)}>
           <div className="grid gap-4 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:items-start">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#df2f2f]">The Goal</p>
-              <h2 className="iw-serif mt-2 text-4xl leading-none text-[#fff8e6] sm:text-5xl">Ground-level velocity, archive-level memory.</h2>
+              <h2 className="iw-serif mt-2 text-4xl leading-none text-[#fff8e6] sm:text-5xl">Fast signal, long memory.</h2>
             </div>
             <div className="grid gap-4 text-sm leading-7 text-[#f4efe2]/72">
               <p>
-                Inverted World is built around the show, then expanded into a full news and archive product for the
-                conspiracy, paranormal, intelligence, technology, and anomalous-science beat.
+                Inverted World starts with Tales From the Inverted World and expands it into a full news and archive
+                product for conspiracy-world reporting, paranormal investigations, intelligence history, AI power,
+                elite networks, and anomalous science.
               </p>
               <p>
-                The aim is simple: preserve the source material, catch the fastest-moving social signal, compare both
-                sides of the coverage, and turn the strongest leads into sourced dossiers readers can inspect.
+                The aim is simple: preserve the original material, catch the fastest-moving social signal, compare the
+                coverage, and turn the strongest leads into stories readers can actually follow.
               </p>
             </div>
           </div>
@@ -79,16 +80,16 @@ export default function HowItWorksPage() {
         <section className={cn("p-4 sm:p-5", archiveSurface)}>
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.72fr)]">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#df2f2f]">Technical Shape</p>
-              <h2 className="iw-serif mt-2 text-4xl leading-none text-[#fff8e6] sm:text-5xl">Recursiv is the publishing backbone.</h2>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#df2f2f]">The Product</p>
+              <h2 className="iw-serif mt-2 text-4xl leading-none text-[#fff8e6] sm:text-5xl">Built to become a daily habit.</h2>
               <div className="mt-4 grid gap-4 text-sm leading-7 text-[#f4efe2]/68">
                 <p>
-                  The front end is a Next.js reading experience. The backend direction is Recursiv-hosted state:
-                  channel items, coverage snapshots, X signals, article drafts, generated assets, and scheduled jobs.
+                  The homepage gives you the show, live topic lanes, current X signal, and a fast path into the newest
+                  stories. The news desk turns the strongest clusters into readable articles with sources and context.
                 </p>
                 <p>
-                  Provider keys stay server-side. Jobs collect signals, normalize sources, dedupe repeats, score velocity,
-                  draft articles, prepare assets, and publish only the records meant for the site to read.
+                  The experience is designed for repeat visits: watch the latest episode, scan what is breaking, read the
+                  sourced story, then go deeper through archive video, primary links, social reaction, and AI research.
                 </p>
               </div>
             </div>

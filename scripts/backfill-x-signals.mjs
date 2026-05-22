@@ -35,10 +35,13 @@ const TOPICS = {
     floor: 160,
     coreFloor: 35,
     queries: [
-      '("Jeffrey Epstein" OR Epstein OR Maxwell OR "Epstein files")',
+      '("Jeffrey Epstein" OR Epstein OR Maxwell OR "Epstein files" OR "client list")',
       '("client list" OR "flight logs" OR "sealed documents" OR "court records")',
       '(Giuffre OR "Prince Andrew" OR "JPMorgan Epstein" OR "Epstein island")',
       '("DOJ Epstein" OR "Epstein documents" OR "unsealed Epstein")',
+      '("blackmail network" OR "elite network" OR "elite access" OR "institutional corruption")',
+      '("donor class" OR "dark money" OR "power network" OR "elite capture" OR lobbying)',
+      '("WEF" OR Davos OR Bilderberg OR BlackRock OR Vanguard OR "World Economic Forum")',
     ],
     accounts: ["ShaneCashman", "TimcastNews", "julie_k_brown", "MiamiHerald", "SDNYnews", "TheJusticeDept"],
     terms: ["epstein", "maxwell", "ghislaine", "client list", "flight logs", "sealed documents", "prince andrew", "giuffre", "jpmorgan epstein"],
@@ -51,6 +54,7 @@ const TOPICS = {
       '("ghost sighting" OR "ghost video" OR poltergeist OR "paranormal investigation")',
       '("high strangeness" OR Skinwalker OR "missing 411" OR "remote viewing")',
       '("pterodactyl" OR "strange creature" OR "fortean")',
+      '("near death experience" OR "consciousness anomaly" OR "strange lights" OR "haunted")',
     ],
     accounts: ["InvertedTales", "ShaneCashman", "mufon", "ForteanTimes"],
     terms: ["pterodactyl", "cryptid", "bigfoot", "sasquatch", "mufon", "fortean", "high strangeness", "skinwalker"],
@@ -111,8 +115,8 @@ function readRecursivKey() {
 
 function parseLimit() {
   const value = process.argv.find((arg) => arg.startsWith("--limit="))?.split("=")[1]
-  const parsed = Number(value || process.env.X_BACKFILL_LIMIT_PER_TOPIC || "12")
-  return Math.max(1, Math.min(Math.trunc(parsed) || 12, 24))
+  const parsed = Number(value || process.env.X_BACKFILL_LIMIT_PER_TOPIC || "24")
+  return Math.max(1, Math.min(Math.trunc(parsed) || 24, 48))
 }
 
 function shouldKeepExisting() {

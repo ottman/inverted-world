@@ -588,17 +588,18 @@ export async function reclassifyYouTubeArchiveInRecursiv() {
     database_name: config.databaseName,
     sql: `UPDATE claim_dossiers
       SET deck = CASE topic_id
-        WHEN 'uap-disclosure' THEN 'A sourced Skywatch file with records, social velocity, skeptical reads, and Tales archive context.'
-        WHEN 'secret-programs' THEN 'A sourced Declassified file with records, social velocity, skeptical reads, and Tales archive context.'
-        WHEN 'epstein-networks' THEN 'A sourced Power Web file with records, social velocity, skeptical reads, and Tales archive context.'
-        WHEN 'cryptids-paranormal' THEN 'A sourced High Strangeness file with records, social velocity, skeptical reads, and Tales archive context.'
-        WHEN 'ai-technocracy' THEN 'A sourced Machine State file with records, social velocity, skeptical reads, and Tales archive context.'
-        WHEN 'space-anomalies' THEN 'A sourced Off-World Signals file with records, social velocity, skeptical reads, and Tales archive context.'
-        ELSE 'A sourced Inverted World file with records, social velocity, skeptical reads, and Tales archive context.'
+        WHEN 'uap-disclosure' THEN 'Latest sourced reporting in Skywatch, with original links, social context, and related Tales archive material beside it.'
+        WHEN 'secret-programs' THEN 'Latest sourced reporting in Declassified, with original links, social context, and related Tales archive material beside it.'
+        WHEN 'epstein-networks' THEN 'Latest sourced reporting in Power Web, with original links, social context, and related Tales archive material beside it.'
+        WHEN 'cryptids-paranormal' THEN 'Latest sourced reporting in High Strangeness, with original links, social context, and related Tales archive material beside it.'
+        WHEN 'ai-technocracy' THEN 'Latest sourced reporting in Machine State, with original links, social context, and related Tales archive material beside it.'
+        WHEN 'space-anomalies' THEN 'Latest sourced reporting in Off-World Signals, with original links, social context, and related Tales archive material beside it.'
+        ELSE 'Latest sourced reporting in Inverted World, with original links, social context, and related Tales archive material beside it.'
       END,
       updated_at = now()
       WHERE deck ILIKE '%Ground News%'
         OR (deck ILIKE '%source split%' AND deck ILIKE '%X velocity%' AND deck ILIKE '%evidence grade%')
+        OR deck ILIKE 'A sourced % file with records, social velocity, skeptical reads, and Tales archive context%'
       RETURNING id`,
   })
 
@@ -862,7 +863,7 @@ export async function generateClaimDossiersInRecursiv() {
       params: [
         slug,
         title,
-        `A sourced ${topic.title} file with records, social velocity, skeptical reads, and Tales archive context.`,
+        `Latest sourced reporting in ${topic.title}, with original links, social context, and related Tales archive material beside it.`,
         topic.id,
         claim,
         summary,
