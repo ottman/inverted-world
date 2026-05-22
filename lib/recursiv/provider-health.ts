@@ -1,6 +1,7 @@
 import { channelProfile } from "@/data/inverted-world"
 import { createRecursivServerClient } from "@/lib/recursiv/client"
 import { getRecursivRuntimeConfig } from "@/lib/recursiv/config"
+import { getYouTubeApiKey } from "@/lib/youtube-config"
 
 type ProviderStatus = "ok" | "missing" | "error"
 
@@ -58,6 +59,43 @@ function configuredOnly(provider: string, configured: boolean): ProviderHealthRe
 function safeMessage(error: unknown) {
   if (error instanceof Error) return error.message.slice(0, 160)
   return String(error).slice(0, 160)
+}
+
+function textField(value: unknown) {
+  return typeof value === "string" ? value : ""
+}
+
+function sanitizeProviderMessage(value: string) {
+  return value
+    .replace(/\[[0-9]{8,}\]/g, "[redacted-id]")
+    .replace(/\b[0-9]{12,}\b/g, "[redacted-id]")
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[redacted-email]")
+}
+
+function providerErrorMessage(provider: string, status: number, body: unknown) {
+  const data = body as
+    | {
+        title?: string
+        detail?: string
+        errors?: Array<{ title?: string; detail?: string; message?: string; reason?: string }>
+        error?: { message?: string; status?: string; errors?: Array<{ reason?: string; message?: string }> }
+      }
+    | undefined
+  const parts = [
+    `${provider} returned ${status}`,
+    textField(data?.title),
+    textField(data?.detail),
+    textField(data?.errors?.[0]?.title),
+    textField(data?.errors?.[0]?.detail),
+    textField(data?.errors?.[0]?.message),
+    textField(data?.errors?.[0]?.reason),
+    textField(data?.error?.status),
+    textField(data?.error?.message),
+    textField(data?.error?.errors?.[0]?.reason),
+    textField(data?.error?.errors?.[0]?.message),
+  ].filter(Boolean)
+
+  return sanitizeProviderMessage(Array.from(new Set(parts)).join(" / ")).slice(0, 220)
 }
 
 async function jsonFetch(url: string | URL, init: RequestInit) {
@@ -135,7 +173,7 @@ async function checkXApi(): Promise<ProviderHealthResult> {
       httpStatus: response.status,
       count,
       mode: "live",
-      message: response.ok ? undefined : `X API returned ${response.status}`,
+      message: response.ok ? undefined : providerErrorMessage("X API", response.status, body),
     }
   } catch (error) {
     return {
@@ -179,7 +217,7 @@ async function checkExa(): Promise<ProviderHealthResult> {
       httpStatus: response.status,
       count,
       mode: "live",
-      message: response.ok ? undefined : `Exa returned ${response.status}`,
+      message: response.ok ? undefined : providerErrorMessage("Exa", response.status, body),
     }
   } catch (error) {
     return {
@@ -220,7 +258,7 @@ async function checkBrave(): Promise<ProviderHealthResult> {
       httpStatus: response.status,
       count,
       mode: "live",
-      message: response.ok ? undefined : `Brave returned ${response.status}`,
+      message: response.ok ? undefined : providerErrorMessage("Brave", response.status, body),
     }
   } catch (error) {
     return {
@@ -266,7 +304,7 @@ async function checkYouTubeRss(): Promise<ProviderHealthResult> {
 }
 
 async function checkYouTubeData(): Promise<ProviderHealthResult> {
-  const key = process.env.YOUTUBE_API_KEY
+  const key = getYouTubeApiKey()
   if (!key) return missing("youtube-data-api")
 
   try {
@@ -290,7 +328,7 @@ async function checkYouTubeData(): Promise<ProviderHealthResult> {
       httpStatus: response.status,
       count,
       mode: "live",
-      message: response.ok ? undefined : `YouTube Data API returned ${response.status}`,
+      message: response.ok ? undefined : providerErrorMessage("YouTube Data API", response.status, body),
     }
   } catch (error) {
     return {

@@ -7,6 +7,7 @@ const DEFAULT_BASE_URL = "https://api.recursiv.io/api/v1"
 const DEFAULT_DATABASE_NAME = "inverted_world_research"
 const YOUTUBE_RSS_URL = "https://www.youtube.com/feeds/videos.xml?channel_id=UC7qGeFv85Oyct3xlKq-pedw"
 const YOUTUBE_UPLOADS_PLAYLIST_ID = "UU7qGeFv85Oyct3xlKq-pedw"
+const YOUTUBE_API_KEY_ENV_NAMES = ["YOUTUBE_API_KEY", "YOUTUBE_DATA_API_KEY", "GOOGLE_YOUTUBE_API_KEY", "GOOGLE_API_KEY"]
 
 function loadEnvFile(file) {
   if (!fs.existsSync(file)) return
@@ -46,6 +47,31 @@ function safeMessage(error) {
   return error instanceof Error ? error.message.slice(0, 160) : String(error).slice(0, 160)
 }
 
+function sanitizeProviderMessage(value) {
+  return value
+    .replace(/\[[0-9]{8,}\]/g, "[redacted-id]")
+    .replace(/\b[0-9]{12,}\b/g, "[redacted-id]")
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[redacted-email]")
+}
+
+function providerErrorMessage(provider, status, body) {
+  const parts = [
+    `${provider} returned ${status}`,
+    body?.title,
+    body?.detail,
+    body?.errors?.[0]?.title,
+    body?.errors?.[0]?.detail,
+    body?.errors?.[0]?.message,
+    body?.errors?.[0]?.reason,
+    body?.error?.status,
+    body?.error?.message,
+    body?.error?.errors?.[0]?.reason,
+    body?.error?.errors?.[0]?.message,
+  ].filter((value) => typeof value === "string" && value)
+
+  return sanitizeProviderMessage(Array.from(new Set(parts)).join(" / ")).slice(0, 220)
+}
+
 function readRecursivKey() {
   const candidates = [process.env.RECURSIV_API_KEY_FILE, LOCAL_RECURSIV_KEY].filter(Boolean)
   for (const file of candidates) {
@@ -56,6 +82,10 @@ function readRecursivKey() {
 
 function readProtectedFile(file) {
   return file && fs.existsSync(file) ? fs.readFileSync(file, "utf8").trim() : ""
+}
+
+function getYouTubeApiKey() {
+  return envAny(YOUTUBE_API_KEY_ENV_NAMES)
 }
 
 async function jsonFetch(url, init) {
@@ -129,7 +159,7 @@ async function checkXApi() {
       httpStatus: response.status,
       count: body?.data?.length || 0,
       mode: "live",
-      message: response.ok ? undefined : `X API returned ${response.status}`,
+      message: response.ok ? undefined : providerErrorMessage("X API", response.status, body),
     })
   } catch (error) {
     return result("x-api", { status: "error", configured: true, mode: "live", message: safeMessage(error) })
@@ -156,7 +186,7 @@ async function checkExa() {
       httpStatus: response.status,
       count: body?.results?.length || 0,
       mode: "live",
-      message: response.ok ? undefined : `Exa returned ${response.status}`,
+      message: response.ok ? undefined : providerErrorMessage("Exa", response.status, body),
     })
   } catch (error) {
     return result("exa", { status: "error", configured: true, mode: "live", message: safeMessage(error) })
@@ -184,7 +214,7 @@ async function checkBrave() {
       httpStatus: response.status,
       count: body?.web?.results?.length || 0,
       mode: "live",
-      message: response.ok ? undefined : `Brave returned ${response.status}`,
+      message: response.ok ? undefined : providerErrorMessage("Brave", response.status, body),
     })
   } catch (error) {
     return result("brave-search", { status: "error", configured: true, mode: "live", message: safeMessage(error) })
@@ -212,7 +242,7 @@ async function checkYouTubeRss() {
 }
 
 async function checkYouTubeData() {
-  const key = process.env.YOUTUBE_API_KEY
+  const key = getYouTubeApiKey()
   if (!key) return missing("youtube-data-api")
 
   try {
@@ -228,7 +258,7 @@ async function checkYouTubeData() {
       httpStatus: response.status,
       count: body?.items?.length || 0,
       mode: "live",
-      message: response.ok ? undefined : `YouTube Data API returned ${response.status}`,
+      message: response.ok ? undefined : providerErrorMessage("YouTube Data API", response.status, body),
     })
   } catch (error) {
     return result("youtube-data-api", { status: "error", configured: true, mode: "live", message: safeMessage(error) })

@@ -36,4 +36,4 @@ The command prints a redacted JSON report with:
 
 The custom domain may still report Vercel headers while Recursiv is being proven on `invertedworld.on.recursiv.io`. That is acceptable until the cutover gates pass.
 
-As of May 22, 2026, `invertedworld.on.recursiv.io` is proven live and the public archive API reads Recursiv database data. The known full-product blockers are provider/account-side: X API access returns `402`, and YouTube Data API access returns `403`. Fix those provider issues for the full AI news product, but do not treat them as DNS changes.
+As of May 22, 2026, `invertedworld.on.recursiv.io` is proven live and the public archive API reads Recursiv database data. The known full-product blockers are provider/account-side: X API access returns `402`, and YouTube Data API access returns `403`. Fix those provider issues for the full AI news product, but do not treat them as DNS changes. The app accepts `YOUTUBE_API_KEY`, `YOUTUBE_DATA_API_KEY`, `GOOGLE_YOUTUBE_API_KEY`, or `GOOGLE_API_KEY`; production should prefer `YOUTUBE_API_KEY` for clarity.

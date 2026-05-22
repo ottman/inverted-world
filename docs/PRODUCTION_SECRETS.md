@@ -4,7 +4,7 @@ Use Recursiv as the application host/backend and Infisical as the source of trut
 
 ## Required Backend Keys
 
-- `YOUTUBE_API_KEY`: required for the full Tales From The Inverted World upload history.
+- `YOUTUBE_API_KEY`: required for the full Tales From The Inverted World upload history. `YOUTUBE_DATA_API_KEY`, `GOOGLE_YOUTUBE_API_KEY`, and `GOOGLE_API_KEY` are also accepted by the app, but prefer `YOUTUBE_API_KEY` in production for clarity.
 - `X_BEARER_TOKEN` or `X_API_BEARER_TOKEN`: best source for fresh, metric-aware X posts.
 - `BRAVE_SEARCH_API_KEY`: backup source for public web and X-result discovery.
 - `EXA_API_KEY`: AI-native article/source discovery for claim dossiers. `EXA_SEARCH_API_KEY` is also accepted.

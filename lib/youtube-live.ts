@@ -1,5 +1,6 @@
 import { channelProfile } from "@/data/inverted-world"
 import { allowProviderFallbacks, type ProviderFallbackOptions } from "@/lib/provider-fallbacks"
+import { getYouTubeApiKey } from "@/lib/youtube-config"
 
 export type YouTubeLiveStatus = {
   isLive: boolean
@@ -18,7 +19,7 @@ export async function getYouTubeLiveStatus(options: ProviderFallbackOptions = {}
     return { isLive: false, checkedAt }
   }
 
-  const key = process.env.YOUTUBE_API_KEY
+  const key = getYouTubeApiKey()
 
   if (!key) {
     return { isLive: false, checkedAt }

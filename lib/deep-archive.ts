@@ -2,6 +2,7 @@ import { channelProfile, featuredVideos, type ChannelVideo } from "@/data/invert
 import { allowProviderFallbacks, type ProviderFallbackOptions } from "@/lib/provider-fallbacks"
 import { getRecursivChannelArchive, getRecursivChannelVideo } from "@/lib/recursiv/content"
 import { classifyInvertedWorldTopic } from "@/lib/topic-classifier"
+import { getYouTubeApiKey } from "@/lib/youtube-config"
 
 type YouTubePlaylistItem = {
   snippet?: {
@@ -89,7 +90,7 @@ async function fetchYouTubeRss() {
 }
 
 async function fetchYouTubeDataApi() {
-  const key = process.env.YOUTUBE_API_KEY
+  const key = getYouTubeApiKey()
   if (!key) return null
 
   const videos: ChannelVideo[] = []
@@ -192,7 +193,7 @@ export async function getDeepArchive(options: {
     const rssVideos = await fetchYouTubeRss()
     return sliceArchive(dedupeVideos([...rssVideos, ...seeded]), "rss-plus-seed", false, [
       ...warnings,
-      "Set YOUTUBE_API_KEY to paginate the full channel history.",
+      "Set YOUTUBE_API_KEY or YOUTUBE_DATA_API_KEY to paginate the full channel history.",
     ])
   } catch (error) {
     warnings.push(error instanceof Error ? error.message : "YouTube RSS archive failed")
@@ -200,7 +201,7 @@ export async function getDeepArchive(options: {
 
   return sliceArchive(dedupeVideos(seeded), "seed", false, [
     ...warnings,
-    "Set YOUTUBE_API_KEY to unlock the complete uploads playlist history.",
+    "Set YOUTUBE_API_KEY or YOUTUBE_DATA_API_KEY to unlock the complete uploads playlist history.",
   ])
 }
 

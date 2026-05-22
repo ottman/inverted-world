@@ -5,6 +5,7 @@ import { INVERTED_WORLD_SCHEMA_SQL } from "@/lib/recursiv/schema"
 import { extractSourceText } from "@/lib/source-extraction"
 import { classifyInvertedWorldTopic } from "@/lib/topic-classifier"
 import { fetchViralXPostsForTopic, type ViralXPost } from "@/lib/x-posts"
+import { getYouTubeApiKey } from "@/lib/youtube-config"
 
 type YouTubePlaylistItem = {
   snippet?: {
@@ -129,7 +130,7 @@ async function fetchYouTubeRss() {
 }
 
 async function fetchYouTubeDataApi() {
-  const key = process.env.YOUTUBE_API_KEY
+  const key = getYouTubeApiKey()
   if (!key) return null
 
   const videos: ChannelVideo[] = []
@@ -470,7 +471,7 @@ export async function syncYouTubeArchiveToRecursiv() {
   let videos: ChannelVideo[] = []
   let sourceMode = "seed"
 
-  if (fullSync && process.env.YOUTUBE_API_KEY) {
+  if (fullSync && getYouTubeApiKey()) {
     try {
       const apiVideos = await fetchYouTubeDataApi()
       if (apiVideos?.length) {

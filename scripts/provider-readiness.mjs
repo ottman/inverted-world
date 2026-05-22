@@ -42,8 +42,8 @@ const PROVIDERS = [
   {
     provider: "youtube-data-api",
     required: true,
-    aliases: ["YOUTUBE_API_KEY"],
-    action: "Enable YouTube Data API for the key, fix restrictions/quota, then store YOUTUBE_API_KEY in Recursiv/Infisical.",
+    aliases: ["YOUTUBE_API_KEY", "YOUTUBE_DATA_API_KEY", "GOOGLE_YOUTUBE_API_KEY", "GOOGLE_API_KEY"],
+    action: "Enable YouTube Data API for the key, fix restrictions/quota, then store YOUTUBE_API_KEY or YOUTUBE_DATA_API_KEY in Recursiv/Infisical.",
   },
   {
     provider: "firecrawl",

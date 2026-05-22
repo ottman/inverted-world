@@ -13,7 +13,7 @@ Make `invertedworld.on.recursiv.io` the conspiracy/paranormal intelligence desk 
 It must:
 
 - Let anyone immediately ask about anything without choosing filters.
-- Embed the complete Tales From the Inverted World YouTube archive when `YOUTUBE_API_KEY` is configured.
+- Embed the complete Tales From the Inverted World YouTube archive when `YOUTUBE_API_KEY` or an accepted YouTube Data API alias is configured.
 - Maintain a browsable database of official documents, court records, declassified archives, science datasets, and news indexes.
 - Publish a daily AI-assisted news issue with sources, image prompts, X hooks, and source packs.
 - Use Grok/X API for live narrative pulse and X-native distribution.
@@ -39,7 +39,7 @@ It must:
 
 ## Next Integrations
 
-- `YOUTUBE_API_KEY`: full uploads playlist pagination.
+- `YOUTUBE_API_KEY`: full uploads playlist pagination. `YOUTUBE_DATA_API_KEY`, `GOOGLE_YOUTUBE_API_KEY`, and `GOOGLE_API_KEY` are also accepted aliases.
 - `X_API_BEARER_TOKEN`: trends, posts, metrics, and distribution.
 - `XAI_API_KEY`: Grok-powered X-native synthesis and memetic framing.
 - `ANTHROPIC_API_KEY`: deep document reasoning.
