@@ -2,6 +2,7 @@ import fs from "node:fs"
 
 const LOCAL_PROVIDER_ENV = "/private/tmp/inverted-world-api-keys.env"
 const LOCAL_RECURSIV_KEY = "/private/tmp/inverted-world-recursiv-key"
+const LOCAL_CRON_SECRET = "/private/tmp/inverted-world-cron-secret"
 const DEFAULT_BASE_URL = "https://api.recursiv.io/api/v1"
 const DEFAULT_DATABASE_NAME = "inverted_world_research"
 const YOUTUBE_RSS_URL = "https://www.youtube.com/feeds/videos.xml?channel_id=UC7qGeFv85Oyct3xlKq-pedw"
@@ -51,6 +52,10 @@ function readRecursivKey() {
     if (fs.existsSync(file)) return fs.readFileSync(file, "utf8").trim()
   }
   return process.env.RECURSIV_SERVER_API_KEY || process.env.RECURSIV_API_KEY || process.env.SOCIAL_DEV_API_KEY
+}
+
+function readProtectedFile(file) {
+  return file && fs.existsSync(file) ? fs.readFileSync(file, "utf8").trim() : ""
 }
 
 async function jsonFetch(url, init) {
@@ -253,7 +258,7 @@ async function main() {
     configuredOnly("courtlistener", Boolean(process.env.COURTLISTENER_API_TOKEN)),
     configuredOnly("documentcloud", Boolean(process.env.DOCUMENTCLOUD_API_TOKEN)),
     configuredOnly("newsapi", Boolean(process.env.NEWS_API_KEY)),
-    configuredOnly("cron-secret", Boolean(process.env.CRON_SECRET)),
+    configuredOnly("cron-secret", Boolean(process.env.CRON_SECRET || readProtectedFile(LOCAL_CRON_SECRET))),
     configuredOnly("recursiv-agent", Boolean(process.env.RECURSIV_AGENT_ID)),
   ]
   const summary = providers.reduce(

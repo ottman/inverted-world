@@ -107,6 +107,11 @@ const PROVIDERS = [
   },
 ]
 
+const PROTECTED_LOCAL_FILES = {
+  "recursiv-database": LOCAL_RECURSIV_KEY,
+  "cron-secret": LOCAL_CRON_SECRET,
+}
+
 function loadEnvFile(file) {
   if (!fs.existsSync(file)) return
   for (const line of fs.readFileSync(file, "utf8").split(/\r?\n/)) {
@@ -138,6 +143,11 @@ function readRecursivKey() {
 
 function presentAliases(aliases) {
   return aliases.filter((alias) => Boolean(process.env[alias]))
+}
+
+function protectedLocalFilePresent(provider) {
+  const file = PROTECTED_LOCAL_FILES[provider]
+  return Boolean(file && fs.existsSync(file) && readFileIfPresent(file))
 }
 
 function providerAction(provider, localConfigured, hosted) {
@@ -222,12 +232,16 @@ async function main() {
   const providers = PROVIDERS.map((template) => {
     const hostedProvider = hostedByProvider.get(template.provider)
     const aliasesPresent = presentAliases(template.aliases)
-    const localConfigured = template.aliases.length ? aliasesPresent.length > 0 : template.provider === "youtube-rss"
+    const localProtectedFilePresent = protectedLocalFilePresent(template.provider)
+    const localConfigured = template.aliases.length
+      ? aliasesPresent.length > 0 || localProtectedFilePresent
+      : template.provider === "youtube-rss" || localProtectedFilePresent
     return {
       provider: template.provider,
       required: template.required,
       localConfigured,
       localAliasesPresent: aliasesPresent,
+      localProtectedFilePresent,
       hostedStatus: hostedProvider?.status || "unknown",
       hostedConfigured: hostedProvider?.configured,
       hostedHttpStatus: hostedProvider?.httpStatus,

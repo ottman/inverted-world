@@ -22,7 +22,7 @@ Current runtime lanes:
 
 The `@recursiv/sdk` package is now used for server-side Recursiv database reads, provisioning scripts, deployment scripts, and scheduled job endpoints.
 
-Custom-domain cutover proof is explicit: `pnpm recursiv:cutover` checks the Recursiv hosted URL, the current `www.inverted.world` HTTP/DNS state, active scheduled jobs, latest deployment, and hosted provider blockers before any DNS change.
+Custom-domain cutover proof is explicit: `pnpm recursiv:cutover` checks the Recursiv hosted URL, Recursiv archive API data mode, the current `www.inverted.world` HTTP/DNS state, active scheduled jobs, latest deployment, and hosted provider blockers before any DNS change. It separates public hosting readiness from full AI product readiness so provider account failures do not get mistaken for DNS problems.
 
 ## Problem
 
