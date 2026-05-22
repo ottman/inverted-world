@@ -1,7 +1,7 @@
 import type React from "react"
 import { ArrowUpRight, Bot, Gauge, Radio } from "lucide-react"
 import { archiveSurface, InvertedPageShell, type BreakingItem } from "@/components/inverted-page-shell"
-import { fetchRecursivClaimDossiers } from "@/lib/recursiv/content"
+import { fetchRecursivClaimDossiers, getLatestRecursivFrontPageEdition } from "@/lib/recursiv/content"
 import { cn } from "@/lib/utils"
 
 export const dynamic = "force-dynamic"
@@ -12,9 +12,22 @@ function formatScore(value: number) {
   return String(Math.round(value))
 }
 
+function sectionArray(value: unknown) {
+  return Array.isArray(value) ? (value as Array<Record<string, unknown>>) : []
+}
+
+function textField(value: unknown) {
+  return typeof value === "string" ? value : ""
+}
+
 export default async function NewsPage() {
-  const dossiers = (await fetchRecursivClaimDossiers({ limit: 24 })) || []
+  const [edition, dossiers] = await Promise.all([
+    getLatestRecursivFrontPageEdition(),
+    fetchRecursivClaimDossiers({ limit: 24 }).then((items) => items || []),
+  ])
   const lead = dossiers[0]
+  const editionArticles = sectionArray(edition?.sections.articles).slice(0, 5)
+  const editionSignals = sectionArray(edition?.sections.xSignals).slice(0, 5)
   const breakingItems: BreakingItem[] = dossiers.slice(0, 18).map((dossier) => ({
     title: dossier.title,
     href: `/news/${dossier.slug}`,
@@ -29,6 +42,53 @@ export default async function NewsPage() {
       heroTitle="Claim Dossiers"
       heroDescription="News coverage, X velocity, source split, evidence grading, and Tales archive context."
     >
+      {edition ? (
+        <section className={cn("mb-6 grid gap-4 p-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(320px,0.55fr)]", archiveSurface)}>
+          <div className="bg-[#050504]/36 p-4">
+            <div className="mb-3 flex flex-wrap items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#df2f2f]">
+              <span>Published Edition</span>
+              <span>{edition.editionDate}</span>
+              <span>{Number(edition.metrics.articleCount || 0)} AI briefs</span>
+              <span>{Number(edition.metrics.xSignalCount || 0)} X signals</span>
+            </div>
+            <h2 className="iw-serif text-4xl leading-none text-[#fff8e6] sm:text-5xl">{edition.headline}</h2>
+            <p className="mt-4 max-w-3xl text-sm leading-6 text-[#f4efe2]/68">{edition.deck}</p>
+          </div>
+          <div className="grid gap-3 bg-black/24 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#df2f2f]">Edition Leads</p>
+            <div className="grid gap-2">
+              {editionArticles.map((article) => (
+                <a
+                  key={textField(article.href) || textField(article.title)}
+                  href={textField(article.href) || "/news"}
+                  className="grid gap-1 bg-black/28 p-3 transition hover:bg-black/54"
+                >
+                  <span className="text-sm leading-5 text-[#fff8e6]">{textField(article.title)}</span>
+                  <span className="text-[10px] uppercase tracking-[0.12em] text-[#f4efe2]/42">
+                    {textField(article.source) || "Inverted World"} / heat {Number(article.heat || 0)}
+                  </span>
+                </a>
+              ))}
+            </div>
+          </div>
+          {editionSignals.length ? (
+            <div className="lg:col-span-2 grid gap-2 bg-black/18 p-3 md:grid-cols-2 xl:grid-cols-5">
+              {editionSignals.map((signal) => (
+                <a
+                  key={textField(signal.id) || textField(signal.href)}
+                  href={textField(signal.href) || "/news"}
+                  target={textField(signal.href).startsWith("http") ? "_blank" : undefined}
+                  rel={textField(signal.href).startsWith("http") ? "noreferrer" : undefined}
+                  className="bg-[#050504]/44 p-3 text-xs leading-5 text-[#f4efe2]/62 transition hover:bg-black/64 hover:text-[#fff8e6]"
+                >
+                  {textField(signal.text)}
+                </a>
+              ))}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
       {lead ? (
         <section className={cn("grid gap-5 p-4 lg:grid-cols-[minmax(0,1.25fr)_minmax(280px,0.75fr)]", archiveSurface)}>
           <a href={`/news/${lead.slug}`} className="group grid content-between gap-8 bg-[#050504]/38 p-5 transition hover:bg-black/62">

@@ -153,6 +153,23 @@ const SCHEMA_SQL = [
     created_at TIMESTAMPTZ DEFAULT now()
   )`,
   "CREATE INDEX IF NOT EXISTS claim_chat_messages_dossier_created_idx ON claim_chat_messages (dossier_slug, created_at DESC)",
+  `CREATE TABLE IF NOT EXISTS front_page_editions (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    slug TEXT NOT NULL UNIQUE,
+    edition_date DATE NOT NULL UNIQUE,
+    headline TEXT NOT NULL,
+    deck TEXT,
+    status TEXT NOT NULL DEFAULT 'published',
+    lead_dossier_slug TEXT,
+    sections JSONB NOT NULL DEFAULT '{}'::jsonb,
+    metrics JSONB NOT NULL DEFAULT '{}'::jsonb,
+    generated_at TIMESTAMPTZ DEFAULT now(),
+    published_at TIMESTAMPTZ,
+    metadata JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+  )`,
+  "CREATE INDEX IF NOT EXISTS front_page_editions_status_date_idx ON front_page_editions (status, edition_date DESC)",
 ]
 
 const JOBS = [
@@ -185,6 +202,11 @@ const JOBS = [
     name: "inverted-world-publishing",
     cron: "25 * * * *",
     endpoint: "/api/recursiv/jobs/publishing",
+  },
+  {
+    name: "inverted-world-front-page-edition",
+    cron: "30 * * * *",
+    endpoint: "/api/recursiv/jobs/front-page-edition",
   },
 ]
 

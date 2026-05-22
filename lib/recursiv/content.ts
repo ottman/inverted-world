@@ -73,6 +73,21 @@ type ClaimDossierRow = RecursivRow & {
   metadata?: unknown
 }
 
+type FrontPageEditionRow = RecursivRow & {
+  id?: string
+  slug?: string
+  edition_date?: string
+  headline?: string
+  deck?: string
+  status?: string
+  lead_dossier_slug?: string
+  sections?: unknown
+  metrics?: unknown
+  generated_at?: string
+  published_at?: string
+  metadata?: unknown
+}
+
 export type ClaimSourceLink = {
   title: string
   url: string
@@ -109,6 +124,20 @@ export type ClaimDossier = {
   skepticalRead: string
   viralHeadlines: string[]
   chatPrompt: string
+  publishedAt: string
+  metadata: Record<string, unknown>
+}
+
+export type FrontPageEdition = {
+  id: string
+  slug: string
+  editionDate: string
+  headline: string
+  deck: string
+  status: string
+  leadDossierSlug?: string
+  sections: Record<string, unknown>
+  metrics: Record<string, unknown>
   publishedAt: string
   metadata: Record<string, unknown>
 }
@@ -321,6 +350,22 @@ function claimDossierRowToDossier(row: ClaimDossierRow): ClaimDossier {
     chatPrompt: row.chat_prompt || "",
     publishedAt,
     metadata,
+  }
+}
+
+function frontPageEditionRowToEdition(row: FrontPageEditionRow): FrontPageEdition {
+  return {
+    id: row.id || row.slug || "front-page-edition",
+    slug: row.slug || row.id || "front-page-edition",
+    editionDate: safeDate(row.edition_date || row.published_at || row.generated_at),
+    headline: row.headline || "Inverted World front page",
+    deck: row.deck || "The latest Recursiv-generated front page edition.",
+    status: row.status || "published",
+    leadDossierSlug: row.lead_dossier_slug,
+    sections: jsonObject(row.sections),
+    metrics: jsonObject(row.metrics),
+    publishedAt: safeDate(row.published_at || row.generated_at) || new Date().toISOString().slice(0, 10),
+    metadata: jsonObject(row.metadata),
   }
 }
 
@@ -550,4 +595,28 @@ export async function getRecursivClaimDossier(slug: string) {
   )
 
   return rows?.[0] ? claimDossierRowToDossier(rows[0]) : null
+}
+
+export async function getLatestRecursivFrontPageEdition() {
+  const rows = await queryInvertedWorldDatabase<FrontPageEditionRow>(
+    `SELECT
+      id,
+      slug,
+      edition_date,
+      headline,
+      deck,
+      status,
+      lead_dossier_slug,
+      sections,
+      metrics,
+      generated_at,
+      published_at,
+      metadata
+    FROM front_page_editions
+    WHERE status = 'published'
+    ORDER BY edition_date DESC, published_at DESC NULLS LAST, generated_at DESC
+    LIMIT 1`,
+  )
+
+  return rows?.[0] ? frontPageEditionRowToEdition(rows[0]) : null
 }

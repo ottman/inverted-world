@@ -12,6 +12,7 @@ Current runtime lanes:
 - X signals: `lib/x-posts.ts` now reads Recursiv `x_signals` first, then falls back to X API, Brave, public syndication, and seed posts.
 - Claim dossier sources: `lib/source-extraction.ts` extracts short source excerpts with Firecrawl first and Jina Reader fallback so `/news/[slug]` chat is grounded in page text, not links alone.
 - Article generation: `lib/recursiv/ingestion.ts` now turns published claim dossiers into Recursiv `article_drafts`, using the configured Recursiv agent when available and a deterministic sourced fallback when the agent is unavailable.
+- Front-page editions: `front_page_editions` snapshots the published lead mix from articles, dossiers, X signals, and Tales archive items so `/news` has persistent daily-return editorial state.
 - Video pages: `app/archive/[videoId]/page.tsx` renders one embedded video and related Tales videos.
 - Static editorial scaffolding: `data/intelligence-articles.ts`, `data/inverted-world.ts`, and docs files.
 
@@ -45,6 +46,7 @@ Recommended backend flow:
    - `claim_dossiers`
    - `claim_sources`
    - `claim_chat_messages`
+   - `front_page_editions`
 3. Recursiv agents generate:
    - hourly topic briefs;
    - sourced article drafts;
@@ -53,6 +55,7 @@ Recommended backend flow:
    - claim ledgers;
    - social hooks;
    - thumbnail prompts and generated images.
+   - front-page editions for the daily return surface.
 4. The site reads published Recursiv data first through cacheable endpoints:
    - `/api/articles`
    - `/api/archive`
@@ -60,6 +63,7 @@ Recommended backend flow:
    - `/news/[articleId]`
    - `/api/dossiers`
    - `/api/dossiers/[slug]/chat`
+   - `/api/front-page`
 5. Vercel gets no third-party provider keys. Remove Vercel hosting/domain binding only after Recursiv hosting is proven live.
 
 ## A+ Product Bar

@@ -998,3 +998,220 @@ export async function publishReadyDraftsInRecursiv() {
 
   return { published: data.rows.length, articles: data.rows }
 }
+
+export async function publishFrontPageEditionInRecursiv() {
+  const { sdk, config } = getInvertedWorldDatabase()
+  const [articlesResult, dossiersResult, xSignalsResult, videosResult, countsResult] = await Promise.all([
+    sdk.databases.query({
+      project_id: config.projectId,
+      database_name: config.databaseName,
+      sql: `SELECT
+          a.slug,
+          a.title,
+          a.deck,
+          a.topic_id,
+          a.source_name,
+          a.source_url,
+          a.heat,
+          a.published_at,
+          ga.url AS asset_url
+        FROM article_drafts a
+        LEFT JOIN generated_assets ga ON ga.id = a.thumbnail_asset_id
+        WHERE a.status = 'published'
+        ORDER BY a.heat DESC NULLS LAST, a.published_at DESC NULLS LAST
+        LIMIT 12`,
+    }),
+    sdk.databases.query({
+      project_id: config.projectId,
+      database_name: config.databaseName,
+      sql: `SELECT
+          slug,
+          title,
+          deck,
+          topic_id,
+          evidence_grade,
+          confidence_score,
+          x_velocity_score,
+          source_count,
+          x_signal_count,
+          related_video_count,
+          published_at
+        FROM claim_dossiers
+        WHERE status = 'published'
+        ORDER BY x_velocity_score DESC NULLS LAST, published_at DESC NULLS LAST, updated_at DESC
+        LIMIT 12`,
+    }),
+    sdk.databases.query({
+      project_id: config.projectId,
+      database_name: config.databaseName,
+      sql: `SELECT
+          x_id,
+          url,
+          username,
+          author_name,
+          text,
+          topic_id,
+          score,
+          posted_at
+        FROM x_signals
+        ORDER BY score DESC NULLS LAST, posted_at DESC NULLS LAST, captured_at DESC
+        LIMIT 18`,
+    }),
+    sdk.databases.query({
+      project_id: config.projectId,
+      database_name: config.databaseName,
+      sql: `SELECT
+          source_id,
+          source_url,
+          title,
+          topic_id,
+          thumbnail_url,
+          published_at
+        FROM channel_items
+        WHERE source = 'youtube'
+        ORDER BY published_at DESC NULLS LAST
+        LIMIT 8`,
+    }),
+    sdk.databases.query({
+      project_id: config.projectId,
+      database_name: config.databaseName,
+      sql: `SELECT 'channel_items' AS name, count(*)::int AS count FROM channel_items
+        UNION ALL SELECT 'coverage_snapshots', count(*)::int FROM coverage_snapshots
+        UNION ALL SELECT 'x_signals', count(*)::int FROM x_signals
+        UNION ALL SELECT 'article_drafts', count(*)::int FROM article_drafts
+        UNION ALL SELECT 'generated_assets', count(*)::int FROM generated_assets
+        UNION ALL SELECT 'claim_dossiers', count(*)::int FROM claim_dossiers
+        UNION ALL SELECT 'claim_sources', count(*)::int FROM claim_sources`,
+    }),
+  ])
+
+  const articles = articlesResult.data.rows.map((row) => {
+    const item = jsonObject(row)
+    return {
+      title: textField(item.title),
+      href: textField(item.source_url) || `/news/${textField(item.slug).replace(/^brief-/, "")}`,
+      topicId: textField(item.topic_id),
+      source: textField(item.source_name) || "Inverted World",
+      heat: asNumber(item.heat),
+      imageUrl: textField(item.asset_url),
+      publishedAt: textField(item.published_at),
+    }
+  })
+  const dossiers = dossiersResult.data.rows.map((row) => {
+    const item = jsonObject(row)
+    return {
+      title: textField(item.title),
+      href: `/news/${textField(item.slug)}`,
+      slug: textField(item.slug),
+      topicId: textField(item.topic_id),
+      evidenceGrade: textField(item.evidence_grade),
+      confidenceScore: asNumber(item.confidence_score),
+      xVelocityScore: asNumber(item.x_velocity_score),
+      sourceCount: asNumber(item.source_count),
+      xSignalCount: asNumber(item.x_signal_count),
+      relatedVideoCount: asNumber(item.related_video_count),
+      publishedAt: textField(item.published_at),
+    }
+  })
+  const xSignals = xSignalsResult.data.rows.map((row) => {
+    const item = jsonObject(row)
+    return {
+      id: textField(item.x_id),
+      href: textField(item.url),
+      username: textField(item.username),
+      authorName: textField(item.author_name),
+      text: shorten(item.text, 260),
+      topicId: textField(item.topic_id),
+      score: asNumber(item.score),
+      postedAt: textField(item.posted_at),
+    }
+  })
+  const archiveVideos = videosResult.data.rows.map((row) => {
+    const item = jsonObject(row)
+    return {
+      title: textField(item.title),
+      href: textField(item.source_id) ? `/archive/${textField(item.source_id)}` : textField(item.source_url),
+      topicId: textField(item.topic_id),
+      thumbnail: textField(item.thumbnail_url),
+      publishedAt: textField(item.published_at),
+    }
+  })
+
+  const countMetrics = Object.fromEntries(
+    countsResult.data.rows.map((row) => {
+      const item = jsonObject(row)
+      return [textField(item.name), asNumber(item.count)]
+    }),
+  )
+  const leadDossier = dossiers[0]
+  const leadArticle = articles[0]
+  const editionDate = new Date().toISOString().slice(0, 10)
+  const slug = `front-page-${editionDate}`
+  const headline = leadArticle?.title || leadDossier?.title || "Inverted World front page"
+  const deck = `Today's Recursiv edition: ${articles.length} AI briefs, ${dossiers.length} claim dossiers, ${xSignals.length} X signals, and ${archiveVideos.length} Tales archive links.`
+  const sections = {
+    leadDossier,
+    leadArticle,
+    articles,
+    dossiers,
+    xSignals,
+    archiveVideos,
+  }
+  const metrics = {
+    ...countMetrics,
+    articleCount: articles.length,
+    dossierCount: dossiers.length,
+    xSignalCount: xSignals.length,
+    archiveVideoCount: archiveVideos.length,
+    generatedAssetCount: countMetrics.generated_assets || 0,
+  }
+
+  await sdk.databases.query({
+    project_id: config.projectId,
+    database_name: config.databaseName,
+    sql: `INSERT INTO front_page_editions (
+        slug,
+        edition_date,
+        headline,
+        deck,
+        status,
+        lead_dossier_slug,
+        sections,
+        metrics,
+        published_at,
+        metadata,
+        updated_at
+      )
+      VALUES ($1, $2::date, $3, $4, 'published', $5, $6::jsonb, $7::jsonb, now(), $8::jsonb, now())
+      ON CONFLICT (slug) DO UPDATE SET
+        edition_date = EXCLUDED.edition_date,
+        headline = EXCLUDED.headline,
+        deck = EXCLUDED.deck,
+        status = EXCLUDED.status,
+        lead_dossier_slug = EXCLUDED.lead_dossier_slug,
+        sections = EXCLUDED.sections,
+        metrics = EXCLUDED.metrics,
+        published_at = EXCLUDED.published_at,
+        metadata = EXCLUDED.metadata,
+        updated_at = now()`,
+    params: [
+      slug,
+      editionDate,
+      headline,
+      deck,
+      leadDossier?.slug || null,
+      JSON.stringify(sections),
+      JSON.stringify(metrics),
+      JSON.stringify({ generatedBy: "recursiv-front-page-edition-v1" }),
+    ],
+  })
+
+  return {
+    editionSlug: slug,
+    headline,
+    articleCount: articles.length,
+    dossierCount: dossiers.length,
+    xSignalCount: xSignals.length,
+    archiveVideoCount: archiveVideos.length,
+  }
+}
