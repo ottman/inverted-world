@@ -618,7 +618,25 @@ export async function getRecursivChannelArchive({
   const safeLimit = Math.min(Math.max(Math.trunc(limit) || 100, 1), safeMaxLimit)
   const safeOffset = Math.max(Math.trunc(offset) || 0, 0)
   const rows = await queryInvertedWorldDatabase<ChannelItemRow>(
-    `SELECT /* channel-archive:${Date.now()} */
+    `WITH deduped AS (
+      SELECT DISTINCT ON (COALESCE(source_id, source_url, id))
+        id,
+        source_id,
+        source_url,
+        title,
+        description,
+        published_at,
+        topic_id,
+        thumbnail_url,
+        embed_url,
+        kind,
+        metadata,
+        created_at
+      FROM channel_items
+      WHERE source = 'youtube'
+      ORDER BY COALESCE(source_id, source_url, id), published_at DESC NULLS LAST, created_at DESC
+    )
+    SELECT /* channel-archive:${Date.now()} */
       id,
       source_id,
       source_url,
@@ -631,8 +649,7 @@ export async function getRecursivChannelArchive({
       kind,
       metadata,
       count(*) OVER() AS total_count
-    FROM channel_items
-    WHERE source = 'youtube'
+    FROM deduped
     ORDER BY published_at DESC NULLS LAST, created_at DESC
     LIMIT $1 OFFSET $2`,
     [safeLimit, safeOffset],
