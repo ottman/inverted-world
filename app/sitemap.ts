@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next"
 import { getDeepArchive } from "@/lib/deep-archive"
+import { mediaItemHref } from "@/lib/media-links"
+import { fetchExpandedMediaLibrary } from "@/lib/media-library"
 import { fetchRecursivClaimDossiers } from "@/lib/recursiv/content"
 
 const baseUrl = "https://www.inverted.world"
@@ -31,7 +33,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
     }))
 
-    return [...staticRoutes, ...dossierRoutes, ...videoRoutes]
+    const media = await fetchExpandedMediaLibrary({ archiveLimit: 160 })
+    const mediaRoutes: MetadataRoute.Sitemap = media.items.map((item) => ({
+      url: `${baseUrl}${mediaItemHref(item)}`,
+      lastModified: item.publishedAt ? new Date(item.publishedAt) : new Date(),
+      changeFrequency: "daily" as const,
+      priority: item.kind === "document" ? 0.88 : 0.84,
+    }))
+
+    return [...staticRoutes, ...dossierRoutes, ...mediaRoutes, ...videoRoutes]
   } catch {
     return staticRoutes
   }

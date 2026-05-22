@@ -8,6 +8,7 @@ import {
   type ResearchDocument,
 } from "@/data/inverted-world"
 import recursivPublicSnapshot from "@/data/generated/recursiv-public-snapshot.json"
+import { getDeepArchive } from "@/lib/deep-archive"
 import { queryInvertedWorldDatabase, type RecursivRow } from "@/lib/recursiv/database"
 
 export type { MediaLibraryItem } from "@/data/inverted-world"
@@ -34,6 +35,10 @@ type MediaLibraryRow = RecursivRow & {
 export type MediaLibraryResult = {
   sourceMode: "recursiv-database" | "recursiv-snapshot" | "static"
   items: MediaLibraryItem[]
+}
+
+export type ExpandedMediaLibraryResult = MediaLibraryResult & {
+  archiveSourceMode?: Awaited<ReturnType<typeof getDeepArchive>>["sourceMode"]
 }
 
 const WAR_UAP_CSV_URL = "https://www.war.gov/Portals/1/Interactive/2026/UFO/uap-csv.csv"
@@ -131,6 +136,24 @@ function videoMediaItem(video: ChannelVideo): MediaLibraryItem {
   }
 }
 
+function archiveVideoToMediaItem(video: Awaited<ReturnType<typeof getDeepArchive>>["videos"][number]): MediaLibraryItem {
+  return {
+    id: video.videoId || slugify(video.href),
+    title: video.title,
+    source: "Tales From the Inverted World",
+    url: video.href,
+    kind: "video",
+    viewer: "youtube",
+    topicIds: [video.topicId],
+    summary: video.description || `Tales archive video in the ${topicTitle(video.topicId)} lane.`,
+    publishedAt: video.date,
+    embedUrl: video.embedUrl,
+    thumbnailUrl: video.thumbnail,
+    fileType: video.kind === "short" ? "YouTube Short" : "YouTube",
+    collection: "Tales archive",
+  }
+}
+
 function rowToMediaItem(row: MediaLibraryRow): MediaLibraryItem {
   const url = row.source_url || "#"
   const viewer = row.viewer || viewerForUrl(url)
@@ -153,7 +176,7 @@ function rowToMediaItem(row: MediaLibraryRow): MediaLibraryItem {
   }
 }
 
-function dedupeMediaItems(items: MediaLibraryItem[]) {
+export function dedupeMediaItems(items: MediaLibraryItem[]) {
   const seen = new Set<string>()
   return items.filter((item) => {
     const key = item.url || item.id
@@ -161,6 +184,11 @@ function dedupeMediaItems(items: MediaLibraryItem[]) {
     seen.add(key)
     return true
   })
+}
+
+export function findMediaItem(items: MediaLibraryItem[], mediaId: string) {
+  const decodedId = decodeURIComponent(mediaId || "")
+  return items.find((item) => item.id === decodedId || slugify(item.title) === decodedId || slugify(item.url) === decodedId) || null
 }
 
 function parseCsv(text: string) {
@@ -320,5 +348,39 @@ export async function fetchMediaLibrary(): Promise<MediaLibraryResult> {
   return {
     sourceMode: "static",
     items: staticMediaLibraryItems(officialUapItems),
+  }
+}
+
+export async function fetchExpandedMediaLibrary(options: { archiveLimit?: number } = {}): Promise<ExpandedMediaLibraryResult> {
+  const archiveLimit = Math.max(0, Math.min(Math.trunc(options.archiveLimit || 96), 500))
+  const [library, archive] = await Promise.all([
+    fetchMediaLibrary(),
+    archiveLimit > 0 ? getDeepArchive({ limit: archiveLimit, maxLimit: 1000 }).catch(() => null) : Promise.resolve(null),
+  ])
+  const archiveItems = archive?.videos.map(archiveVideoToMediaItem) || []
+
+  return {
+    sourceMode: library.sourceMode,
+    archiveSourceMode: archive?.sourceMode,
+    items: dedupeMediaItems([...library.items, ...archiveItems]),
+  }
+}
+
+export async function fetchMediaLibraryItem(mediaId: string, options: { relatedLimit?: number } = {}) {
+  const relatedLimit = Math.max(1, Math.min(Math.trunc(options.relatedLimit || 8), 16))
+  const library = await fetchExpandedMediaLibrary({ archiveLimit: 160 })
+  const item = findMediaItem(library.items, mediaId)
+  if (!item) return null
+
+  const topicIds = new Set(item.topicIds)
+  const related = library.items
+    .filter((candidate) => candidate.id !== item.id && candidate.topicIds.some((topicId) => topicIds.has(topicId)))
+    .slice(0, relatedLimit)
+
+  return {
+    sourceMode: library.sourceMode,
+    archiveSourceMode: library.archiveSourceMode,
+    item,
+    related,
   }
 }

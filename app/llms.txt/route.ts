@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
 import { getDeepArchive } from "@/lib/deep-archive"
+import { mediaItemHref } from "@/lib/media-links"
+import { fetchExpandedMediaLibrary } from "@/lib/media-library"
 
 const baseUrl = "https://www.inverted.world"
 
@@ -7,7 +9,10 @@ export const dynamic = "force-dynamic"
 export const revalidate = 3600
 
 export async function GET() {
-  const archive = await getDeepArchive({ limit: 1000, maxLimit: 1000 })
+  const [archive, media] = await Promise.all([
+    getDeepArchive({ limit: 1000, maxLimit: 1000 }),
+    fetchExpandedMediaLibrary({ archiveLimit: 160 }),
+  ])
   const lines = [
     "# Inverted World",
     "",
@@ -33,6 +38,11 @@ export async function GET() {
     `${baseUrl}/api/articles`,
     `${baseUrl}/api/media`,
     `${baseUrl}/api/documents`,
+    "",
+    "## Media Library",
+    ...media.items
+      .slice(0, 120)
+      .map((item) => `- ${item.title} (${item.kind}, ${item.source}): ${baseUrl}${mediaItemHref(item)} | JSON: ${baseUrl}/api/media/${encodeURIComponent(item.id)}`),
     "",
     "## Video Archive",
     ...archive.videos

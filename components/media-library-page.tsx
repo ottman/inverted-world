@@ -2,8 +2,10 @@
 
 import { useMemo, useState } from "react"
 import { Archive, ArrowUpRight, Download, FileText, Film, ImageIcon, Play } from "lucide-react"
+import { MediaViewer } from "@/components/media-viewer"
 import { topics, type MediaLibraryItem } from "@/data/inverted-world"
 import { archiveSurface } from "@/components/inverted-page-shell"
+import { mediaItemHref } from "@/lib/media-links"
 import { cn } from "@/lib/utils"
 
 type MediaFilter = "all" | MediaLibraryItem["kind"]
@@ -32,75 +34,7 @@ function formatDate(value?: string) {
   if (!value) return ""
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value.slice(0, 16)
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-}
-
-function youtubeEmbedUrl(item: MediaLibraryItem) {
-  const source = item.embedUrl || item.url
-  try {
-    const url = new URL(source)
-    const id =
-      url.hostname.includes("youtu.be")
-        ? url.pathname.replace("/", "")
-        : url.searchParams.get("v") || url.pathname.match(/\/embed\/([^/?]+)/)?.[1]
-    const embed = new URL(id ? `https://www.youtube.com/embed/${id}` : source)
-    embed.searchParams.set("rel", "0")
-    embed.searchParams.set("playsinline", "1")
-    return embed.toString()
-  } catch {
-    return source
-  }
-}
-
-function renderViewer(item: MediaLibraryItem) {
-  if (item.viewer === "youtube") {
-    return (
-      <iframe
-        key={item.id}
-        className="absolute inset-0 h-full w-full"
-        src={youtubeEmbedUrl(item)}
-        title={item.title}
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-        referrerPolicy="strict-origin-when-cross-origin"
-        allowFullScreen
-      />
-    )
-  }
-
-  if (item.viewer === "pdf") {
-    return (
-      <iframe
-        key={item.id}
-        className="absolute inset-0 h-full w-full bg-[#111]"
-        src={item.url}
-        title={item.title}
-        referrerPolicy="strict-origin-when-cross-origin"
-      />
-    )
-  }
-
-  if (item.viewer === "video") {
-    return (
-      <video key={item.id} className="absolute inset-0 h-full w-full bg-black object-contain" src={item.url} poster={item.thumbnailUrl} controls playsInline />
-    )
-  }
-
-  if (item.viewer === "image" || item.thumbnailUrl) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img key={item.id} src={item.thumbnailUrl || item.url} alt="" className="absolute inset-0 h-full w-full bg-black object-contain" />
-    )
-  }
-
-  return (
-    <div className="absolute inset-0 grid place-items-center bg-[radial-gradient(circle_at_center,rgba(223,47,47,0.18),rgba(5,5,4,0.95))] p-8 text-center">
-      <div className="max-w-lg">
-        <div className="mx-auto grid h-14 w-14 place-items-center bg-[#df2f2f]/14 text-[#fff8e6]">{mediaIcon(item.kind)}</div>
-        <p className="iw-serif mt-5 text-4xl leading-none text-[#fff8e6]">{item.title}</p>
-        <p className="mt-3 text-sm leading-6 text-[#f4efe2]/62">{item.summary}</p>
-      </div>
-    </div>
-  )
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })
 }
 
 export function MediaLibraryPage({
@@ -151,7 +85,7 @@ export function MediaLibraryPage({
       <section className={cn("grid gap-3 p-3 sm:p-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,0.65fr)]", archiveSurface)}>
         <div className="grid gap-3">
           <div className="relative aspect-[16/10] overflow-hidden bg-[#050504]/76 lg:aspect-[16/9]">
-            {activeItem ? renderViewer(activeItem) : null}
+            {activeItem ? <MediaViewer item={activeItem} /> : null}
           </div>
           {activeItem ? (
             <div className="flex flex-wrap items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.13em] text-[#f4efe2]/48">
@@ -185,6 +119,13 @@ export function MediaLibraryPage({
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
+              <a
+                href={mediaItemHref(activeItem)}
+                className="inline-flex h-10 items-center gap-2 bg-black/30 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/72 transition hover:text-[#fff8e6]"
+              >
+                Media page
+                <ArrowUpRight className="h-4 w-4" />
+              </a>
               <a
                 href={activeItem.url}
                 target="_blank"
@@ -238,35 +179,44 @@ export function MediaLibraryPage({
           {filteredItems.map((item) => {
             const active = activeItem?.id === item.id
             return (
-              <button
+              <article
                 key={item.id}
-                type="button"
-                onClick={() => setSelectedId(item.id)}
                 className={cn(
                   "group grid min-h-[270px] content-between overflow-hidden bg-[#050504]/42 text-left transition hover:bg-black/62",
                   active && "ring-1 ring-[#df2f2f]/55",
                 )}
               >
-                <span className="relative block aspect-video bg-black/70">
-                  {item.thumbnailUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={item.thumbnailUrl} alt="" className="absolute inset-0 h-full w-full object-cover opacity-82" />
-                  ) : (
-                    <span className="absolute inset-0 grid place-items-center bg-[#070706] text-[#df2f2f]/70">{mediaIcon(item.kind)}</span>
-                  )}
-                  <span className="absolute inset-0 grid place-items-center bg-[#070706]/20 opacity-0 transition group-hover:opacity-100">
-                    <Play className="h-7 w-7 fill-[#fff8e6] text-[#fff8e6]" />
+                <button type="button" onClick={() => setSelectedId(item.id)} className="grid text-left">
+                  <span className="relative block aspect-video bg-black/70">
+                    {item.thumbnailUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={item.thumbnailUrl} alt="" className="absolute inset-0 h-full w-full object-cover opacity-82" />
+                    ) : (
+                      <span className="absolute inset-0 grid place-items-center bg-[#070706] text-[#df2f2f]/70">{mediaIcon(item.kind)}</span>
+                    )}
+                    <span className="absolute inset-0 grid place-items-center bg-[#070706]/20 opacity-0 transition group-hover:opacity-100">
+                      <Play className="h-7 w-7 fill-[#fff8e6] text-[#fff8e6]" />
+                    </span>
                   </span>
-                </span>
-                <span className="grid gap-3 p-3">
-                  <span className="flex items-center justify-between gap-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#df2f2f]">
-                    <span>{item.kind}</span>
-                    <span>{item.source}</span>
+                  <span className="grid gap-3 p-3">
+                    <span className="flex items-center justify-between gap-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#df2f2f]">
+                      <span>{item.kind}</span>
+                      <span>{item.source}</span>
+                    </span>
+                    <span className="iw-serif line-clamp-3 text-2xl leading-none text-[#fff8e6]">{item.title}</span>
+                    <span className="line-clamp-3 text-xs leading-5 text-[#f4efe2]/52">{item.summary}</span>
                   </span>
-                  <span className="iw-serif line-clamp-3 text-2xl leading-none text-[#fff8e6]">{item.title}</span>
-                  <span className="line-clamp-3 text-xs leading-5 text-[#f4efe2]/52">{item.summary}</span>
-                </span>
-              </button>
+                </button>
+                <div className="px-3 pb-3">
+                  <a
+                    href={mediaItemHref(item)}
+                    className="inline-flex w-fit items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/48 transition hover:text-[#fff8e6]"
+                  >
+                    Open page
+                    <ArrowUpRight className="h-3.5 w-3.5 text-[#df2f2f]" />
+                  </a>
+                </div>
+              </article>
             )
           })}
         </div>

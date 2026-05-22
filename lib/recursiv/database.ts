@@ -45,6 +45,16 @@ function rateLimitBackoffMs(error: unknown) {
   return 5 * 60 * 1000
 }
 
+function handlePublicReadError<T extends RecursivRow>(cacheKey: string, error: unknown) {
+  const backoffMs = rateLimitBackoffMs(error)
+  if (backoffMs > 0) publicReadBackoffUntil = Math.max(publicReadBackoffUntil, Date.now() + backoffMs)
+  const staleRows = getCachedRows(cacheKey, PUBLIC_READ_STALE_MS)
+  if (staleRows) return staleRows as T[]
+  if (process.env.RECURSIV_STRICT_READS === "1") throw error
+  console.warn("[recursiv] database read skipped:", error instanceof Error ? error.message : String(error))
+  return null
+}
+
 export async function queryInvertedWorldDatabase<T extends RecursivRow = RecursivRow>(
   sql: string,
   params: unknown[] = [],
@@ -61,7 +71,13 @@ export async function queryInvertedWorldDatabase<T extends RecursivRow = Recursi
   }
 
   const inflight = publicReadInflight.get(cacheKey)
-  if (inflight) return (await inflight) as T[] | null
+  if (inflight) {
+    try {
+      return (await inflight) as T[] | null
+    } catch (error) {
+      return handlePublicReadError<T>(cacheKey, error)
+    }
+  }
 
   const readPromise = (async () => {
     const { sdk } = createRecursivServerClient({ maxRetries: 0, timeout: PUBLIC_READ_TIMEOUT_MS })
@@ -81,13 +97,7 @@ export async function queryInvertedWorldDatabase<T extends RecursivRow = Recursi
   try {
     return (await readPromise) as T[]
   } catch (error) {
-    const backoffMs = rateLimitBackoffMs(error)
-    if (backoffMs > 0) publicReadBackoffUntil = Math.max(publicReadBackoffUntil, Date.now() + backoffMs)
-    const staleRows = getCachedRows(cacheKey, PUBLIC_READ_STALE_MS)
-    if (staleRows) return staleRows as T[]
-    if (process.env.RECURSIV_STRICT_READS === "1") throw error
-    console.warn("[recursiv] database read skipped:", error instanceof Error ? error.message : String(error))
-    return null
+    return handlePublicReadError<T>(cacheKey, error)
   } finally {
     publicReadInflight.delete(cacheKey)
   }
