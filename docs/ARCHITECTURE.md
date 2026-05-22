@@ -7,13 +7,13 @@
 Current runtime lanes:
 
 - Home/archive UI: `app/page.tsx` reuses `app/archive/page.tsx`.
-- Archive ingestion: `lib/deep-archive.ts` now reads Recursiv `channel_items` first, then falls back to YouTube Data API, RSS, and seeded local videos.
+- Archive ingestion: `lib/deep-archive.ts` now reads Recursiv `channel_items` first, then a generated Recursiv database snapshot, then YouTube Data API, RSS, and seeded local videos.
 - Live articles: `lib/live-articles.ts` now reads published Recursiv `article_drafts` first, then falls back to Exa source discovery and Google News RSS.
 - X signals: `lib/x-posts.ts` now reads Recursiv `x_signals` first, then falls back to X API, Brave, public syndication, and seed posts.
 - Provider fallback policy: public request paths default to Recursiv/static/seeded data and do not directly call third-party provider APIs; Recursiv job handlers explicitly opt into provider fallbacks for ingestion.
 - Claim dossier sources: `lib/source-extraction.ts` extracts short source excerpts with Firecrawl first and Jina Reader fallback so `/news/[slug]` chat is grounded in page text, not links alone.
 - Article generation: `lib/recursiv/ingestion.ts` now turns published claim dossiers into Recursiv `article_drafts`, using the configured Recursiv agent when available and a deterministic sourced fallback when the agent is unavailable.
-- Front-page editions: `front_page_editions` snapshots the published lead mix from articles, dossiers, X signals, and Tales archive items so `/news` has persistent daily-return editorial state.
+- Front-page editions: `front_page_editions` snapshots the published lead mix from articles, dossiers, X signals, and Tales archive items so `/news` has persistent daily-return editorial state. Public article, X, dossier, archive, front-page, media, document, and pipeline reads also have generated Recursiv snapshot fallbacks so the hosted app does not collapse to seed/static mode while the runtime database key is rate-limited.
 - Pipeline runs: `pipeline_runs` records execution and step results. `/api/recursiv/jobs/full-pipeline` now defaults to a bounded scheduled refresh (`youtube-archive-sync`, `topic-pulse`, `publishing`, `front-page-edition`) and supports `?mode=all` for manual deep runs. It marks old interrupted runs as `stale_running` and records current-step progress. `/api/recursiv/jobs/pipeline-maintenance` performs stale-run cleanup without invoking heavy generation.
 - Pipeline status: `/api/pipeline` exposes the latest persisted Recursiv pipeline run, and `/api/front-page` includes the latest pipeline status so the public news desk can show freshness without provider keys.
 - Dossier chat: `/api/dossiers/[slug]/chat` stores Recursiv-agent Q/A in `claim_chat_messages`; the dossier chat UI hydrates recent messages from Recursiv so conversations persist beyond the current browser session.

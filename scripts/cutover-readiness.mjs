@@ -7,6 +7,7 @@ const DEFAULT_BASE_URL = "https://api.recursiv.io/api/v1"
 const DEFAULT_SITE_URL = "https://invertedworld.on.recursiv.io"
 const DEFAULT_CUSTOM_DOMAIN = "https://www.inverted.world"
 const DEFAULT_DATABASE_NAME = "inverted_world_research"
+const READINESS_TIMEOUT_MS = Number(process.env.CUTOVER_READINESS_TIMEOUT_MS || "30000")
 
 const EXPECTED_JOBS = [
   "inverted-world-youtube-archive-sync",
@@ -34,6 +35,8 @@ const REQUIRED_PROVIDERS = [
   "cron-secret",
   "recursiv-agent",
 ]
+
+const RECURSIV_BACKED_SOURCE_MODES = new Set(["recursiv-database", "recursiv-snapshot"])
 
 function loadEnvFile(file) {
   if (!fs.existsSync(file)) return
@@ -73,12 +76,42 @@ function statusTextOrUnknown(value) {
   return statusText(Boolean(value))
 }
 
+function dataSourceStatus(sourceMode) {
+  if (sourceMode === "recursiv-database") return "live-database"
+  if (sourceMode === "recursiv-snapshot") return "recursiv-export-snapshot"
+  if (sourceMode) return String(sourceMode)
+  return "unknown"
+}
+
 function latestByCreatedAt(items) {
   return [...items].sort((left, right) => {
     const leftTime = new Date(left.created_at || left.started_at || 0).getTime()
     const rightTime = new Date(right.created_at || right.started_at || 0).getTime()
     return rightTime - leftTime
   })[0]
+}
+
+async function withTimeout(promise, label, fallback, warnings, timeoutMs = READINESS_TIMEOUT_MS) {
+  let timeout
+  const timedOut = Symbol(`${label} timeout`)
+  try {
+    const result = await Promise.race([
+      promise,
+      new Promise((resolve) => {
+        timeout = setTimeout(() => resolve(timedOut), timeoutMs)
+      }),
+    ])
+    if (result === timedOut) {
+      warnings.push(`${label} timed out after ${timeoutMs}ms`)
+      return fallback
+    }
+    return result
+  } catch (error) {
+    warnings.push(`${label} failed: ${error instanceof Error ? error.message : String(error)}`)
+    return fallback
+  } finally {
+    clearTimeout(timeout)
+  }
 }
 
 function shouldSyncDeploymentStatus(deployment) {
@@ -171,6 +204,7 @@ async function probeDocumentsApi(url) {
       url,
       status: response.status,
       ok: response.ok,
+      sourceMode: body.sourceMode,
       count: Number(body.count || documents.length || 0),
       totalCount: Number(body.totalCount || documents.length || 0),
       topicCount: topics.length,
@@ -251,36 +285,64 @@ async function main() {
   const customHostname = new URL(customDomainUrl).hostname
   const archiveApiUrl = new URL("/api/archive?limit=1000", recursivUrl).toString()
   const documentsApiUrl = new URL("/api/documents", recursivUrl).toString()
+  const readinessWarnings = []
 
   if (!apiKey || !projectId) throw new Error("Missing Recursiv project id or API key for cutover readiness")
 
   const sdk = new Recursiv({
     apiKey,
     baseUrl: process.env.RECURSIV_BASE_URL || DEFAULT_BASE_URL,
-    timeout: 120000,
-    maxRetries: 1,
+    timeout: READINESS_TIMEOUT_MS,
+    maxRetries: 0,
   })
 
   const [project, deploymentsResponse, jobsResponse, recursivHttp, archiveApi, documentsApi, customHttp, customDns, providerHealth, pipelineRuns] =
     await Promise.all([
-      sdk.projects.get(projectId).then((response) => response.data),
-      sdk.deployments.list({ project_id: projectId }).then((response) => response.data),
-      sdk.jobs.list().then((response) => response.data),
+      withTimeout(
+        sdk.projects.get(projectId).then((response) => response.data),
+        "Recursiv project lookup",
+        null,
+        readinessWarnings,
+      ),
+      withTimeout(
+        sdk.deployments.list({ project_id: projectId }).then((response) => response.data),
+        "Recursiv deployment list",
+        null,
+        readinessWarnings,
+      ),
+      withTimeout(
+        sdk.jobs.list().then((response) => response.data),
+        "Recursiv jobs list",
+        null,
+        readinessWarnings,
+      ),
       probeHttp(recursivUrl),
       probeJson(archiveApiUrl),
       probeDocumentsApi(documentsApiUrl),
       probeHttp(customDomainUrl),
       probeDns(customHostname),
-      fetchProviderHealth(sdk, projectId, databaseName),
-      fetchPipelineSummary(sdk, projectId, databaseName),
+      withTimeout(fetchProviderHealth(sdk, projectId, databaseName), "provider-health database query", null, readinessWarnings),
+      withTimeout(fetchPipelineSummary(sdk, projectId, databaseName), "pipeline summary database query", [], readinessWarnings),
     ])
 
-  let latestDeployment = latestByCreatedAt(deploymentsResponse || [])
+  const deploymentLookupAvailable = Array.isArray(deploymentsResponse)
+  const jobsLookupAvailable = Array.isArray(jobsResponse)
+  let latestDeployment = latestByCreatedAt(deploymentLookupAvailable ? deploymentsResponse : [])
   let deploymentStatusSync = null
   if (latestDeployment?.id && shouldSyncDeploymentStatus(latestDeployment)) {
     try {
-      const { data: syncResult } = await sdk.deployments.syncStatus(latestDeployment.id)
-      const { data: statusResult } = await sdk.deployments.getStatus(latestDeployment.id)
+      const { data: syncResult } = await withTimeout(
+        sdk.deployments.syncStatus(latestDeployment.id),
+        "deployment status sync",
+        { data: {} },
+        readinessWarnings,
+      )
+      const { data: statusResult } = await withTimeout(
+        sdk.deployments.getStatus(latestDeployment.id),
+        "deployment status lookup",
+        { data: {} },
+        readinessWarnings,
+      )
       latestDeployment = { ...latestDeployment, ...statusResult }
       deploymentStatusSync = {
         ok: true,
@@ -293,9 +355,9 @@ async function main() {
       }
     }
   }
-  const invertedWorldJobs = (jobsResponse || []).filter((job) => String(job.name || "").startsWith("inverted-world-"))
+  const invertedWorldJobs = jobsLookupAvailable ? jobsResponse.filter((job) => String(job.name || "").startsWith("inverted-world-")) : []
   const activeJobNames = new Set(invertedWorldJobs.filter((job) => job.status === "active").map((job) => job.name))
-  const missingJobs = EXPECTED_JOBS.filter((name) => !activeJobNames.has(name))
+  const missingJobs = jobsLookupAvailable ? EXPECTED_JOBS.filter((name) => !activeJobNames.has(name)) : []
   const jobLastErrors = invertedWorldJobs
     .filter((job) => job.last_error)
     .map((job) => ({ name: job.name, lastError: String(job.last_error).slice(0, 220) }))
@@ -304,27 +366,30 @@ async function main() {
       customHttp.xVercelId ||
       customDns.cname.some((value) => value.toLowerCase().includes("vercel")),
   )
-  const recursivHostingProven = Boolean(
-    latestDeployment?.status === "completed" &&
-      recursivHttp.ok &&
-      recursivHttp.contentSignals?.hasInvertedWorld &&
-      recursivHttp.contentSignals?.hasCoreProductCopy,
+  const recursivHostedUrlProven = Boolean(
+    recursivHttp.ok && recursivHttp.contentSignals?.hasInvertedWorld && recursivHttp.contentSignals?.hasCoreProductCopy,
   )
+  const recursivDeploymentCompleted = Boolean(latestDeployment?.status === "completed")
+  const recursivHostingProven = Boolean(recursivHostedUrlProven && recursivDeploymentCompleted)
   const recursivArchiveDataReady = Boolean(
     archiveApi.ok &&
-      archiveApi.sourceMode === "recursiv-database" &&
+      RECURSIV_BACKED_SOURCE_MODES.has(archiveApi.sourceMode) &&
       Number(archiveApi.totalCount || 0) >= 100 &&
       Number(archiveApi.warningCount || 0) === 0,
   )
+  const recursivArchiveLiveDatabaseReady = Boolean(archiveApi.ok && archiveApi.sourceMode === "recursiv-database")
+  const recursivArchiveSnapshotReady = Boolean(archiveApi.ok && archiveApi.sourceMode === "recursiv-snapshot")
   const documentsApiReady = Boolean(
     documentsApi.ok &&
+      RECURSIV_BACKED_SOURCE_MODES.has(documentsApi.sourceMode) &&
       Number(documentsApi.totalCount || 0) >= 10 &&
       Number(documentsApi.topicCount || 0) >= 6 &&
       Number(documentsApi.kindCount || 0) >= 4,
   )
+  const providerHealthAvailable = Boolean(providerHealth)
   const providerBlocking = providerHealth?.blockingProviders || REQUIRED_PROVIDERS
   const providerHealthFresh = providerHealth?.ageMinutes !== null && Number(providerHealth?.ageMinutes) <= 360
-  const scheduledJobsReady = missingJobs.length === 0
+  const scheduledJobsReady = jobsLookupAvailable && missingJobs.length === 0
   const publicHostingReady = recursivHostingProven && recursivArchiveDataReady && documentsApiReady && scheduledJobsReady && providerHealthFresh
   const fullAiProductReady = publicHostingReady && providerBlocking.length === 0
   const customDomainRecursivProven = Boolean(customHttp.ok && !customLooksVercel && customHttp.contentSignals?.hasCoreProductCopy)
@@ -332,12 +397,16 @@ async function main() {
   const keepDnsOnVercel = !dnsCutoverReady
 
   const checks = {
+    recursivHostedUrl: statusText(recursivHostedUrlProven),
+    recursivDeploymentCompleted: deploymentLookupAvailable ? statusText(recursivDeploymentCompleted) : "unknown",
     recursivHosting: statusText(recursivHostingProven),
     recursivArchiveData: statusText(recursivArchiveDataReady),
+    recursivArchiveLiveDatabase: statusText(recursivArchiveLiveDatabaseReady),
+    recursivArchiveSnapshot: statusText(recursivArchiveSnapshotReady),
     documentsApi: statusText(documentsApiReady),
-    providerHealthFresh: statusText(providerHealthFresh),
-    fullAiProviders: statusText(providerBlocking.length === 0),
-    scheduledJobs: statusText(scheduledJobsReady),
+    providerHealthFresh: providerHealthAvailable ? statusText(providerHealthFresh) : "unknown",
+    fullAiProviders: providerHealthAvailable ? statusText(providerBlocking.length === 0) : "unknown",
+    scheduledJobs: jobsLookupAvailable ? statusText(scheduledJobsReady) : "unknown",
     publicHostingReady: statusText(publicHostingReady),
     customDomainRecursivProven: statusTextOrUnknown(customDomainRecursivProven),
     customDomainStillLegacy: customLooksVercel ? "pass" : "unknown",
@@ -345,11 +414,27 @@ async function main() {
   }
 
   const nextActions = []
-  if (!recursivHostingProven) nextActions.push("Do not touch DNS until invertedworld.on.recursiv.io returns the expected app from a completed deployment.")
-  if (!recursivArchiveDataReady) nextActions.push("Do not touch DNS until /api/archive is reading Recursiv database data with a complete-enough archive and no warnings.")
+  if (!recursivHostedUrlProven) nextActions.push("Do not touch DNS until invertedworld.on.recursiv.io returns the expected app.")
+  if (recursivHostedUrlProven && !recursivDeploymentCompleted) {
+    nextActions.push("HTTP proof for invertedworld.on.recursiv.io is green, but Recursiv deployment completion could not be proven; rerun cutover after the Recursiv API key is healthy.")
+  }
+  if (!recursivArchiveDataReady) {
+    nextActions.push("Do not touch DNS until /api/archive is reading Recursiv-backed data, either live database or Recursiv-exported snapshot, with a complete-enough archive and no warnings.")
+  }
+  if (recursivArchiveSnapshotReady && !recursivArchiveLiveDatabaseReady) {
+    nextActions.push("Public archive data is Recursiv-backed through an exported snapshot while the runtime database key is unhealthy; fix the Recursiv runtime key before calling the full product live-database ready.")
+  }
   if (!documentsApiReady) nextActions.push("Do not touch DNS until /api/documents returns the machine-readable source shelf with topic and kind coverage.")
-  if (providerBlocking.length) nextActions.push(`Resolve full AI product provider blockers: ${providerBlocking.join(", ")}.`)
-  if (missingJobs.length) nextActions.push(`Provision missing Recursiv jobs: ${missingJobs.join(", ")}.`)
+  if (!providerHealthAvailable) {
+    nextActions.push("Provider health could not be audited from Recursiv because the API key is unavailable or rate-limited; rerun readiness after the key is healthy.")
+  } else if (providerBlocking.length) {
+    nextActions.push(`Resolve full AI product provider blockers: ${providerBlocking.join(", ")}.`)
+  }
+  if (!jobsLookupAvailable) {
+    nextActions.push("Scheduled jobs could not be audited from Recursiv because the API key is unavailable or rate-limited; rerun readiness after the key is healthy.")
+  } else if (missingJobs.length) {
+    nextActions.push(`Provision missing Recursiv jobs: ${missingJobs.join(", ")}.`)
+  }
   if (jobLastErrors.length) nextActions.push("Review stale scheduled-job last_error values and rerun/clear jobs after provider blockers are fixed.")
   if (publicHostingReady && !customDomainRecursivProven) {
     nextActions.push("Recursiv public hosting is ready for the custom-domain planning step; create/prove the Recursiv www.inverted.world binding before changing DNS.")
@@ -364,15 +449,20 @@ async function main() {
       {
         generatedAt: new Date().toISOString(),
         project: {
-          id: project.id,
-          name: project.name,
-          slug: project.slug,
-          repoUrl: project.repo_url,
+          id: project?.id || projectId,
+          name: project?.name,
+          slug: project?.slug,
+          repoUrl: project?.repo_url,
         },
         checks,
+        readinessWarnings,
         decision: {
           recursivHostingProven,
+          recursivHostedUrlProven,
+          recursivDeploymentCompleted,
           recursivArchiveDataReady,
+          recursivArchiveLiveDatabaseReady,
+          recursivArchiveSnapshotReady,
           publicHostingReady,
           fullAiProductReady,
           customDomainRecursivProven,
@@ -381,7 +471,9 @@ async function main() {
         },
         recursivUrl: recursivHttp,
         recursivArchiveApi: archiveApi,
+        recursivArchiveDataSource: dataSourceStatus(archiveApi.sourceMode),
         documentsApi,
+        documentsDataSource: dataSourceStatus(documentsApi.sourceMode),
         customDomain: {
           http: customHttp,
           dns: customDns,
@@ -400,11 +492,13 @@ async function main() {
           : null,
         jobs: {
           expectedCount: EXPECTED_JOBS.length,
+          lookupAvailable: jobsLookupAvailable,
           activeCount: invertedWorldJobs.filter((job) => job.status === "active").length,
           missingJobs,
           lastErrors: jobLastErrors,
         },
         providerHealth,
+        providerHealthAvailable,
         recentPipelineRuns: pipelineRuns.map((run) => ({
           jobName: run.job_name,
           status: run.status,
