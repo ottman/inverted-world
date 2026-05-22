@@ -1129,7 +1129,7 @@ export async function publishFrontPageEditionInRecursiv() {
       href: textField(item.url),
       username: textField(item.username),
       authorName: textField(item.author_name),
-      text: shorten(item.text, 260),
+      text: shorten(item.text, 140),
       topicId: textField(item.topic_id),
       score: asNumber(item.score),
       postedAt: textField(item.posted_at),
@@ -1138,10 +1138,9 @@ export async function publishFrontPageEditionInRecursiv() {
   const archiveVideos = videosResult.data.rows.map((row) => {
     const item = jsonObject(row)
     return {
-      title: textField(item.title),
+      title: shorten(item.title, 140),
       href: textField(item.source_id) ? `/archive/${textField(item.source_id)}` : textField(item.source_url),
       topicId: textField(item.topic_id),
-      thumbnail: textField(item.thumbnail_url),
       publishedAt: textField(item.published_at),
     }
   })
@@ -1155,13 +1154,17 @@ export async function publishFrontPageEditionInRecursiv() {
   const slug = `front-page-${editionDate}`
   const headline = leadArticle?.title || leadDossier?.title || "Inverted World front page"
   const deck = `Today's Recursiv edition: ${articles.length} AI briefs, ${dossiers.length} claim dossiers, ${xSignals.length} X signals, and ${archiveVideos.length} Tales archive links.`
+  const editionArticles = articles.slice(0, 5)
+  const editionDossiers = dossiers.slice(0, 6)
+  const editionSignals = xSignals.slice(0, 5)
+  const editionVideos = archiveVideos.slice(0, 4)
   const sections = {
-    leadDossier,
-    leadArticle,
-    articles,
-    dossiers,
-    xSignals,
-    archiveVideos,
+    leadDossier: editionDossiers[0],
+    leadArticle: editionArticles[0],
+    articles: editionArticles,
+    dossiers: editionDossiers,
+    xSignals: editionSignals,
+    archiveVideos: editionVideos,
   }
   const metrics = {
     ...countMetrics,
