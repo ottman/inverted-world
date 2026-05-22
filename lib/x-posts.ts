@@ -100,8 +100,8 @@ const TOPIC_CORE_TERMS: Record<string, string[]> = {
 }
 const TOPIC_TRUSTED_SOURCE_TERMS: Record<string, string[]> = {
   "uap-disclosure": ["pentagon", "deptofwar", "uap files", "uap videos", "ufo files", "aaro", "mufon"],
-  "secret-programs": ["declassified records", "records", "archive", "foia", "vault", "indictment", "intelligence"],
-  "epstein-networks": ["epstein", "maxwell", "sdny", "justice department", "doj", "court", "federal"],
+  "secret-programs": ["mkultra", "cia files", "declassified records", "foia", "fbi vault", "cia reading room", "black budget"],
+  "epstein-networks": ["epstein", "maxwell", "ghislaine", "client list", "flight logs", "sealed documents", "prince andrew", "giuffre", "jpmorgan epstein"],
   "cryptids-paranormal": ["pterodactyl", "cryptid", "bigfoot", "sasquatch", "mufon", "fortean", "high strangeness"],
   "ai-technocracy": ["ai", "privacy", "personal data", "surveillance", "robot", "autonomous", "palantir", "deepfake", "data center"],
   "space-anomalies": ["nasa", "mars", "moon", "psyche", "asteroid", "solar", "space weather", "venus", "artemis", "space station", "swpc"],
@@ -272,10 +272,14 @@ function hasTrustedSourceTerm(topicId: string, text: string) {
   return containsAnyTerm(text, [...(TOPIC_CORE_TERMS[topicId] || []), ...(TOPIC_TRUSTED_SOURCE_TERMS[topicId] || [])])
 }
 
-function rejectsTopicText(topicId: string, text?: string) {
+function rejectsGlobalText(text?: string) {
   const normalized = (text || "").toLowerCase()
-  if (!normalized) return false
-  return containsAnyTerm(normalized, GLOBAL_EXCLUDED_TERMS) || containsAnyTerm(normalized, TOPIC_EXCLUDED_TERMS[topicId] || [])
+  return Boolean(normalized && containsAnyTerm(normalized, GLOBAL_EXCLUDED_TERMS))
+}
+
+function rejectsLaneNoise(topicId: string, text?: string) {
+  const normalized = (text || "").toLowerCase()
+  return Boolean(normalized && containsAnyTerm(normalized, TOPIC_EXCLUDED_TERMS[topicId] || []))
 }
 
 function isPriorityPost(post: ViralXPost) {
@@ -289,8 +293,9 @@ function isTrustedSourcePost(topicId: string, post: ViralXPost, normalized: stri
 
 function isQualityTopicPost(topicId: string, post: ViralXPost) {
   const normalized = post.text.toLowerCase()
-  if (rejectsTopicText(topicId, normalized)) return false
+  if (rejectsGlobalText(normalized)) return false
   if (isTrustedSourcePost(topicId, post, normalized)) return true
+  if (rejectsLaneNoise(topicId, normalized)) return false
   if (hasCoreTopicTerm(topicId, normalized)) {
     if (isPriorityPost(post)) return true
     if (post.source === "x-api") return (post.score || 0) >= minCoreTopicScore(topicId)
