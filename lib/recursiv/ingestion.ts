@@ -611,48 +611,67 @@ export async function reclassifyYouTubeArchiveInRecursiv() {
   }
 }
 
-export async function syncTopicPulseToRecursiv() {
-  const { sdk, config } = getInvertedWorldDatabase()
-  let coverageCount = 0
-  let xCount = 0
+function topicPulseConcurrency() {
+  const configured = Math.trunc(Number(process.env.TOPIC_PULSE_CONCURRENCY || ""))
+  return Number.isFinite(configured) && configured > 0 ? Math.min(configured, 4) : 2
+}
 
-  for (const topic of topics) {
-    const articles = await fetchLiveArticlesForTopic(topic.id, topic.query.replaceAll('"', ""), {
-      allowProviderFallbacks: true,
-    }).catch(() => [])
-    await sdk.databases.query({
-      project_id: config.projectId,
-      database_name: config.databaseName,
-      sql: `INSERT INTO coverage_snapshots (topic_id, query, source, items, summary, velocity_score, metadata)
+async function runTopicPulseForTopic(
+  sdk: RecursivServerClient,
+  config: RecursivDatabaseConfig,
+  topic: (typeof topics)[number],
+) {
+  const articles = await fetchLiveArticlesForTopic(topic.id, topic.query.replaceAll('"', ""), {
+    allowProviderFallbacks: true,
+  }).catch(() => [])
+  await sdk.databases.query({
+    project_id: config.projectId,
+    database_name: config.databaseName,
+    sql: `INSERT INTO coverage_snapshots (topic_id, query, source, items, summary, velocity_score, metadata)
         VALUES ($1, $2, 'google-news', $3::jsonb, $4, $5, $6::jsonb)`,
-      params: [
-        topic.id,
-        topic.query,
-        JSON.stringify(
-          articles.slice(0, 12).map((article) => ({
-            title: article.title,
-            source: article.source,
-            sourceUrl: article.sourceUrl,
-            publishedAt: article.publishedAt,
-            heat: article.heat,
-          })),
-        ),
-        `Latest ${topic.title} source cluster from Google News and archive context.`,
-        articles.reduce((sum, article) => sum + (article.heat || 0), 0),
-        JSON.stringify({ topic: topic.title, signal: topic.signal }),
-      ],
-    })
-    coverageCount += 1
+    params: [
+      topic.id,
+      topic.query,
+      JSON.stringify(
+        articles.slice(0, 12).map((article) => ({
+          title: article.title,
+          source: article.source,
+          sourceUrl: article.sourceUrl,
+          publishedAt: article.publishedAt,
+          heat: article.heat,
+        })),
+      ),
+      `Latest ${topic.title} source cluster from Google News and archive context.`,
+      articles.reduce((sum, article) => sum + (article.heat || 0), 0),
+      JSON.stringify({ topic: topic.title, signal: topic.signal }),
+    ],
+  })
 
-    await clearXProfileReaderSignals(sdk, config.projectId, config.databaseName, topic.id)
-    const posts = await fetchViralXPostsForTopic(topic.id, { limit: 24, allowProviderFallbacks: true }).catch(() => [])
-    for (const post of posts) {
-      await upsertXSignal(sdk, config.projectId, config.databaseName, post)
-      xCount += 1
-    }
+  await clearXProfileReaderSignals(sdk, config.projectId, config.databaseName, topic.id)
+  const posts = await fetchViralXPostsForTopic(topic.id, { limit: 24, allowProviderFallbacks: true }).catch(() => [])
+  for (const post of posts) {
+    await upsertXSignal(sdk, config.projectId, config.databaseName, post)
   }
 
-  return { coverageSnapshots: coverageCount, xSignals: xCount }
+  return { topicId: topic.id, coverageSnapshots: 1, xSignals: posts.length }
+}
+
+export async function syncTopicPulseToRecursiv() {
+  const { sdk, config } = getInvertedWorldDatabase()
+  const concurrency = topicPulseConcurrency()
+  const results: Array<{ topicId: string; coverageSnapshots: number; xSignals: number }> = []
+
+  for (let offset = 0; offset < topics.length; offset += concurrency) {
+    const batch = topics.slice(offset, offset + concurrency)
+    results.push(...(await Promise.all(batch.map((topic) => runTopicPulseForTopic(sdk, config, topic)))))
+  }
+
+  return {
+    coverageSnapshots: results.reduce((sum, result) => sum + result.coverageSnapshots, 0),
+    xSignals: results.reduce((sum, result) => sum + result.xSignals, 0),
+    concurrency,
+    topics: results,
+  }
 }
 
 async function clearXProfileReaderSignals(sdk: RecursivServerClient, projectId: string, databaseName: string, topicId: string) {
