@@ -300,6 +300,11 @@ function articleRowToArticle(row: ArticleDraftRow): IntelligenceArticle {
   }
 }
 
+function normalizeXSignalSource(source?: string): ViralXPost["source"] {
+  if (source === "brave-search" || source === "exa-search" || source === "x-syndication" || source === "x-profile-reader" || source === "seed") return source
+  return "x-api"
+}
+
 function xRowToPost(row: XSignalRow): ViralXPost {
   const metrics = jsonObject(row.metrics)
 
@@ -311,7 +316,7 @@ function xRowToPost(row: XSignalRow): ViralXPost {
     authorName: row.author_name,
     username: row.username,
     createdAt: row.posted_at,
-    source: row.source === "brave-search" || row.source === "x-syndication" || row.source === "seed" ? row.source : "x-api",
+    source: normalizeXSignalSource(row.source),
     score: Number(row.score || 0),
     metrics: {
       likes: Number(metrics.likes ?? metrics.like_count ?? 0) || undefined,

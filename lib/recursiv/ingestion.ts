@@ -644,6 +644,7 @@ export async function syncTopicPulseToRecursiv() {
     })
     coverageCount += 1
 
+    await clearXProfileReaderSignals(sdk, config.projectId, config.databaseName, topic.id)
     const posts = await fetchViralXPostsForTopic(topic.id, { limit: 24, allowProviderFallbacks: true }).catch(() => [])
     for (const post of posts) {
       await upsertXSignal(sdk, config.projectId, config.databaseName, post)
@@ -652,6 +653,15 @@ export async function syncTopicPulseToRecursiv() {
   }
 
   return { coverageSnapshots: coverageCount, xSignals: xCount }
+}
+
+async function clearXProfileReaderSignals(sdk: RecursivServerClient, projectId: string, databaseName: string, topicId: string) {
+  await sdk.databases.query({
+    project_id: projectId,
+    database_name: databaseName,
+    sql: "DELETE FROM x_signals WHERE topic_id = $1 AND source = 'x-profile-reader'",
+    params: [topicId],
+  })
 }
 
 async function upsertXSignal(sdk: RecursivServerClient, projectId: string, databaseName: string, post: ViralXPost) {

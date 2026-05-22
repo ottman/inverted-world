@@ -27,6 +27,7 @@ const BRAVE_TIMEOUT_MS = 6500
 const EXA_X_TIMEOUT_MS = 9000
 const X_SYNDICATION_TIMEOUT_MS = 6500
 const JINA_X_PROFILE_TIMEOUT_MS = 9000
+const DEFAULT_PROFILE_READER_ACCOUNT_LIMIT = 4
 const configuredMinViralScore = process.env.X_MIN_VIRAL_SCORE ? Number(process.env.X_MIN_VIRAL_SCORE) : undefined
 export const X_FRESHNESS_WINDOW_HOURS = 24 * 7
 const X_EPOCH_MS = BigInt(1_288_834_974_657)
@@ -774,7 +775,9 @@ async function fetchSyndicatedPriorityPosts(topicId: string, limit: number) {
 }
 
 function profileReaderAccounts(topicId: string) {
-  return Array.from(new Set([...PRIORITY_X_ACCOUNTS, ...(TOPIC_SOURCE_X_ACCOUNTS[topicId] || [])]))
+  const configuredLimit = Math.trunc(Number(process.env.X_PROFILE_READER_ACCOUNT_LIMIT || ""))
+  const accountLimit = Number.isFinite(configuredLimit) && configuredLimit > 0 ? Math.min(configuredLimit, 12) : DEFAULT_PROFILE_READER_ACCOUNT_LIMIT
+  return Array.from(new Set([...(TOPIC_SOURCE_X_ACCOUNTS[topicId] || []), ...PRIORITY_X_ACCOUNTS])).slice(0, accountLimit)
 }
 
 function parseJinaProfilePublishedAt(markdown: string) {
@@ -805,7 +808,9 @@ function isProfileReaderNoise(line: string, account: string) {
 
 function parseJinaProfilePosts(topicId: string, account: string, markdown: string, limit: number) {
   const publishedAt = parseJinaProfilePublishedAt(markdown)
-  const lines = markdown
+  const postHeadingIndex = markdown.search(/^## .+ posts$/m)
+  const postMarkdown = postHeadingIndex >= 0 ? markdown.slice(postHeadingIndex) : markdown
+  const lines = postMarkdown
     .split(/\r?\n/)
     .map((line) => cleanSearchText(line))
     .filter((line) => !isProfileReaderNoise(line, account))
