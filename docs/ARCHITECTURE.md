@@ -22,6 +22,8 @@ Current runtime lanes:
 
 The `@recursiv/sdk` package is now used for server-side Recursiv database reads, provisioning scripts, deployment scripts, and scheduled job endpoints.
 
+Custom-domain cutover proof is explicit: `pnpm recursiv:cutover` checks the Recursiv hosted URL, the current `www.inverted.world` HTTP/DNS state, active scheduled jobs, latest deployment, and hosted provider blockers before any DNS change.
+
 ## Problem
 
 The site is still mostly a live-rendered frontend with fetch helpers. It is not yet a serious AI news machine because:
