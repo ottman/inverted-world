@@ -224,7 +224,7 @@ function SimpleFooter() {
           </a>
         ))}
       </div>
-      <nav className="flex flex-wrap items-center justify-center gap-4 text-xs font-semibold uppercase tracking-[0.14em] text-[#f4efe2]/64">
+      <nav className="iw-serif flex flex-wrap items-center justify-center gap-4 text-xs font-semibold uppercase tracking-[0.14em] text-[#f4efe2]/64">
         <a href="/archive" className="transition hover:text-[#df2f2f]">
           Archive
         </a>
