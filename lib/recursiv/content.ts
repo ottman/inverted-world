@@ -232,6 +232,28 @@ function topicDisplayTitle(topicId?: string) {
   return topics.find((topic) => topic.id === topicId)?.title || "Inverted World"
 }
 
+function cleanDossierTitle(value: string | undefined, topicId: string) {
+  const fallback = "Inverted World dossier"
+  let title = value?.trim() || fallback
+  const topicNames = [
+    topicDisplayTitle(topicId),
+    ...topics.map((topic) => topic.title),
+    "Inverted World",
+    "Claim Dossier",
+  ].filter(Boolean)
+
+  for (let pass = 0; pass < 3; pass += 1) {
+    const before = title
+    for (const topicName of topicNames) {
+      const pattern = new RegExp(`^${topicName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*:\\s*`, "i")
+      title = title.replace(pattern, "").trim()
+    }
+    if (title === before) break
+  }
+
+  return title || fallback
+}
+
 function cleanDossierDeck(value: string | undefined, topicId: string) {
   const fallback = `A sourced ${topicDisplayTitle(topicId)} file with records, social velocity, skeptical reads, and Tales archive context.`
   const deck = value?.trim() || fallback
@@ -396,15 +418,16 @@ function claimDossierRowToDossier(row: ClaimDossierRow): ClaimDossier {
   const topicId = row.topic_id || "secret-programs"
   const metadata = jsonObject(row.metadata)
   const publishedAt = safeDate(row.published_at || row.generated_at) || new Date().toISOString().slice(0, 10)
+  const title = cleanDossierTitle(row.title, topicId)
 
   return {
     id: row.id || row.slug || "claim-dossier",
     slug: row.slug || row.id || "claim-dossier",
-    title: row.title || "Inverted World dossier",
+    title,
     deck: cleanDossierDeck(row.deck, topicId),
     topicId,
     topic: topicTitle(topicId),
-    claim: row.claim || row.title || "The live claim is still being mapped.",
+    claim: cleanDossierTitle(row.claim || title, topicId),
     summary: row.summary || "The research desk has not written a summary yet.",
     status: row.status || "draft",
     evidenceGrade: row.evidence_grade || "developing",
