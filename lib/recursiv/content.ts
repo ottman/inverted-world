@@ -266,6 +266,16 @@ function cleanPublicTitle(value: string | undefined, topicId: string, fallback =
   return title || fallback
 }
 
+function cleanPublicText(value: string, topicId: string) {
+  let text = value.trim()
+  if (!text) return ""
+  for (const topic of topics) {
+    const escaped = topic.title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    text = text.replace(new RegExp(`(?:${escaped}\\s*:\\s*){2,}`, "gi"), `${topic.title}: `)
+  }
+  return cleanDossierTitle(text, topicId)
+}
+
 function slugify(value: string) {
   return value
     .toLowerCase()
@@ -327,7 +337,7 @@ function channelRowToVideo(row: ChannelItemRow): ChannelVideo {
 function articleRowToArticle(row: ArticleDraftRow): IntelligenceArticle {
   const metadata = jsonObject(row.metadata)
   const topicId = row.topic_id || "secret-programs"
-  const body = jsonArray(row.body).map(String).filter(Boolean)
+  const body = jsonArray(row.body).map(String).map((paragraph) => cleanPublicText(paragraph, topicId)).filter(Boolean)
   const thumbnail = jsonObject(metadata.thumbnail)
   const sourceName = row.source_name || (typeof metadata.sourceName === "string" ? metadata.sourceName : undefined)
   const sourceUrl = row.source_url || (typeof metadata.sourceUrl === "string" ? metadata.sourceUrl : undefined)
@@ -353,8 +363,11 @@ function articleRowToArticle(row: ArticleDraftRow): IntelligenceArticle {
     },
     body: body.length ? body : ["This story is still being written. Start with the source links and related archive material below."],
     thumbnailPrompt:
-      row.thumbnail_prompt ||
-      (typeof metadata.thumbnailPrompt === "string" ? metadata.thumbnailPrompt.replace(row.title || "", title) : ""),
+      cleanPublicText(
+        row.thumbnail_prompt ||
+          (typeof metadata.thumbnailPrompt === "string" ? metadata.thumbnailPrompt.replace(row.title || "", title) : ""),
+        topicId,
+      ),
   }
 }
 
