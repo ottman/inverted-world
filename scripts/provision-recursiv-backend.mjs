@@ -201,7 +201,7 @@ const JOBS = [
   {
     name: "inverted-world-article-generation",
     cron: "5 * * * *",
-    endpoint: "/api/recursiv/jobs/article-generation",
+    endpoint: "/api/recursiv/jobs/article-generation?limit=2&useAgent=0",
   },
   {
     name: "inverted-world-claim-dossiers",
@@ -226,7 +226,7 @@ const JOBS = [
   {
     name: "inverted-world-full-pipeline",
     cron: "2 * * * *",
-    endpoint: "/api/recursiv/jobs/full-pipeline",
+    endpoint: "/api/recursiv/jobs/full-pipeline?mode=scheduled&staleAfterMinutes=30",
   },
   {
     name: "inverted-world-pipeline-maintenance",

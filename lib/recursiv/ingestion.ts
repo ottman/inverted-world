@@ -69,6 +69,11 @@ type GeneratedArticleDraft = {
   mode: "agent" | "fallback"
 }
 
+type ArticleGenerationOptions = {
+  limit?: number
+  useAgent?: boolean
+}
+
 function decodeXml(value: string) {
   return value
     .replaceAll("&amp;", "&")
@@ -407,9 +412,11 @@ async function generateDossierArticleDraft(
   agentId: string | undefined,
   row: ClaimDossierDraftRow,
   topic: (typeof topics)[number],
+  options: { useAgent?: boolean } = {},
 ): Promise<GeneratedArticleDraft> {
   const fallback = fallbackDossierArticleDraft(row, topic)
-  if (!agentId || process.env.ARTICLE_GENERATION_USE_AGENT === "0") return fallback
+  const useAgent = options.useAgent ?? process.env.ARTICLE_GENERATION_USE_AGENT !== "0"
+  if (!agentId || !useAgent) return fallback
 
   const prompt = [
     "Write one Inverted World news brief from the supplied claim dossier.",
@@ -899,8 +906,14 @@ export async function generateClaimDossiersInRecursiv() {
   return { dossiersUpserted, sourcesUpserted }
 }
 
-export async function generateArticleDraftsInRecursiv() {
+function normalizeArticleGenerationLimit(value?: number) {
+  return Math.max(1, Math.min(Math.trunc(Number(value || process.env.ARTICLE_GENERATION_LIMIT || "6")) || 6, 12))
+}
+
+export async function generateArticleDraftsInRecursiv(options: ArticleGenerationOptions = {}) {
   const { sdk, config } = getInvertedWorldDatabase()
+  const limit = normalizeArticleGenerationLimit(options.limit)
+  const useAgent = options.useAgent ?? process.env.ARTICLE_GENERATION_USE_AGENT !== "0"
   const { data } = await sdk.databases.query({
     project_id: config.projectId,
     database_name: config.databaseName,
@@ -929,7 +942,7 @@ export async function generateArticleDraftsInRecursiv() {
       WHERE status = 'published'
       ORDER BY x_velocity_score DESC NULLS LAST, updated_at DESC
       LIMIT $1`,
-    params: [Math.max(1, Math.min(Number(process.env.ARTICLE_GENERATION_LIMIT || "6"), 12))],
+    params: [limit],
   })
 
   let created = 0
@@ -937,7 +950,7 @@ export async function generateArticleDraftsInRecursiv() {
     const topic = topics.find((item) => item.id === row.topic_id)
     if (!topic) continue
 
-    const draft = await generateDossierArticleDraft(sdk, config.agentId, row, topic)
+    const draft = await generateDossierArticleDraft(sdk, config.agentId, row, topic, { useAgent })
     const sourceLinks = jsonArray(row.source_links).map(jsonObject)
     const leadSource = sourceLinks[0] || {}
     const dossierSlug = row.slug || cleanSlug(row.title || row.claim || topic.title)
@@ -1014,7 +1027,7 @@ export async function generateArticleDraftsInRecursiv() {
     created += 1
   }
 
-  return { draftsUpserted: created }
+  return { draftsUpserted: created, limit, useAgent }
 }
 
 export async function generateImagesForDraftsInRecursiv() {
