@@ -74,6 +74,10 @@ function latestByCreatedAt(items) {
   })[0]
 }
 
+function shouldSyncDeploymentStatus(deployment) {
+  return ["building", "deploying", "pending", "queued"].includes(String(deployment?.status || "").toLowerCase())
+}
+
 async function probeHttp(url) {
   const started = Date.now()
   try {
@@ -196,7 +200,24 @@ async function main() {
       fetchPipelineSummary(sdk, projectId, databaseName),
     ])
 
-  const latestDeployment = latestByCreatedAt(deploymentsResponse || [])
+  let latestDeployment = latestByCreatedAt(deploymentsResponse || [])
+  let deploymentStatusSync = null
+  if (latestDeployment?.id && shouldSyncDeploymentStatus(latestDeployment)) {
+    try {
+      const { data: syncResult } = await sdk.deployments.syncStatus(latestDeployment.id)
+      const { data: statusResult } = await sdk.deployments.getStatus(latestDeployment.id)
+      latestDeployment = { ...latestDeployment, ...statusResult }
+      deploymentStatusSync = {
+        ok: true,
+        status: syncResult?.status || statusResult?.status || latestDeployment.status,
+      }
+    } catch (error) {
+      deploymentStatusSync = {
+        ok: false,
+        error: error instanceof Error ? error.message : String(error),
+      }
+    }
+  }
   const invertedWorldJobs = (jobsResponse || []).filter((job) => String(job.name || "").startsWith("inverted-world-"))
   const activeJobNames = new Set(invertedWorldJobs.filter((job) => job.status === "active").map((job) => job.name))
   const missingJobs = EXPECTED_JOBS.filter((name) => !activeJobNames.has(name))
@@ -268,6 +289,7 @@ async function main() {
           ? {
               id: latestDeployment.id,
               status: latestDeployment.status,
+              statusSync: deploymentStatusSync,
               deploymentUrl: latestDeployment.deployment_url,
               coolifyDomain: latestDeployment.coolify_domain,
               completedAt: latestDeployment.completed_at,

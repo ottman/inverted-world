@@ -483,6 +483,16 @@ function videoKey(video: ChannelVideo) {
   return video.videoId || video.href
 }
 
+function dedupeChannelVideos(videos: ChannelVideo[]) {
+  const seen = new Set<string>()
+  return videos.filter((video) => {
+    const key = videoKey(video)
+    if (!key || seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
 async function fetchTopicArchiveVideos(topicId: string, limit = DOSSIER_RELATED_VIDEO_TARGET) {
   const rows = await queryInvertedWorldDatabase<ChannelItemRow>(
     `SELECT
@@ -500,17 +510,17 @@ async function fetchTopicArchiveVideos(topicId: string, limit = DOSSIER_RELATED_
     WHERE source = 'youtube' AND topic_id = $1
     ORDER BY CASE WHEN kind = 'episode' THEN 0 ELSE 1 END, published_at DESC NULLS LAST, created_at DESC
     LIMIT $2`,
-    [topicId, Math.max(1, Math.min(limit, 12))],
+    [topicId, Math.max(1, Math.min(limit * 2, 24))],
   )
 
-  return rows?.map(channelRowToVideo) ?? []
+  return dedupeChannelVideos(rows?.map(channelRowToVideo) ?? []).slice(0, limit)
 }
 
 async function hydrateDossierRelatedVideos(dossiers: ClaimDossier[]) {
   const sparseTopicIds = Array.from(
     new Set(
       dossiers
-        .filter((dossier) => dossier.relatedVideos.length < DOSSIER_RELATED_VIDEO_TARGET)
+        .filter((dossier) => dedupeChannelVideos(dossier.relatedVideos).length < DOSSIER_RELATED_VIDEO_TARGET)
         .map((dossier) => dossier.topicId),
     ),
   )
@@ -522,20 +532,27 @@ async function hydrateDossierRelatedVideos(dossiers: ClaimDossier[]) {
   const fallbackByTopic = new Map(fallbackPairs)
 
   return dossiers.map((dossier) => {
-    if (dossier.relatedVideos.length >= DOSSIER_RELATED_VIDEO_TARGET) return dossier
+    const existing = dedupeChannelVideos(dossier.relatedVideos).slice(0, DOSSIER_RELATED_VIDEO_TARGET)
+    if (existing.length >= DOSSIER_RELATED_VIDEO_TARGET) {
+      return {
+        ...dossier,
+        relatedVideos: existing,
+        relatedVideoCount: existing.length,
+      }
+    }
 
-    const seen = new Set(dossier.relatedVideos.map(videoKey))
+    const seen = new Set(existing.map(videoKey))
     const fallback = (fallbackByTopic.get(dossier.topicId) || []).filter((video) => {
       const key = videoKey(video)
       if (!key || seen.has(key)) return false
       seen.add(key)
       return true
     })
-    const relatedVideos = [...dossier.relatedVideos, ...fallback].slice(0, DOSSIER_RELATED_VIDEO_TARGET)
+    const relatedVideos = [...existing, ...fallback].slice(0, DOSSIER_RELATED_VIDEO_TARGET)
     return {
       ...dossier,
       relatedVideos,
-      relatedVideoCount: Math.max(dossier.relatedVideoCount, relatedVideos.length),
+      relatedVideoCount: relatedVideos.length,
     }
   })
 }

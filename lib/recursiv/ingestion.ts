@@ -713,24 +713,26 @@ export async function generateClaimDossiersInRecursiv() {
           FROM channel_items
           WHERE source = 'youtube' AND topic_id = $1
           ORDER BY published_at DESC NULLS LAST
-          LIMIT 6`,
+          LIMIT 12`,
         params: [topic.id],
       }),
     ])
 
     const lead = articles[0]
-    const videos = (videosResult.data.rows || []).map((row) => ({
-      title: String(row.title || "Tales From the Inverted World"),
-      date: row.published_at ? String(row.published_at).slice(0, 10) : "",
-      href: String(row.source_url || "#"),
-      topicId: String(row.topic_id || topic.id),
-      source: "YouTube",
-      videoId: typeof row.source_id === "string" ? row.source_id : undefined,
-      embedUrl: typeof row.embed_url === "string" ? row.embed_url : undefined,
-      thumbnail: typeof row.thumbnail_url === "string" ? row.thumbnail_url : undefined,
-      description: typeof row.description === "string" ? row.description : undefined,
-      kind: row.kind === "short" ? "short" : "episode",
-    })) satisfies ChannelVideo[]
+    const videos = dedupeVideos(
+      (videosResult.data.rows || []).map((row) => ({
+        title: String(row.title || "Tales From the Inverted World"),
+        date: row.published_at ? String(row.published_at).slice(0, 10) : "",
+        href: String(row.source_url || "#"),
+        topicId: String(row.topic_id || topic.id),
+        source: "YouTube",
+        videoId: typeof row.source_id === "string" ? row.source_id : undefined,
+        embedUrl: typeof row.embed_url === "string" ? row.embed_url : undefined,
+        thumbnail: typeof row.thumbnail_url === "string" ? row.thumbnail_url : undefined,
+        description: typeof row.description === "string" ? row.description : undefined,
+        kind: row.kind === "short" ? "short" : "episode",
+      })),
+    ).slice(0, 6) satisfies ChannelVideo[]
 
     const xVelocityScore = Math.round(posts.reduce((sum, post) => sum + postScore(post), 0))
     const sourceLinks = await enrichSourceLinks(articles.slice(0, 10).map((article, index) => {
