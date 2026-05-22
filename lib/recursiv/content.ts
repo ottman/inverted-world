@@ -679,7 +679,7 @@ export async function getRecursivChannelArchive({
       WHERE source = 'youtube'
       ORDER BY COALESCE(source_id, source_url, id), published_at DESC NULLS LAST, created_at DESC
     )
-    SELECT /* channel-archive:${Date.now()} */
+    SELECT
       id,
       source_id,
       source_url,
@@ -957,7 +957,7 @@ export async function fetchRecursivPipelineRuns(options: { limit?: number; jobNa
   const where = options.jobName ? "WHERE job_name = $2" : ""
   const params = options.jobName ? [limit, options.jobName] : [limit]
   const rows = await queryInvertedWorldDatabase<PipelineRunRow>(
-    `SELECT /* pipeline-runs:${Date.now()} */
+    `SELECT
       id,
       job_name,
       status,
