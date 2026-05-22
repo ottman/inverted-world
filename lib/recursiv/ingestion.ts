@@ -1221,3 +1221,100 @@ export async function publishFrontPageEditionInRecursiv() {
     archiveVideoCount: archiveVideos.length,
   }
 }
+
+type PipelineStep = {
+  step: string
+  ok: boolean
+  durationMs: number
+  result?: unknown
+  error?: string
+}
+
+async function runPipelineStep(step: string, fn: () => Promise<unknown>): Promise<PipelineStep> {
+  const started = Date.now()
+  try {
+    const result = await fn()
+    return {
+      step,
+      ok: true,
+      durationMs: Date.now() - started,
+      result,
+    }
+  } catch (error) {
+    return {
+      step,
+      ok: false,
+      durationMs: Date.now() - started,
+      error: error instanceof Error ? error.message : String(error),
+    }
+  }
+}
+
+export async function runFullPipelineInRecursiv() {
+  const { sdk, config } = getInvertedWorldDatabase()
+  const started = Date.now()
+  const run = await sdk.databases.query({
+    project_id: config.projectId,
+    database_name: config.databaseName,
+    sql: `INSERT INTO pipeline_runs (job_name, status, metadata)
+      VALUES ($1, $2, $3::jsonb)
+      RETURNING id`,
+    params: [
+      "full-pipeline",
+      "running",
+      JSON.stringify({
+        generatedBy: "recursiv-full-pipeline-v1",
+        siteUrl: process.env.INVERTED_WORLD_SITE_URL || "https://invertedworld.on.recursiv.io",
+      }),
+    ],
+  })
+  const runId = String(run.data.rows[0]?.id || "")
+  const steps: PipelineStep[] = []
+
+  const stepDefinitions: Array<[string, () => Promise<unknown>]> = [
+    ["youtube-archive-sync", syncYouTubeArchiveToRecursiv],
+    ["topic-pulse", syncTopicPulseToRecursiv],
+    ["claim-dossiers", generateClaimDossiersInRecursiv],
+    ["article-generation", generateArticleDraftsInRecursiv],
+    ["image-generation", generateImagesForDraftsInRecursiv],
+    ["publishing", publishReadyDraftsInRecursiv],
+    ["front-page-edition", publishFrontPageEditionInRecursiv],
+  ]
+
+  for (const [step, fn] of stepDefinitions) {
+    steps.push(await runPipelineStep(step, fn))
+  }
+
+  const status = steps.every((step) => step.ok) ? "succeeded" : "partial_failure"
+  const durationMs = Date.now() - started
+  const failedSteps = steps.filter((step) => !step.ok)
+
+  if (runId) {
+    await sdk.databases.query({
+      project_id: config.projectId,
+      database_name: config.databaseName,
+      sql: `UPDATE pipeline_runs
+        SET status = $1,
+          completed_at = now(),
+          duration_ms = $2,
+          results = $3::jsonb,
+          error = $4,
+          updated_at = now()
+        WHERE id = $5`,
+      params: [
+        status,
+        durationMs,
+        JSON.stringify(steps),
+        failedSteps.map((step) => `${step.step}: ${step.error}`).join("\n"),
+        runId,
+      ],
+    })
+  }
+
+  return {
+    runId,
+    status,
+    durationMs,
+    steps,
+  }
+}

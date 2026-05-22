@@ -170,6 +170,21 @@ const SCHEMA_SQL = [
     updated_at TIMESTAMPTZ DEFAULT now()
   )`,
   "CREATE INDEX IF NOT EXISTS front_page_editions_status_date_idx ON front_page_editions (status, edition_date DESC)",
+  `CREATE TABLE IF NOT EXISTS pipeline_runs (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    job_name TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'running',
+    started_at TIMESTAMPTZ DEFAULT now(),
+    completed_at TIMESTAMPTZ,
+    duration_ms INTEGER DEFAULT 0,
+    results JSONB NOT NULL DEFAULT '[]'::jsonb,
+    error TEXT,
+    metadata JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+  )`,
+  "CREATE INDEX IF NOT EXISTS pipeline_runs_job_started_idx ON pipeline_runs (job_name, started_at DESC)",
+  "CREATE INDEX IF NOT EXISTS pipeline_runs_status_started_idx ON pipeline_runs (status, started_at DESC)",
 ]
 
 const JOBS = [
@@ -207,6 +222,11 @@ const JOBS = [
     name: "inverted-world-front-page-edition",
     cron: "30 * * * *",
     endpoint: "/api/recursiv/jobs/front-page-edition",
+  },
+  {
+    name: "inverted-world-full-pipeline",
+    cron: "2 * * * *",
+    endpoint: "/api/recursiv/jobs/full-pipeline",
   },
 ]
 
@@ -331,8 +351,20 @@ async function main() {
   if (withJobs) {
     const { data: existingJobs } = await sdk.jobs.list()
     const results = []
-    for (const job of JOBS) results.push(await ensureJob(sdk, existingJobs, projectId, job))
+    for (const job of JOBS) {
+      try {
+        results.push(await ensureJob(sdk, existingJobs, projectId, job))
+      } catch (error) {
+        results.push({
+          action: "failed",
+          name: job.name,
+          cron: job.cron,
+          error: error instanceof Error ? error.message : String(error),
+        })
+      }
+    }
     console.log(JSON.stringify({ jobs: results }, null, 2))
+    if (results.some((result) => result.action === "failed")) process.exitCode = 1
   } else {
     console.log("Skipped jobs. Re-run with --with-jobs after the hosted job endpoints are live.")
   }

@@ -8,6 +8,7 @@ export const INVERTED_WORLD_TABLES = [
   "claim_sources",
   "claim_chat_messages",
   "front_page_editions",
+  "pipeline_runs",
 ] as const
 
 export const INVERTED_WORLD_SCHEMA_SQL = [
@@ -174,4 +175,19 @@ export const INVERTED_WORLD_SCHEMA_SQL = [
     updated_at TIMESTAMPTZ DEFAULT now()
   )`,
   "CREATE INDEX IF NOT EXISTS front_page_editions_status_date_idx ON front_page_editions (status, edition_date DESC)",
+  `CREATE TABLE IF NOT EXISTS pipeline_runs (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    job_name TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'running',
+    started_at TIMESTAMPTZ DEFAULT now(),
+    completed_at TIMESTAMPTZ,
+    duration_ms INTEGER DEFAULT 0,
+    results JSONB NOT NULL DEFAULT '[]'::jsonb,
+    error TEXT,
+    metadata JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+  )`,
+  "CREATE INDEX IF NOT EXISTS pipeline_runs_job_started_idx ON pipeline_runs (job_name, started_at DESC)",
+  "CREATE INDEX IF NOT EXISTS pipeline_runs_status_started_idx ON pipeline_runs (status, started_at DESC)",
 ]
