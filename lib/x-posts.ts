@@ -11,7 +11,7 @@ export type ViralXPost = {
   authorName?: string
   username?: string
   createdAt?: string
-  source?: "x-api" | "brave-search" | "exa-search" | "x-syndication" | "seed"
+  source?: "x-api" | "brave-search" | "exa-search" | "x-syndication" | "x-profile-reader" | "seed"
   score?: number
   metrics?: {
     likes?: number
@@ -26,6 +26,7 @@ const X_TIMEOUT_MS = 6500
 const BRAVE_TIMEOUT_MS = 6500
 const EXA_X_TIMEOUT_MS = 9000
 const X_SYNDICATION_TIMEOUT_MS = 6500
+const JINA_X_PROFILE_TIMEOUT_MS = 9000
 const configuredMinViralScore = process.env.X_MIN_VIRAL_SCORE ? Number(process.env.X_MIN_VIRAL_SCORE) : undefined
 export const X_FRESHNESS_WINDOW_HOURS = 24 * 7
 const X_EPOCH_MS = BigInt(1_288_834_974_657)
@@ -354,6 +355,14 @@ function cleanSearchText(value?: string) {
     .replace(/<[^>]+>/g, "")
     .replace(/\s+/g, " ")
     .trim()
+}
+
+function stableTextId(value: string) {
+  let hash = 5381
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 33) ^ value.charCodeAt(index)
+  }
+  return (hash >>> 0).toString(36)
 }
 
 function extractXStatusUrl(value?: string) {
@@ -764,19 +773,100 @@ async function fetchSyndicatedPriorityPosts(topicId: string, limit: number) {
     .slice(0, limit)
 }
 
+function profileReaderAccounts(topicId: string) {
+  return Array.from(new Set([...PRIORITY_X_ACCOUNTS, ...(TOPIC_SOURCE_X_ACCOUNTS[topicId] || [])]))
+}
+
+function parseJinaProfilePublishedAt(markdown: string) {
+  const value = markdown.match(/^Published Time:\s*(.+)$/m)?.[1]?.trim()
+  if (!value) return new Date().toISOString()
+  const timestamp = new Date(value).getTime()
+  return Number.isNaN(timestamp) ? new Date().toISOString() : new Date(timestamp).toISOString()
+}
+
+function isProfileReaderNoise(line: string, account: string) {
+  const normalized = line.toLowerCase()
+  return (
+    !line ||
+    line === "Pinned" ||
+    line === "Replying to" ||
+    line === account ||
+    line === `@${account}` ||
+    line.startsWith("Title:") ||
+    line.startsWith("URL Source:") ||
+    line.startsWith("Published Time:") ||
+    line.startsWith("Markdown Content:") ||
+    line.startsWith("## ") ||
+    line.startsWith("![") ||
+    line.startsWith("[![") ||
+    normalized.includes("opens profile photo")
+  )
+}
+
+function parseJinaProfilePosts(topicId: string, account: string, markdown: string, limit: number) {
+  const publishedAt = parseJinaProfilePublishedAt(markdown)
+  const lines = markdown
+    .split(/\r?\n/)
+    .map((line) => cleanSearchText(line))
+    .filter((line) => !isProfileReaderNoise(line, account))
+    .filter((line) => line.length >= 28 && line.length <= 520)
+    .filter((line) => matchesTopicText(topicId, line))
+
+  return dedupePosts(lines.map((line, index) => {
+    const status = extractXStatusUrl(line)
+    const id = status?.id || `jina-${account.toLowerCase()}-${stableTextId(line)}`
+
+    return {
+      id,
+      url: status?.url || `https://twitter.com/${account}`,
+      text: line,
+      topicId,
+      username: account,
+      createdAt: status?.createdAt || publishedAt,
+      source: "x-profile-reader",
+      score: Math.max(25, 300 - index * 4),
+    } satisfies ViralXPost
+  })).slice(0, limit)
+}
+
+async function fetchJinaProfilePostsForTopic(topicId: string, limit: number) {
+  const posts = await Promise.all(
+    profileReaderAccounts(topicId).map(async (account) => {
+      const response = await fetch(`https://r.jina.ai/http://https://x.com/${account}`, {
+        next: { revalidate: 1800 },
+        signal: AbortSignal.timeout(JINA_X_PROFILE_TIMEOUT_MS),
+        headers: {
+          "user-agent": "InvertedWorldXProfileReader/1.0",
+        },
+      })
+      if (!response.ok) return [] satisfies ViralXPost[]
+
+      const markdown = await response.text()
+      return parseJinaProfilePosts(topicId, account, markdown, limit)
+    }),
+  )
+
+  return dedupePosts(posts.flat())
+    .filter((post) => isFreshXPost(post))
+    .filter((post) => isQualityTopicPost(topicId, post))
+    .sort((left, right) => (right.score || 0) - (left.score || 0))
+    .slice(0, limit)
+}
+
 export async function fetchViralXPostsForTopic(topicId: string, options: { limit?: number } & ProviderFallbackOptions = {}) {
   const limit = Math.max(1, Math.min(Math.trunc(options.limit || 12), 24))
   const recursivPosts = (await fetchRecursivXSignalsForTopic(topicId, { limit })) || []
   const recursivRankedPosts = mergeWithSeededPosts(topicId, recursivPosts, limit)
   if (recursivRankedPosts.length >= limit || !allowProviderFallbacks(options)) return recursivRankedPosts
 
-  const [xPosts, indexedPosts, exaPosts, syndicatedPosts] = await Promise.all([
+  const [xPosts, indexedPosts, exaPosts, syndicatedPosts, profilePosts] = await Promise.all([
     fetchXApiPosts(topicId, limit).catch(() => []),
     fetchBraveIndexedXPosts(topicId, limit).catch(() => []),
     fetchExaIndexedXPosts(topicId, limit).catch(() => []),
     fetchSyndicatedPriorityPosts(topicId, limit).catch(() => []),
+    fetchJinaProfilePostsForTopic(topicId, limit).catch(() => []),
   ])
-  const rankedPosts = dedupePosts([...xPosts, ...indexedPosts, ...exaPosts, ...syndicatedPosts]).sort(
+  const rankedPosts = dedupePosts([...xPosts, ...indexedPosts, ...exaPosts, ...syndicatedPosts, ...profilePosts]).sort(
     (left, right) => (right.score || 0) - (left.score || 0),
   )
 
