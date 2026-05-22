@@ -1,6 +1,6 @@
 import { channelProfile, featuredVideos, type ChannelVideo } from "@/data/inverted-world"
 import { allowProviderFallbacks, type ProviderFallbackOptions } from "@/lib/provider-fallbacks"
-import { getRecursivChannelArchive } from "@/lib/recursiv/content"
+import { getRecursivChannelArchive, getRecursivChannelVideo } from "@/lib/recursiv/content"
 import { classifyInvertedWorldTopic } from "@/lib/topic-classifier"
 
 type YouTubePlaylistItem = {
@@ -206,6 +206,9 @@ export async function getDeepArchive(options: {
 
 export async function getArchiveVideo(videoId: string) {
   if (!videoId) return null
+  const recursivVideo = await getRecursivChannelVideo(videoId)
+  if (recursivVideo) return recursivVideo
+
   const archive = await getDeepArchive({ limit: 1000, maxLimit: 1000 })
   return archive.videos.find((video) => video.videoId === videoId) ?? null
 }

@@ -20,6 +20,12 @@ function textField(value: unknown) {
   return typeof value === "string" ? value : ""
 }
 
+function safeEditionHref(href: string, validNewsHrefs: Set<string>) {
+  if (!href) return "/news"
+  if (href.startsWith("/news/") && !validNewsHrefs.has(href.replace(/\/$/, ""))) return "/news"
+  return href
+}
+
 function formatPipelineRun(value?: string) {
   if (!value) return "pending"
   const date = new Date(value)
@@ -42,6 +48,7 @@ export default async function NewsPage() {
   const lead = dossiers[0]
   const editionArticles = sectionArray(edition?.sections.articles).slice(0, 5)
   const editionSignals = sectionArray(edition?.sections.xSignals).slice(0, 5)
+  const validNewsHrefs = new Set(dossiers.map((dossier) => `/news/${dossier.slug}`))
   const breakingItems: BreakingItem[] = dossiers.slice(0, 18).map((dossier) => ({
     title: dossier.title,
     href: `/news/${dossier.slug}`,
@@ -75,7 +82,7 @@ export default async function NewsPage() {
               {editionArticles.map((article) => (
                 <a
                   key={textField(article.href) || textField(article.title)}
-                  href={textField(article.href) || "/news"}
+                  href={safeEditionHref(textField(article.href), validNewsHrefs)}
                   className="grid gap-1 bg-black/28 p-3 transition hover:bg-black/54"
                 >
                   <span className="text-sm leading-5 text-[#fff8e6]">{textField(article.title)}</span>
@@ -91,7 +98,7 @@ export default async function NewsPage() {
               {editionSignals.map((signal) => (
                 <a
                   key={textField(signal.id) || textField(signal.href)}
-                  href={textField(signal.href) || "/news"}
+                  href={safeEditionHref(textField(signal.href), validNewsHrefs)}
                   target={textField(signal.href).startsWith("http") ? "_blank" : undefined}
                   rel={textField(signal.href).startsWith("http") ? "noreferrer" : undefined}
                   className="bg-[#050504]/44 p-3 text-xs leading-5 text-[#f4efe2]/62 transition hover:bg-black/64 hover:text-[#fff8e6]"

@@ -545,22 +545,20 @@ async function fetchTopicArchiveVideos(topicId: string, limit = DOSSIER_RELATED_
 }
 
 async function hydrateDossierRelatedVideos(dossiers: ClaimDossier[]) {
-  const sparseTopicIds = Array.from(
-    new Set(
-      dossiers
-        .filter((dossier) => dedupeChannelVideos(dossier.relatedVideos).length < DOSSIER_RELATED_VIDEO_TARGET)
-        .map((dossier) => dossier.topicId),
-    ),
-  )
-  if (!sparseTopicIds.length) return dossiers
+  const topicIds = Array.from(new Set(dossiers.map((dossier) => dossier.topicId)))
+  if (!topicIds.length) return dossiers
 
   const fallbackPairs = await Promise.all(
-    sparseTopicIds.map(async (topicId) => [topicId, await fetchTopicArchiveVideos(topicId)] as const),
+    topicIds.map(async (topicId) => [topicId, await fetchTopicArchiveVideos(topicId, 24)] as const),
   )
   const fallbackByTopic = new Map(fallbackPairs)
 
   return dossiers.map((dossier) => {
-    const existing = dedupeChannelVideos(dossier.relatedVideos).slice(0, DOSSIER_RELATED_VIDEO_TARGET)
+    const fallbackVideos = fallbackByTopic.get(dossier.topicId) || []
+    const validArchiveKeys = new Set(fallbackVideos.map(videoKey).filter(Boolean))
+    const existing = dedupeChannelVideos(dossier.relatedVideos)
+      .filter((video) => !video.videoId || validArchiveKeys.has(videoKey(video)))
+      .slice(0, DOSSIER_RELATED_VIDEO_TARGET)
     if (existing.length >= DOSSIER_RELATED_VIDEO_TARGET) {
       return {
         ...dossier,
@@ -570,7 +568,7 @@ async function hydrateDossierRelatedVideos(dossiers: ClaimDossier[]) {
     }
 
     const seen = new Set(existing.map(videoKey))
-    const fallback = (fallbackByTopic.get(dossier.topicId) || []).filter((video) => {
+    const fallback = fallbackVideos.filter((video) => {
       const key = videoKey(video)
       if (!key || seen.has(key)) return false
       seen.add(key)
@@ -711,6 +709,30 @@ export async function getRecursivChannelArchive({
     limit: safeLimit,
     hasMore: safeOffset + safeLimit < totalCount,
   }
+}
+
+export async function getRecursivChannelVideo(videoId: string) {
+  if (!videoId) return null
+
+  const rows = await queryInvertedWorldDatabase<ChannelItemRow>(
+    `SELECT
+      source_id,
+      source_url,
+      title,
+      description,
+      published_at,
+      topic_id,
+      thumbnail_url,
+      embed_url,
+      kind,
+      metadata
+    FROM channel_items
+    WHERE source = 'youtube' AND (source_id = $1 OR source_url = $2)
+    LIMIT 1`,
+    [videoId, `https://www.youtube.com/watch?v=${videoId}`],
+  )
+
+  return rows?.[0] ? channelRowToVideo(rows[0]) : null
 }
 
 export async function fetchRecursivPublishedArticles(options: { limit?: number } = {}) {
