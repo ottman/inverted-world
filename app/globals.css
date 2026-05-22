@@ -49,7 +49,7 @@ body {
 }
 
 .iw-breaking-track {
-  animation: iw-breaking-marquee 90s linear infinite;
+  animation: iw-breaking-marquee var(--iw-breaking-duration, 90s) linear infinite;
 }
 
 .iw-breaking-scroll:hover .iw-breaking-track {

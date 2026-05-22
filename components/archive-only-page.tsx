@@ -24,6 +24,7 @@ type TopicFeeds = Record<string, IntelligenceArticle[]>
 type TopicXPosts = Record<string, ViralXPost[]>
 
 const PAGE_SIZE = 120
+const HOMEPAGE_TOPIC_VIDEO_LIMIT = 6
 
 function videoKey(video: ChannelVideo) {
   return video.videoId || video.href
@@ -241,8 +242,13 @@ export function ArchiveOnlyPage({
       <div className="mt-6 grid gap-6">
         {topics.map((topic) => {
           const topicVideos = videosByTopic.get(topic.id) ?? []
+          const visibleTopicVideos = topicVideos.slice(0, HOMEPAGE_TOPIC_VIDEO_LIMIT)
           const feed = initialTopicFeeds?.[topic.id] ?? []
           const xPosts = initialTopicXPosts?.[topic.id] ?? []
+          const videoCount =
+            topicVideos.length > visibleTopicVideos.length
+              ? `${visibleTopicVideos.length} of ${topicVideos.length} videos`
+              : `${topicVideos.length} videos`
           return (
             <section id={`topic-${topic.id}`} key={topic.id} className={cn("scroll-mt-36 p-3 sm:p-4", archiveSurface)}>
               <div className="flex flex-col gap-3 pb-3 md:flex-row md:items-end md:justify-between">
@@ -251,7 +257,7 @@ export function ArchiveOnlyPage({
                   <h2 className="iw-serif mt-2 text-4xl leading-none text-[#fff8e6] sm:text-5xl">{topic.title}</h2>
                 </div>
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f4efe2]/48">
-                  {topicVideos.length} videos / {feed.length} live links / {xPosts.length || "live"} X
+                  {videoCount} / {feed.length} live links / {xPosts.length || "live"} X
                 </p>
               </div>
 
@@ -260,7 +266,7 @@ export function ArchiveOnlyPage({
                   <LiveFeed topicTitle={topic.title} articles={feed} />
                   <XSignalLane topic={topic} posts={xPosts} />
                 </div>
-                <VideoGrid videos={topicVideos} />
+                <VideoGrid videos={visibleTopicVideos} />
               </div>
             </section>
           )

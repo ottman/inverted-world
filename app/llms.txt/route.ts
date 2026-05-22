@@ -25,6 +25,7 @@ export async function GET() {
     "## Core URLs",
     `${baseUrl}/`,
     `${baseUrl}/archive`,
+    `${baseUrl}/how-it-works`,
     `${baseUrl}/sitemap.xml`,
     `${baseUrl}/api/archive`,
     `${baseUrl}/api/articles`,

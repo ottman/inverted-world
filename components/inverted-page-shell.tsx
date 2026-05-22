@@ -153,13 +153,17 @@ function BreakingTicker({ items }: { items?: BreakingItem[] }) {
   }))
   const visibleItems = (items?.length ? items : fallbackItems).slice(0, 32)
   const marqueeItems = [...visibleItems, ...visibleItems]
+  const tickerDurationSeconds = Math.max(90, Math.round(visibleItems.length * 7.5))
 
   return (
     <div>
       <div className="mx-auto flex max-w-7xl items-center gap-3 px-3 sm:px-6 lg:px-8">
         <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#df2f2f]">Breaking</span>
         <div className="iw-breaking-scroll min-w-0 flex-1 overflow-hidden py-2">
-          <div className="iw-breaking-track flex w-max gap-4">
+          <div
+            className="iw-breaking-track flex w-max gap-4"
+            style={{ "--iw-breaking-duration": `${tickerDurationSeconds}s` } as React.CSSProperties}
+          >
             {marqueeItems.map((item, index) => {
               const external = item.href.startsWith("http")
               return (
@@ -208,6 +212,12 @@ function SimpleFooter() {
           </a>
         ))}
       </div>
+      <a
+        href="/how-it-works"
+        className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f4efe2]/64 transition hover:text-[#df2f2f]"
+      >
+        How It Works
+      </a>
       <span className="text-xs uppercase tracking-[0.14em]">© {new Date().getFullYear()} Subverse, Inc.</span>
     </footer>
   )

@@ -3,6 +3,7 @@ import { fetchLiveArticlesForTopic } from "@/lib/live-articles"
 import { createRecursivServerClient } from "@/lib/recursiv/client"
 import { INVERTED_WORLD_SCHEMA_SQL } from "@/lib/recursiv/schema"
 import { extractSourceText } from "@/lib/source-extraction"
+import { classifyInvertedWorldTopic } from "@/lib/topic-classifier"
 import { fetchViralXPostsForTopic, type ViralXPost } from "@/lib/x-posts"
 
 type YouTubePlaylistItem = {
@@ -67,15 +68,6 @@ type GeneratedArticleDraft = {
   mode: "agent" | "fallback"
 }
 
-const TOPIC_KEYWORDS: Array<{ topicId: string; words: string[] }> = [
-  { topicId: "uap-disclosure", words: ["ufo", "uap", "alien", "retrieval", "aaro", "pentagon", "disclosure"] },
-  { topicId: "secret-programs", words: ["mkultra", "cia", "fbi", "psyop", "coverup", "classified", "hearing"] },
-  { topicId: "epstein-networks", words: ["epstein", "maxwell", "island", "sealed", "client list", "court"] },
-  { topicId: "cryptids-paranormal", words: ["cryptid", "bigfoot", "ghost", "paranormal", "haunted", "demon"] },
-  { topicId: "ai-technocracy", words: ["ai", "data center", "surveillance", "technocracy", "algorithm", "machine"] },
-  { topicId: "space-anomalies", words: ["bermuda", "nasa", "moon", "mars", "meteor", "space", "solar"] },
-]
-
 function decodeXml(value: string) {
   return value
     .replaceAll("&amp;", "&")
@@ -86,19 +78,13 @@ function decodeXml(value: string) {
     .replaceAll("&gt;", ">")
 }
 
-function classifyTopic(title: string, description = "") {
-  const haystack = `${title} ${description}`.toLowerCase()
-  const match = TOPIC_KEYWORDS.find((topic) => topic.words.some((word) => haystack.includes(word)))
-  return match?.topicId || "secret-programs"
-}
-
 function buildVideo(videoId: string, title: string, publishedAt?: string, description?: string): ChannelVideo {
   const normalizedTitle = title.toLowerCase()
   return {
     title: title || "Untitled upload",
     date: publishedAt ? publishedAt.slice(0, 10) : "",
     href: `https://www.youtube.com/watch?v=${videoId}`,
-    topicId: classifyTopic(title, description),
+    topicId: classifyInvertedWorldTopic(title, description),
     source: "YouTube",
     videoId,
     embedUrl: `https://www.youtube.com/embed/${videoId}?rel=0`,

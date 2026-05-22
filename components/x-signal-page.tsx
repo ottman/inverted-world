@@ -146,8 +146,8 @@ export function XSignalPage({ topic, initialPosts }: { topic: ContentTopic; init
             <ArrowUpRight className="h-4 w-4" />
           </a>
           <p className="text-xs leading-5 text-[#f4efe2]/44">
-            This page polls once per minute. Websockets are not needed until we have a true streaming/firehose API or
-            per-user live rooms.
+            Follow the fastest posts, source links, and counterarguments in this lane. Strong signals move into dossiers
+            and front-page coverage as the record develops.
           </p>
         </aside>
       </section>

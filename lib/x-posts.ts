@@ -1,6 +1,6 @@
 import { topics } from "@/data/inverted-world"
 import { fetchRecursivXSignalsForTopic } from "@/lib/recursiv/content"
-import { getTopicXQuery } from "@/lib/x-search"
+import { getTopicXQueries } from "@/lib/x-search"
 
 export type ViralXPost = {
   id: string
@@ -24,11 +24,20 @@ export type ViralXPost = {
 const X_TIMEOUT_MS = 6500
 const BRAVE_TIMEOUT_MS = 6500
 const X_SYNDICATION_TIMEOUT_MS = 6500
-const configuredMinViralScore = Number(process.env.X_MIN_VIRAL_SCORE || "250")
-const MIN_VIRAL_X_SCORE = Number.isFinite(configuredMinViralScore) ? configuredMinViralScore : 250
+const configuredMinViralScore = process.env.X_MIN_VIRAL_SCORE ? Number(process.env.X_MIN_VIRAL_SCORE) : undefined
 export const X_FRESHNESS_WINDOW_HOURS = 24 * 7
-const X_EPOCH_MS = 1_288_834_974_657n
+const X_EPOCH_MS = BigInt(1_288_834_974_657)
+const X_SNOWFLAKE_SHIFT_BITS = BigInt(22)
 const PRIORITY_X_ACCOUNTS = ["Timcast", "TimcastNews", "ShaneCashman", "InvertedTales"] as const
+const DEFAULT_TOPIC_QUERY_PACK_LIMIT = 2
+const TOPIC_X_SCORE_FLOORS: Record<string, number> = {
+  "uap-disclosure": 250,
+  "secret-programs": 140,
+  "epstein-networks": 160,
+  "cryptids-paranormal": 90,
+  "ai-technocracy": 140,
+  "space-anomalies": 110,
+}
 const X_STATUS_URL_PATTERN =
   /https?:\/\/(?:www\.)?(?:x\.com|twitter\.com)\/(?!i\/web)([A-Za-z0-9_]{1,20})\/status(?:es)?\/(\d+)/i
 
@@ -148,6 +157,20 @@ function seededPostsForTopic(topicId: string) {
   return seededTopicPosts[topicId] || []
 }
 
+function queryPackLimit() {
+  const configured = Number(process.env.X_TOPIC_QUERY_PACK_LIMIT || "")
+  if (Number.isFinite(configured) && configured > 0) return Math.min(Math.trunc(configured), 8)
+  return DEFAULT_TOPIC_QUERY_PACK_LIMIT
+}
+
+function minViralScoreForTopic(topicId: string) {
+  if (typeof configuredMinViralScore === "number" && Number.isFinite(configuredMinViralScore)) {
+    return configuredMinViralScore
+  }
+
+  return TOPIC_X_SCORE_FLOORS[topicId] ?? 140
+}
+
 function getPostTimestamp(post: ViralXPost) {
   if (post.createdAt) {
     const timestamp = new Date(post.createdAt).getTime()
@@ -156,7 +179,7 @@ function getPostTimestamp(post: ViralXPost) {
 
   try {
     if (!/^\d+$/.test(post.id)) return undefined
-    return Number((BigInt(post.id) >> 22n) + X_EPOCH_MS)
+    return Number((BigInt(post.id) >> X_SNOWFLAKE_SHIFT_BITS) + X_EPOCH_MS)
   } catch {
     return undefined
   }
@@ -208,7 +231,7 @@ function extractXStatusUrl(value?: string) {
     id,
     username,
     url: `https://twitter.com/${username}/status/${id}`,
-    createdAt: new Date(Number((BigInt(id) >> 22n) + X_EPOCH_MS)).toISOString(),
+    createdAt: new Date(Number((BigInt(id) >> X_SNOWFLAKE_SHIFT_BITS) + X_EPOCH_MS)).toISOString(),
   }
 }
 
@@ -216,7 +239,7 @@ function topicTerms(topicId: string) {
   const topic = topics.find((item) => item.id === topicId)
   if (!topic) return []
 
-  return `${getTopicXQuery(topic)} ${topic.title} ${topic.signal}`
+  return `${getTopicXQueries(topic).join(" ")} ${topic.title} ${topic.signal}`
     .replace(/[()"]/g, " ")
     .replace(/\bOR\b/gi, " ")
     .replace(/[^a-zA-Z0-9\s-]/g, " ")
@@ -313,23 +336,24 @@ async function fetchXApiPosts(topicId: string, limit: number) {
   const topic = topics.find((item) => item.id === topicId)
   if (!topic) return [] satisfies ViralXPost[]
 
-  const topicQuery = getTopicXQuery(topic)
+  const topicQueries = getTopicXQueries(topic).slice(0, queryPackLimit())
   const priorityAccountQuery = PRIORITY_X_ACCOUNTS.map((account) => `from:${account}`).join(" OR ")
-  const priorityQuery =
-    PRIORITY_X_ACCOUNTS.length === 1
-      ? `${priorityAccountQuery} ${topicQuery} lang:en -is:retweet -is:reply`
-      : `(${priorityAccountQuery}) ${topicQuery} lang:en -is:retweet -is:reply`
-  const [topicPosts, priorityPosts] = await Promise.all([
-    fetchXApiSearch(`${topicQuery} lang:en -is:retweet -is:reply`, topicId, token),
-    fetchXApiSearch(priorityQuery, topicId, token),
-  ])
+  const topicPostSets = await Promise.all(
+    topicQueries.map((query) => fetchXApiSearch(`${query} lang:en -is:retweet -is:reply`, topicId, token)),
+  )
+  const priorityPostSets = await Promise.all(
+    topicQueries.slice(0, 2).map((query) => {
+      const priorityQuery = `(${priorityAccountQuery}) ${query} lang:en -is:retweet -is:reply`
+      return fetchXApiSearch(priorityQuery, topicId, token)
+    }),
+  )
 
   const ranked = dedupePosts([
-    ...priorityPosts.map((post) => ({ ...post, score: (post.score || 0) + 500 })),
-    ...topicPosts,
+    ...priorityPostSets.flat().map((post) => ({ ...post, score: (post.score || 0) + 500 })),
+    ...topicPostSets.flat(),
   ]).sort((left, right) => (right.score || 0) - (left.score || 0))
 
-  const viral = ranked.filter((post) => (post.score || 0) >= MIN_VIRAL_X_SCORE)
+  const viral = ranked.filter((post) => (post.score || 0) >= minViralScoreForTopic(topicId))
   return (viral.length ? viral : ranked).filter((post) => isFreshXPost(post)).slice(0, limit)
 }
 
@@ -377,22 +401,26 @@ async function fetchBraveIndexedXPosts(topicId: string, limit: number) {
   const topic = topics.find((item) => item.id === topicId)
   if (!topic) return [] satisfies ViralXPost[]
 
-  const queryTerms = getTopicXQuery(topic)
-    .replace(/[()"]/g, " ")
-    .replace(/\bOR\b/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
+  const queryTerms = getTopicXQueries(topic)
+    .slice(0, queryPackLimit() + 1)
+    .map((query) =>
+      query
+        .replace(/[()"]/g, " ")
+        .replace(/\bOR\b/g, " ")
+        .replace(/\s+/g, " ")
+        .trim(),
+    )
 
   const results = await Promise.all([
-    fetchBraveSearchResults(`${queryTerms} viral OR million OR thread site:x.com`),
-    fetchBraveSearchResults(`${queryTerms} site:x.com/ShaneCashman`),
+    ...queryTerms.map((query) => fetchBraveSearchResults(`${query} viral OR million OR thread site:x.com`)),
+    ...queryTerms.slice(0, 2).map((query) => fetchBraveSearchResults(`${query} site:x.com/ShaneCashman`)),
   ])
 
   const seen = new Set<string>()
 
   return results
     .flat()
-    .map((result) => {
+    .map((result): ViralXPost | undefined => {
       const status = extractXStatusUrl(result.url)
       if (!status || seen.has(status.id)) return undefined
       seen.add(status.id)
@@ -409,7 +437,7 @@ async function fetchBraveIndexedXPosts(topicId: string, limit: number) {
         username: status.username,
         createdAt: status.createdAt,
         source: "brave-search",
-      } satisfies ViralXPost
+      }
     })
     .filter((post): post is ViralXPost => Boolean(post))
     .filter((post) => isFreshXPost(post))
@@ -463,7 +491,7 @@ async function fetchSyndicatedPriorityPosts(topicId: string, limit: number) {
 
       return (data.props?.pageProps?.timeline?.entries || [])
         .filter((entry) => entry.type === "tweet")
-        .map((entry) => {
+        .map((entry): ViralXPost | undefined => {
           const tweet = entry.content?.tweet
           const id = tweet?.id_str || tweet?.conversation_id_str || entry.entry_id?.replace(/^tweet-/, "")
           const text = cleanSearchText(tweet?.full_text || tweet?.text)
@@ -492,7 +520,7 @@ async function fetchSyndicatedPriorityPosts(topicId: string, limit: number) {
               replies: tweet?.reply_count,
               quotes: tweet?.quote_count,
             },
-          } satisfies ViralXPost
+          }
         })
         .filter((post): post is ViralXPost => Boolean(post))
     }),
