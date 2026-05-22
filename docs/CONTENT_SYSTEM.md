@@ -22,7 +22,7 @@ The product should ingest channel content, compare topic coverage across news ou
 - Agents: research assistant, news brief generator, claim ledger builder, media packet builder.
 - Notifications/email: topic alerts and daily brief distribution.
 
-Server-side agent calls use `RECURSIV_SERVER_API_KEY` so this standalone app does not accidentally consume unrelated global Recursiv credentials from a developer shell.
+Server-side Recursiv calls use `RECURSIV_SERVER_API_KEY`. Local proof may use a protected key file, but production secrets belong in Recursiv/Infisical.
 
 ## Data Lanes
 
@@ -35,10 +35,10 @@ Server-side agent calls use `RECURSIV_SERVER_API_KEY` so this standalone app doe
 
 ## Live Routes
 
-- `/archive`: embedded channel archive. Uses YouTube RSS now and full uploads pagination when `YOUTUBE_API_KEY` is configured.
-- `/news`: daily brief surface backed by `/api/articles`.
+- `/archive`: embedded channel archive. Reads Recursiv `channel_items` first, then falls back to YouTube RSS/API.
+- `/news`: daily brief surface backed by `/api/articles` and published Recursiv `article_drafts`.
 - `/documents`: browsable source database backed by `/api/documents`.
-- `/api/autopost/daily`: autopost-ready daily packet with X hooks, source packs, and thumbnail prompts.
+- `/api/recursiv/jobs/*`: authenticated scheduled job targets for archive sync, topic pulse, article generation, image generation, and publishing.
 
 ## First Tables
 
@@ -46,35 +46,17 @@ Server-side agent calls use `RECURSIV_SERVER_API_KEY` so this standalone app doe
 CREATE TABLE channel_items (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   source TEXT NOT NULL,
+  source_id TEXT,
   source_url TEXT NOT NULL UNIQUE,
   title TEXT NOT NULL,
+  description TEXT,
   published_at TIMESTAMPTZ,
   topic_id TEXT,
   transcript TEXT,
+  thumbnail_url TEXT,
+  embed_url TEXT,
+  kind TEXT DEFAULT 'episode',
   metadata JSONB DEFAULT '{}'::jsonb,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-
-CREATE TABLE source_documents (
-  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  title TEXT NOT NULL,
-  source TEXT NOT NULL,
-  source_url TEXT NOT NULL UNIQUE,
-  kind TEXT NOT NULL,
-  topic_ids TEXT[] DEFAULT '{}',
-  summary TEXT,
-  metadata JSONB DEFAULT '{}'::jsonb,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-
-CREATE TABLE claim_ledgers (
-  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  topic_id TEXT NOT NULL,
-  claim TEXT NOT NULL,
-  status TEXT NOT NULL,
-  evidence JSONB DEFAULT '[]'::jsonb,
-  counter_evidence JSONB DEFAULT '[]'::jsonb,
-  unknowns JSONB DEFAULT '[]'::jsonb,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -82,16 +64,72 @@ CREATE TABLE coverage_snapshots (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   topic_id TEXT NOT NULL,
   query TEXT NOT NULL,
-  outlets JSONB NOT NULL,
+  source TEXT NOT NULL,
+  captured_at TIMESTAMPTZ DEFAULT now(),
+  items JSONB NOT NULL DEFAULT '[]'::jsonb,
   official_records JSONB DEFAULT '[]'::jsonb,
-  generated_at TIMESTAMPTZ DEFAULT now()
+  summary TEXT,
+  velocity_score NUMERIC DEFAULT 0,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE x_signals (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  topic_id TEXT NOT NULL,
+  x_id TEXT NOT NULL UNIQUE,
+  url TEXT NOT NULL,
+  username TEXT,
+  author_name TEXT,
+  text TEXT NOT NULL,
+  posted_at TIMESTAMPTZ,
+  captured_at TIMESTAMPTZ DEFAULT now(),
+  source TEXT DEFAULT 'x-api',
+  score NUMERIC DEFAULT 0,
+  metrics JSONB DEFAULT '{}'::jsonb,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE article_drafts (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  slug TEXT NOT NULL UNIQUE,
+  title TEXT NOT NULL,
+  deck TEXT,
+  topic_id TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'draft',
+  body JSONB NOT NULL DEFAULT '[]'::jsonb,
+  source_ids JSONB DEFAULT '[]'::jsonb,
+  source_name TEXT,
+  source_url TEXT,
+  heat INTEGER DEFAULT 0,
+  thumbnail_asset_id TEXT,
+  thumbnail_prompt TEXT,
+  generated_at TIMESTAMPTZ DEFAULT now(),
+  published_at TIMESTAMPTZ,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE generated_assets (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  asset_type TEXT NOT NULL,
+  prompt TEXT NOT NULL,
+  provider TEXT,
+  bucket_name TEXT,
+  object_key TEXT,
+  url TEXT,
+  status TEXT DEFAULT 'generated',
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 ```
 
 ## Sync Command
 
 ```bash
-bun run sync:content
+npm run recursiv:provision
+npm run recursiv:sync
 ```
 
-This writes `data/generated/channel-archive.json` from public channel/archive sources. The deployed app can later push that output into Recursiv database tables.
+`recursiv:provision` creates the Recursiv database, schema, storage bucket, and agent access. `recursiv:sync` writes `data/generated/channel-archive.json` and upserts the current public YouTube archive into `channel_items`.

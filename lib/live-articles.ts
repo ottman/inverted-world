@@ -1,5 +1,10 @@
 import { intelligenceArticles, type IntelligenceArticle } from "@/data/intelligence-articles"
 import { featuredVideos, researchDocuments, topics } from "@/data/inverted-world"
+import {
+  fetchRecursivPublishedArticles,
+  fetchRecursivPublishedArticlesForTopic,
+  getRecursivPublishedArticle,
+} from "@/lib/recursiv/content"
 
 const NEWS_TIMEOUT_MS = 6500
 
@@ -85,6 +90,9 @@ function liveArticleBody({
 }
 
 export async function fetchLiveArticlesForTopic(topicId: string, query: string) {
+  const recursivArticles = await fetchRecursivPublishedArticlesForTopic(topicId, { limit: 12 })
+  if (recursivArticles?.length) return recursivArticles
+
   const topic = topics.find((item) => item.id === topicId)
   const url = new URL("https://news.google.com/rss/search")
   url.searchParams.set("q", query)
@@ -139,6 +147,9 @@ export async function fetchLiveArticlesForTopic(topicId: string, query: string) 
 }
 
 export async function fetchLiveArticles() {
+  const recursivArticles = await fetchRecursivPublishedArticles({ limit: 100 })
+  if (recursivArticles?.length) return { articles: recursivArticles, warnings: [] }
+
   const warnings: string[] = []
   const liveResults = await Promise.allSettled(
     topics.map((topic) => fetchLiveArticlesForTopic(topic.id, topic.query.replaceAll('"', ""))),
@@ -159,6 +170,9 @@ export async function fetchLiveArticles() {
 }
 
 export async function getArticleById(articleId: string) {
+  const recursivArticle = await getRecursivPublishedArticle(articleId)
+  if (recursivArticle) return recursivArticle
+
   const staticArticle = intelligenceArticles.find((article) => article.id === articleId)
   if (staticArticle) return staticArticle
 

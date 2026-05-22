@@ -2,32 +2,32 @@
 
 ## Current Production Shape
 
-`www.inverted.world` is a Next.js app deployed on Vercel.
+`www.inverted.world` currently resolves to a Vercel-hosted Next.js app. The target production host is Recursiv first at `invertedworld.on.recursiv.io`, then the custom `www.inverted.world` domain after live Recursiv proof.
 
 Current runtime lanes:
 
 - Home/archive UI: `app/page.tsx` reuses `app/archive/page.tsx`.
-- Archive ingestion: `lib/deep-archive.ts` pulls the Tales YouTube uploads playlist when `YOUTUBE_API_KEY` exists, otherwise falls back to YouTube RSS and seeded local videos.
-- Live articles: `lib/live-articles.ts` pulls Google News RSS per topic and formats lightweight article records.
-- X signals: `lib/x-posts.ts` uses X API if configured, Brave if configured, and a public Shane Cashman embed fallback.
+- Archive ingestion: `lib/deep-archive.ts` now reads Recursiv `channel_items` first, then falls back to YouTube Data API, RSS, and seeded local videos.
+- Live articles: `lib/live-articles.ts` now reads published Recursiv `article_drafts` first, then falls back to Google News RSS.
+- X signals: `lib/x-posts.ts` now reads Recursiv `x_signals` first, then falls back to X API, Brave, public syndication, and seed posts.
 - Video pages: `app/archive/[videoId]/page.tsx` renders one embedded video and related Tales videos.
 - Static editorial scaffolding: `data/intelligence-articles.ts`, `data/inverted-world.ts`, and docs files.
 
-The `@recursiv/sdk` package is installed, but the production content loop is not yet Recursiv-native.
+The `@recursiv/sdk` package is now used for server-side Recursiv database reads, provisioning scripts, deployment scripts, and scheduled job endpoints.
 
 ## Problem
 
 The site is still mostly a live-rendered frontend with fetch helpers. It is not yet a serious AI news machine because:
 
-- there is no persistent Recursiv database table for article drafts, source snapshots, transcripts, claims, or generated thumbnails;
-- there is no scheduled Recursiv job generating articles every hour/day;
-- AI generation is not in the production path;
+- Recursiv tables now exist for `channel_items`, `coverage_snapshots`, `x_signals`, `article_drafts`, and `generated_assets`, but only the YouTube archive seed has been proven live so far;
+- scheduled Recursiv jobs are implemented as authenticated route targets and provisionable jobs, but they should only be enabled after the Recursiv-hosted URL and `CRON_SECRET` are live;
+- AI/image generation paths are implemented as Recursiv job handlers and still need production provider keys and live job runs;
 - Vercel should not own YouTube, X, Brave, OpenRouter, or image-generation keys;
 - the archive is complete only when a backend with the YouTube key paginates the full uploads playlist.
 
 ## Target Recursiv-First Shape
 
-Vercel should render pages. Recursiv should own the backend.
+Recursiv should host the app and own the backend. Vercel is temporary legacy hosting only until `invertedworld.on.recursiv.io` is proven.
 
 Recommended backend flow:
 
@@ -46,12 +46,12 @@ Recommended backend flow:
    - claim ledgers;
    - social hooks;
    - thumbnail prompts and generated images.
-4. The site reads only published Recursiv data through cacheable endpoints:
-   - `/api/home-feed`
+4. The site reads published Recursiv data first through cacheable endpoints:
+   - `/api/articles`
    - `/api/archive`
-   - `/api/topics/[topicId]`
-   - `/api/articles/[slug]`
-5. Vercel needs no third-party provider keys. At most it needs a narrow Recursiv read token or public signed endpoints.
+   - `/api/x/[topicId]`
+   - `/news/[articleId]`
+5. Vercel gets no third-party provider keys. Remove Vercel hosting/domain binding only after Recursiv hosting is proven live.
 
 ## A+ Product Bar
 

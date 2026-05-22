@@ -7,7 +7,10 @@
     "dev": "next dev",
     "lint": "eslint --ext .js,.jsx,.ts,.tsx .",
     "start": "next start",
-    "sync:content": "node scripts/sync-inverted-world.mjs"
+    "sync:content": "node scripts/sync-inverted-world.mjs",
+    "recursiv:provision": "node scripts/provision-recursiv-backend.mjs",
+    "recursiv:sync": "node scripts/sync-inverted-world.mjs --push-recursiv",
+    "recursiv:deploy": "node scripts/deploy-recursiv.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

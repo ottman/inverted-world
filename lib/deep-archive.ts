@@ -1,4 +1,5 @@
 import { channelProfile, featuredVideos, type ChannelVideo } from "@/data/inverted-world"
+import { getRecursivChannelArchive } from "@/lib/recursiv/content"
 
 type YouTubePlaylistItem = {
   snippet?: {
@@ -18,7 +19,7 @@ type YouTubePlaylistResponse = {
 
 export type DeepArchiveResponse = {
   generatedAt: string
-  sourceMode: "youtube-data-api" | "rss-plus-seed" | "seed"
+  sourceMode: "recursiv-database" | "youtube-data-api" | "rss-plus-seed" | "seed"
   completeHistoryAvailable: boolean
   videos: ChannelVideo[]
   totalCount: number
@@ -175,6 +176,16 @@ export async function getDeepArchive({
 } = {}): Promise<DeepArchiveResponse> {
   const warnings: string[] = []
   const seeded = featuredVideos.filter((video) => video.source === "YouTube" && video.videoId)
+  const recursivArchive = await getRecursivChannelArchive({ limit, offset, maxLimit })
+  if (recursivArchive?.videos.length) {
+    return {
+      ...recursivArchive,
+      sourceMode: "recursiv-database",
+      completeHistoryAvailable: true,
+      warnings,
+    }
+  }
+
   const sliceArchive = (
     videos: ChannelVideo[],
     sourceMode: DeepArchiveResponse["sourceMode"],
