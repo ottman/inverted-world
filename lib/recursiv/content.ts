@@ -293,6 +293,10 @@ function publicDossierSlug(rowSlug: string | undefined, title: string, topicId: 
   return rowSlug || "claim-dossier"
 }
 
+function publicNewsUrl(rowSlug: string | undefined, title: string, topicId: string) {
+  return `/news/${publicDossierSlug(rowSlug, title, topicId)}`
+}
+
 function cleanDossierDeck(value: string | undefined, topicId: string) {
   const fallback = `Latest sourced reporting in ${topicDisplayTitle(topicId)}, with original links, social context, and related Tales archive material beside it.`
   const deck = value?.trim() || fallback
@@ -340,11 +344,13 @@ function articleRowToArticle(row: ArticleDraftRow): IntelligenceArticle {
   const body = jsonArray(row.body).map(String).map((paragraph) => cleanPublicText(paragraph, topicId)).filter(Boolean)
   const thumbnail = jsonObject(metadata.thumbnail)
   const sourceName = row.source_name || (typeof metadata.sourceName === "string" ? metadata.sourceName : undefined)
-  const sourceUrl = row.source_url || (typeof metadata.sourceUrl === "string" ? metadata.sourceUrl : undefined)
   const title = cleanPublicTitle(row.title, topicId, "Untitled Inverted World report")
+  const rawSourceUrl = row.source_url || (typeof metadata.sourceUrl === "string" ? metadata.sourceUrl : undefined)
+  const storyUrl = publicNewsUrl(row.slug, title, topicId)
+  const sourceUrl = !rawSourceUrl || rawSourceUrl.startsWith("/news/") ? storyUrl : rawSourceUrl
 
   return {
-    id: row.slug || row.id || "recursiv-article",
+    id: publicDossierSlug(row.slug || row.id, title, topicId),
     title,
     deck: cleanDossierDeck(
       row.deck || `Latest sourced reporting in the ${topicDisplayTitle(topicId)} lane, with original links and archive context attached.`,
@@ -554,6 +560,24 @@ function dedupeDossiers(dossiers: ClaimDossier[]) {
   const seen = new Set<string>()
   return dossiers.filter((dossier) => {
     const key = dossierDedupKey(dossier)
+    if (!key || seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
+function articleDedupKey(article: IntelligenceArticle) {
+  const textKey = dossierClusterTextKey(article.title)
+  if (textKey) return `${article.topicId}:text:${textKey}`
+  const sourceKey = normalizedUrlKey(article.sourceUrl)
+  if (sourceKey) return `${article.topicId}:source:${sourceKey}`
+  return `${article.topicId}:title:${normalizedTextKey(article.title)}`
+}
+
+function dedupeArticles(articles: IntelligenceArticle[]) {
+  const seen = new Set<string>()
+  return articles.filter((article) => {
+    const key = articleDedupKey(article)
     if (!key || seen.has(key)) return false
     seen.add(key)
     return true
@@ -794,6 +818,7 @@ export async function getRecursivChannelVideo(videoId: string) {
 
 export async function fetchRecursivPublishedArticles(options: { limit?: number } = {}) {
   const limit = Math.max(1, Math.min(Math.trunc(options.limit || 100), 100))
+  const queryLimit = Math.max(limit, Math.min(limit * 4, 200))
   const rows = await queryInvertedWorldDatabase<ArticleDraftRow>(
     `SELECT
       a.id,
@@ -814,14 +839,15 @@ export async function fetchRecursivPublishedArticles(options: { limit?: number }
     WHERE a.status = 'published'
     ORDER BY a.published_at DESC NULLS LAST, a.generated_at DESC
     LIMIT $1`,
-    [limit],
+    [queryLimit],
   )
 
-  return rows?.map(articleRowToArticle) ?? null
+  return rows ? dedupeArticles(rows.map(articleRowToArticle)).slice(0, limit) : null
 }
 
 export async function fetchRecursivPublishedArticlesForTopic(topicId: string, options: { limit?: number } = {}) {
   const limit = Math.max(1, Math.min(Math.trunc(options.limit || 12), 24))
+  const queryLimit = Math.max(limit, Math.min(limit * 4, 100))
   const rows = await queryInvertedWorldDatabase<ArticleDraftRow>(
     `SELECT
       a.id,
@@ -842,14 +868,15 @@ export async function fetchRecursivPublishedArticlesForTopic(topicId: string, op
     WHERE a.status = 'published' AND a.topic_id = $1
     ORDER BY a.published_at DESC NULLS LAST, a.generated_at DESC
     LIMIT $2`,
-    [topicId, limit],
+    [topicId, queryLimit],
   )
 
-  return rows?.map(articleRowToArticle) ?? null
+  return rows ? dedupeArticles(rows.map(articleRowToArticle)).slice(0, limit) : null
 }
 
 export async function fetchRecursivPublishedArticlesByTopic(options: { limitPerTopic?: number; topicIds?: string[] } = {}) {
   const limitPerTopic = Math.max(1, Math.min(Math.trunc(options.limitPerTopic || 12), 24))
+  const queryLimitPerTopic = Math.max(limitPerTopic, Math.min(limitPerTopic * 4, 100))
   const topicIds = (options.topicIds?.length ? options.topicIds : topics.map((topic) => topic.id)).filter(Boolean)
   if (!topicIds.length) return null
 
@@ -895,7 +922,7 @@ export async function fetchRecursivPublishedArticlesByTopic(options: { limitPerT
     FROM ranked
     WHERE topic_rank <= $1
     ORDER BY topic_id, topic_rank`,
-    [limitPerTopic, ...topicIds],
+    [queryLimitPerTopic, ...topicIds],
   )
   if (!rows) return null
 
@@ -905,7 +932,9 @@ export async function fetchRecursivPublishedArticlesByTopic(options: { limitPerT
     ;(grouped[article.topicId] ||= []).push(article)
   }
 
-  return grouped
+  return Object.fromEntries(
+    Object.entries(grouped).map(([topicId, articles]) => [topicId, dedupeArticles(articles).slice(0, limitPerTopic)]),
+  )
 }
 
 export async function getRecursivPublishedArticle(articleId: string) {
@@ -931,7 +960,31 @@ export async function getRecursivPublishedArticle(articleId: string) {
     [articleId],
   )
 
-  return rows?.[0] ? articleRowToArticle(rows[0]) : null
+  if (rows?.[0]) return articleRowToArticle(rows[0])
+
+  const fallbackRows = await queryInvertedWorldDatabase<ArticleDraftRow>(
+    `SELECT
+      a.id,
+      a.slug,
+      a.title,
+      a.deck,
+      a.topic_id,
+      a.body,
+      a.source_name,
+      a.source_url,
+      a.heat,
+      a.thumbnail_prompt,
+      a.published_at,
+      a.metadata,
+      ga.url AS asset_url
+    FROM article_drafts a
+    LEFT JOIN generated_assets ga ON ga.id = a.thumbnail_asset_id
+    WHERE a.status = 'published'
+    ORDER BY a.published_at DESC NULLS LAST, a.generated_at DESC
+    LIMIT 100`,
+  )
+
+  return fallbackRows?.map(articleRowToArticle).find((article) => article.id === articleId) ?? null
 }
 
 export async function fetchRecursivXSignalsForTopic(topicId: string, options: { limit?: number } = {}) {
