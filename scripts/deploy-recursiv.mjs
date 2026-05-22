@@ -12,8 +12,9 @@ function loadEnvFile(file) {
     const match = trimmed.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/)
     if (!match) continue
     const [, key, rawValue] = match
-    if (process.env[key] !== undefined) continue
-    process.env[key] = rawValue.replace(/^["']|["']$/g, "")
+    const value = rawValue.replace(/^["']|["']$/g, "")
+    if (process.env[key] || !value) continue
+    process.env[key] = value
   }
 }
 

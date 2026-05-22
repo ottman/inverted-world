@@ -12,6 +12,7 @@
     "recursiv:sync": "node scripts/sync-inverted-world.mjs --push-recursiv",
     "recursiv:backfill:x": "node scripts/backfill-x-signals.mjs",
     "recursiv:health": "node scripts/provider-health.mjs",
+    "recursiv:readiness": "node scripts/provider-readiness.mjs",
     "recursiv:deploy": "node scripts/deploy-recursiv.mjs"
   },
   "dependencies": {

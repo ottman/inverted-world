@@ -38,3 +38,11 @@ The second option is fine if access controls are strict and only this app's prod
 ## Deployment Gap
 
 The Recursiv project and database are configured for `invertedworld`. Keep provider keys inside Recursiv/Infisical, prove `invertedworld.on.recursiv.io`, then cut over `www.inverted.world`. Do not remove the Vercel domain binding until Recursiv HTTP proof is green.
+
+## Readiness Proof
+
+- `pnpm recursiv:health` checks local/proof provider access without printing key values.
+- `pnpm recursiv:readiness` compares local provider-key presence with the latest hosted `provider-health` run stored in Recursiv.
+- `pnpm recursiv:readiness -- --run-hosted` runs the authenticated hosted provider-health job first, then prints the same redacted readiness matrix.
+
+Treat any required provider with `hostedStatus` other than `ok` as a production cutover blocker for the full AI news product. Current expected blockers are provider/account-side, not app code: X API access must stop returning `402`, and YouTube Data API must stop returning `403` before the archive and X/news velocity system can be considered fully production-ready.
