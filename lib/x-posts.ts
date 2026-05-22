@@ -9,7 +9,7 @@ export type ViralXPost = {
   authorName?: string
   username?: string
   createdAt?: string
-  source?: "x-api" | "brave-search" | "seed"
+  source?: "x-api" | "brave-search" | "x-syndication" | "seed"
   score?: number
   metrics?: {
     likes?: number
@@ -22,6 +22,7 @@ export type ViralXPost = {
 
 const X_TIMEOUT_MS = 6500
 const BRAVE_TIMEOUT_MS = 6500
+const X_SYNDICATION_TIMEOUT_MS = 6500
 const configuredMinViralScore = Number(process.env.X_MIN_VIRAL_SCORE || "250")
 const MIN_VIRAL_X_SCORE = Number.isFinite(configuredMinViralScore) ? configuredMinViralScore : 250
 export const X_FRESHNESS_WINDOW_HOURS = 24 * 7
@@ -210,6 +211,26 @@ function extractXStatusUrl(value?: string) {
   }
 }
 
+function topicTerms(topicId: string) {
+  const topic = topics.find((item) => item.id === topicId)
+  if (!topic) return []
+
+  return `${getTopicXQuery(topic)} ${topic.title} ${topic.signal}`
+    .replace(/[()"]/g, " ")
+    .replace(/\bOR\b/gi, " ")
+    .replace(/[^a-zA-Z0-9\s-]/g, " ")
+    .split(/\s+/)
+    .map((term) => term.trim().toLowerCase())
+    .filter((term) => term === "ai" || term.length > 2)
+}
+
+function matchesTopicText(topicId: string, text?: string) {
+  const normalized = (text || "").toLowerCase()
+  if (!normalized) return false
+  const terms = topicTerms(topicId)
+  return terms.some((term) => normalized.includes(term))
+}
+
 async function fetchXApiSearch(query: string, topicId: string, token: string) {
   const url = new URL("https://api.twitter.com/2/tweets/search/recent")
   url.searchParams.set("query", query)
@@ -390,6 +411,94 @@ async function fetchBraveIndexedXPosts(topicId: string, limit: number) {
     .slice(0, limit)
 }
 
+async function fetchSyndicatedPriorityPosts(topicId: string, limit: number) {
+  const posts = await Promise.all(
+    PRIORITY_X_ACCOUNTS.map(async (account) => {
+      const response = await fetch(`https://syndication.twitter.com/srv/timeline-profile/screen-name/${account}`, {
+        next: { revalidate: 1800 },
+        signal: AbortSignal.timeout(X_SYNDICATION_TIMEOUT_MS),
+        headers: {
+          "user-agent": "Mozilla/5.0 InvertedWorldXSignals/1.0",
+        },
+      })
+
+      if (!response.ok) return [] satisfies ViralXPost[]
+
+      const html = await response.text()
+      const marker = '<script id="__NEXT_DATA__" type="application/json">'
+      const start = html.indexOf(marker)
+      const end = start >= 0 ? html.indexOf("</script>", start) : -1
+      if (start < 0 || end < 0) return [] satisfies ViralXPost[]
+
+      const data = JSON.parse(html.slice(start + marker.length, end)) as {
+        props?: {
+          pageProps?: {
+            timeline?: {
+              entries?: Array<{
+                type?: string
+                entry_id?: string
+                content?: {
+                  tweet?: {
+                    id_str?: string
+                    conversation_id_str?: string
+                    created_at?: string
+                    full_text?: string
+                    text?: string
+                    favorite_count?: number
+                    retweet_count?: number
+                    reply_count?: number
+                    quote_count?: number
+                  }
+                }
+              }>
+            }
+          }
+        }
+      }
+
+      return (data.props?.pageProps?.timeline?.entries || [])
+        .filter((entry) => entry.type === "tweet")
+        .map((entry) => {
+          const tweet = entry.content?.tweet
+          const id = tweet?.id_str || tweet?.conversation_id_str || entry.entry_id?.replace(/^tweet-/, "")
+          const text = cleanSearchText(tweet?.full_text || tweet?.text)
+          const createdAt = tweet?.created_at ? new Date(tweet.created_at).toISOString() : undefined
+          if (!id || !text || !matchesTopicText(topicId, text)) return undefined
+
+          const score =
+            (tweet?.favorite_count || 0) +
+            (tweet?.retweet_count || 0) * 2 +
+            (tweet?.quote_count || 0) * 2 +
+            (tweet?.reply_count || 0) * 0.5 +
+            500
+
+          return {
+            id,
+            url: `https://twitter.com/${account}/status/${id}`,
+            text,
+            topicId,
+            username: account,
+            createdAt,
+            source: "x-syndication",
+            score,
+            metrics: {
+              likes: tweet?.favorite_count,
+              reposts: tweet?.retweet_count,
+              replies: tweet?.reply_count,
+              quotes: tweet?.quote_count,
+            },
+          } satisfies ViralXPost
+        })
+        .filter((post): post is ViralXPost => Boolean(post))
+    }),
+  )
+
+  return dedupePosts(posts.flat())
+    .filter((post) => isFreshXPost(post))
+    .sort((left, right) => (right.score || 0) - (left.score || 0))
+    .slice(0, limit)
+}
+
 export async function fetchViralXPostsForTopic(topicId: string, options: { limit?: number } = {}) {
   const limit = Math.max(1, Math.min(Math.trunc(options.limit || 12), 24))
 
@@ -402,7 +511,14 @@ export async function fetchViralXPostsForTopic(topicId: string, options: { limit
 
   try {
     const indexedPosts = await fetchBraveIndexedXPosts(topicId, limit)
-    return mergeWithSeededPosts(topicId, indexedPosts, limit)
+    if (indexedPosts.length) return mergeWithSeededPosts(topicId, indexedPosts, limit)
+  } catch {
+    // Public embed fallback below keeps Shane Cashman visible when no search API is configured.
+  }
+
+  try {
+    const syndicatedPosts = await fetchSyndicatedPriorityPosts(topicId, limit)
+    return mergeWithSeededPosts(topicId, syndicatedPosts, limit)
   } catch {
     return mergeWithSeededPosts(topicId, [], limit)
   }
