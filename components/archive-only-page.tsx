@@ -238,12 +238,6 @@ export function ArchiveOnlyPage({
           .filter((post): post is ViralXPost => Boolean(post))}
       />
 
-      <AboutSection
-        totalVideos={initialArchive?.totalCount || videos.length}
-        sourceMode={initialArchive?.sourceMode}
-        completeHistoryAvailable={Boolean(initialArchive?.completeHistoryAvailable)}
-      />
-
       <div className="mt-6 grid gap-6">
         {topics.map((topic) => {
           const topicVideos = videosByTopic.get(topic.id) ?? []
@@ -477,37 +471,5 @@ function VideoGrid({ videos }: { videos: ChannelVideo[] }) {
         </div>
       )}
     </div>
-  )
-}
-
-function AboutSection({
-  totalVideos,
-  sourceMode,
-  completeHistoryAvailable,
-}: {
-  totalVideos: number
-  sourceMode?: DeepArchiveResponse["sourceMode"]
-  completeHistoryAvailable: boolean
-}) {
-  const archiveMode =
-    sourceMode === "youtube-data-api" && completeHistoryAvailable
-      ? `${totalVideos} indexed uploads from the Tales channel`
-      : "latest uploads now, full history when the production YouTube API key is present"
-
-  return (
-    <section id="about" className={cn("mt-6 scroll-mt-36 p-4 sm:p-5", archiveSurface)}>
-      <div className="grid gap-5 lg:grid-cols-[0.72fr_1.28fr] lg:items-start">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#df2f2f]">About</p>
-          <h2 className="iw-serif mt-2 text-4xl leading-none text-[#fff8e6] sm:text-5xl">How it works</h2>
-        </div>
-        <div className="grid gap-3 text-sm leading-6 text-[#f4efe2]/68 sm:grid-cols-2">
-          <p>{archiveMode}. The archive refreshes from YouTube every five minutes and the header checks live status every minute.</p>
-          <p>Each category runs its own news query through Google News RSS every hour, then ranks the newest coverage into the moving ticker and topic feeds.</p>
-          <p>X signal pages use the configured X or Brave keys when present, plus a public Shane Cashman fallback. The freshness window is seven days.</p>
-          <p>The next A+ layer is a scheduled AI article worker that turns those live feeds into sourced, image-backed daily briefs without storing secrets in the repo.</p>
-        </div>
-      </div>
-    </section>
   )
 }

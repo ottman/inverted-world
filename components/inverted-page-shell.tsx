@@ -108,9 +108,6 @@ export function InvertedPageShell({
                   {topic.title}
                 </a>
               ))}
-              <a className="shrink-0 transition hover:text-[#df2f2f]" href="/#about">
-                About
-              </a>
             </nav>
             <div className="hidden lg:block" aria-hidden="true" />
           </div>
