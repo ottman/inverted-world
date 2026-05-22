@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { createRecursivServerClient } from "@/lib/recursiv/client"
-import { getRecursivClaimDossier } from "@/lib/recursiv/content"
+import { fetchRecursivDossierChatMessages, getRecursivClaimDossier } from "@/lib/recursiv/content"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -48,6 +48,24 @@ function dossierContext(dossier: NonNullable<Awaited<ReturnType<typeof getRecurs
   ].join("\n\n")
 }
 
+export async function GET(request: Request, { params }: RouteContext) {
+  const dossier = await getRecursivClaimDossier(params.slug)
+  if (!dossier) {
+    return NextResponse.json({ error: "Dossier not found" }, { status: 404 })
+  }
+
+  const url = new URL(request.url)
+  const limit = Number(url.searchParams.get("limit") || "8")
+  const messages = (await fetchRecursivDossierChatMessages(dossier.slug, { limit })) || []
+
+  return NextResponse.json({
+    dossierSlug: dossier.slug,
+    generatedAt: new Date().toISOString(),
+    count: messages.length,
+    messages,
+  })
+}
+
 export async function POST(request: Request, { params }: RouteContext) {
   const dossier = await getRecursivClaimDossier(params.slug)
   if (!dossier) {
@@ -84,10 +102,11 @@ export async function POST(request: Request, { params }: RouteContext) {
     project_id: config.projectId,
     database_name: config.databaseName,
     sql: `INSERT INTO claim_chat_messages (dossier_slug, conversation_id, role, message, response, metadata)
-      VALUES ($1, $2, 'user', $3, $4, $5::jsonb)`,
+      VALUES ($1, $2, $3, $4, $5, $6::jsonb)`,
     params: [
       dossier.slug,
       response.conversationId,
+      "user",
       message,
       response.content,
       JSON.stringify({ agentId: config.agentId, sourceCount: dossier.sourceCount, xSignalCount: dossier.xSignalCount }),

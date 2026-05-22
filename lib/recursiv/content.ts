@@ -100,6 +100,17 @@ type PipelineRunRow = RecursivRow & {
   metadata?: unknown
 }
 
+type ClaimChatMessageRow = RecursivRow & {
+  id?: string
+  dossier_slug?: string
+  conversation_id?: string
+  role?: string
+  message?: string
+  response?: string
+  metadata?: unknown
+  created_at?: string
+}
+
 export type ClaimSourceLink = {
   title: string
   url: string
@@ -165,6 +176,17 @@ export type PipelineRunStatus = {
   failedStepCount: number
   steps: Array<{ step: string; ok: boolean; durationMs: number; error?: string }>
   error: string
+  metadata: Record<string, unknown>
+}
+
+export type ClaimChatMessage = {
+  id: string
+  dossierSlug: string
+  conversationId: string
+  role: string
+  message: string
+  response: string
+  createdAt: string
   metadata: Record<string, unknown>
 }
 
@@ -421,6 +443,19 @@ function pipelineRunRowToStatus(row: PipelineRunRow): PipelineRunStatus {
     failedStepCount: steps.filter((step) => !step.ok).length,
     steps,
     error: row.error || "",
+    metadata: jsonObject(row.metadata),
+  }
+}
+
+function claimChatMessageRowToMessage(row: ClaimChatMessageRow): ClaimChatMessage {
+  return {
+    id: row.id || "claim-chat-message",
+    dossierSlug: row.dossier_slug || "",
+    conversationId: row.conversation_id || "",
+    role: row.role || "user",
+    message: row.message || "",
+    response: row.response || "",
+    createdAt: row.created_at || "",
     metadata: jsonObject(row.metadata),
   }
 }
@@ -705,4 +740,26 @@ export async function fetchRecursivPipelineRuns(options: { limit?: number; jobNa
 export async function getLatestRecursivPipelineRun(jobName = "full-pipeline") {
   const runs = await fetchRecursivPipelineRuns({ limit: 1, jobName })
   return runs?.[0] ?? null
+}
+
+export async function fetchRecursivDossierChatMessages(slug: string, options: { limit?: number } = {}) {
+  const limit = Math.max(1, Math.min(Math.trunc(options.limit || 8), 25))
+  const rows = await queryInvertedWorldDatabase<ClaimChatMessageRow>(
+    `SELECT
+      id,
+      dossier_slug,
+      conversation_id,
+      role,
+      message,
+      response,
+      metadata,
+      created_at
+    FROM claim_chat_messages
+    WHERE dossier_slug = $1
+    ORDER BY created_at DESC
+    LIMIT $2`,
+    [slug, limit],
+  )
+
+  return rows?.map(claimChatMessageRowToMessage).reverse() ?? null
 }

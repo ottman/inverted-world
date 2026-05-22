@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Send } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -9,12 +9,50 @@ type Message = {
   text: string
 }
 
+type StoredChatMessage = {
+  conversationId?: string
+  message?: string
+  response?: string
+}
+
 export function DossierChat({ slug }: { slug: string }) {
   const [message, setMessage] = useState("")
   const [conversationId, setConversationId] = useState<string | undefined>()
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+
+  useEffect(() => {
+    let active = true
+
+    async function loadMessages() {
+      try {
+        const response = await fetch(`/api/dossiers/${slug}/chat?limit=6`, {
+          headers: { accept: "application/json" },
+        })
+        if (!response.ok) return
+        const data = (await response.json()) as { messages?: StoredChatMessage[] }
+        if (!active || !data.messages?.length) return
+        const hydrated = data.messages.flatMap((item) => {
+          const items: Message[] = []
+          if (item.message) items.push({ role: "user", text: item.message })
+          if (item.response) items.push({ role: "assistant", text: item.response })
+          return items
+        })
+        setMessages(hydrated)
+        const latestConversationId = [...data.messages].reverse().find((item) => item.conversationId)?.conversationId
+        setConversationId(latestConversationId)
+      } catch {
+        // History is a convenience layer; posting a new question should still work if this read fails.
+      }
+    }
+
+    void loadMessages()
+
+    return () => {
+      active = false
+    }
+  }, [slug])
 
   async function submit() {
     const value = message.replace(/\s+/g, " ").trim()
