@@ -6,6 +6,7 @@ import Script from "next/script"
 import { archiveSurface, InvertedPageShell, XIcon, type BreakingItem } from "@/components/inverted-page-shell"
 import { channelProfile, topics, type ChannelVideo, type ContentTopic } from "@/data/inverted-world"
 import type { IntelligenceArticle } from "@/data/intelligence-articles"
+import { getTopicXSearchUrl } from "@/lib/x-search"
 import { cn } from "@/lib/utils"
 import type { DeepArchiveResponse } from "@/lib/deep-archive"
 import type { ViralXPost } from "@/lib/x-posts"
@@ -78,6 +79,10 @@ function postMetricLabel(post: ViralXPost) {
 
 function topicTitle(topicId?: string) {
   return topics.find((topic) => topic.id === topicId)?.title || "Live"
+}
+
+function topicById(topicId?: string) {
+  return topics.find((topic) => topic.id === topicId)
 }
 
 function openInAppSignal(topicId: string) {
@@ -350,12 +355,15 @@ function XSignalLane({ topic, posts }: { topic: ContentTopic; posts: ViralXPost[
 
 function EmbeddedTweetGrid({ posts, topicId }: { posts: ViralXPost[]; topicId: string }) {
   if (!posts.length) {
+    const topic = topicById(topicId)
     return (
       <a
-        href={`/x/${topicId}`}
+        href={topic ? getTopicXSearchUrl(topic) : `/x/${topicId}`}
+        target={topic ? "_blank" : undefined}
+        rel={topic ? "noreferrer" : undefined}
         className="block bg-black p-4 text-sm leading-6 text-[#f4efe2]/62 transition hover:text-[#fff8e6]"
       >
-        No ranked X posts passed the filters yet. Open the signal stream.
+        No ranked posts passed the filters yet. Open the live X search.
       </a>
     )
   }

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { ArrowUpRight, RefreshCw } from "lucide-react"
 import { XIcon } from "@/components/inverted-page-shell"
 import type { ContentTopic } from "@/data/inverted-world"
-import { getTopicXSearchUrl } from "@/lib/x-search"
+import { getTopicXQueries, getTopicXSearchUrl } from "@/lib/x-search"
 import type { ViralXPost } from "@/lib/x-posts"
 import { cn } from "@/lib/utils"
 
@@ -39,11 +39,25 @@ function formatAge(value?: string) {
   return `${Math.floor(minutes / 60)}h`
 }
 
+function xSearchUrl(query: string) {
+  return `https://x.com/search?q=${encodeURIComponent(`${query} -filter:replies`)}&src=typed_query&f=top`
+}
+
 export function XSignalPage({ topic, initialPosts }: { topic: ContentTopic; initialPosts: ViralXPost[] }) {
   const [posts, setPosts] = useState(initialPosts)
   const [updatedAt, setUpdatedAt] = useState(new Date().toISOString())
   const [refreshing, setRefreshing] = useState(false)
   const tickerPosts = useMemo(() => (posts.length ? [...posts, ...posts] : []), [posts])
+  const searchLinks = useMemo(
+    () =>
+      getTopicXQueries(topic)
+        .slice(0, 4)
+        .map((query, index) => ({
+          label: index === 0 ? "Top posts" : `Query ${index + 1}`,
+          href: xSearchUrl(query),
+        })),
+    [topic],
+  )
 
   useEffect(() => {
     let active = true
@@ -146,6 +160,20 @@ export function XSignalPage({ topic, initialPosts }: { topic: ContentTopic; init
             Open X search
             <ArrowUpRight className="h-4 w-4" />
           </a>
+          <div className="grid gap-2">
+            {searchLinks.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-between gap-3 bg-[#050504]/36 p-3 text-xs uppercase tracking-[0.12em] text-[#f4efe2]/58 transition hover:bg-black/62 hover:text-[#fff8e6]"
+              >
+                {link.label}
+                <ArrowUpRight className="h-3.5 w-3.5 text-[#df2f2f]" />
+              </a>
+            ))}
+          </div>
           <p className="text-xs leading-5 text-[#f4efe2]/44">
             Follow the fastest posts, source links, and counterarguments in this lane. Strong signals move into dossiers
             and front-page coverage as the record develops.
