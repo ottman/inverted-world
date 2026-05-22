@@ -162,6 +162,7 @@ const SCHEMA_SQL = [
   "ALTER TABLE IF EXISTS source_documents ADD COLUMN IF NOT EXISTS topic_ids JSONB DEFAULT '[]'::jsonb",
   "ALTER TABLE IF EXISTS source_documents ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active'",
   "ALTER TABLE IF EXISTS source_documents ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'::jsonb",
+  "ALTER TABLE IF EXISTS source_documents ALTER COLUMN id SET DEFAULT gen_random_uuid()::text",
   `UPDATE source_documents
     SET slug = trim(both '-' from regexp_replace(lower(coalesce(source, 'source') || ' ' || coalesce(title, url, id)), '[^a-z0-9]+', '-', 'g'))
     WHERE slug IS NULL OR slug = ''`,

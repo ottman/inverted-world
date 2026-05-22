@@ -24,6 +24,7 @@ type CachedRead = {
 
 const publicReadCache = new Map<string, CachedRead>()
 const publicReadInflight = new Map<string, Promise<RecursivRow[] | null>>()
+let publicReadBackoffUntil = 0
 
 function publicReadCacheKey(projectId: string, databaseName: string, sql: string, params: unknown[]) {
   return JSON.stringify([projectId, databaseName, sql, params])
@@ -33,6 +34,15 @@ function getCachedRows(key: string, maxAgeMs: number) {
   const cached = publicReadCache.get(key)
   if (!cached || Date.now() - cached.cachedAt > maxAgeMs) return null
   return cached.rows
+}
+
+function rateLimitBackoffMs(error: unknown) {
+  if (!(error instanceof Error)) return 0
+  const details = error as Error & { status?: number; retryAfter?: number }
+  if (details.status !== 429) return 0
+  const retryAfter = Number(details.retryAfter)
+  if (Number.isFinite(retryAfter) && retryAfter > 0) return Math.min(retryAfter * 1000, 60 * 60 * 1000)
+  return 5 * 60 * 1000
 }
 
 export async function queryInvertedWorldDatabase<T extends RecursivRow = RecursivRow>(
@@ -45,6 +55,10 @@ export async function queryInvertedWorldDatabase<T extends RecursivRow = Recursi
   const cacheKey = publicReadCacheKey(projectId, config.databaseName, sql, params)
   const cachedRows = getCachedRows(cacheKey, PUBLIC_READ_CACHE_MS)
   if (cachedRows) return cachedRows as T[]
+  if (Date.now() < publicReadBackoffUntil) {
+    const staleRows = getCachedRows(cacheKey, PUBLIC_READ_STALE_MS)
+    return (staleRows as T[] | null) ?? null
+  }
 
   const inflight = publicReadInflight.get(cacheKey)
   if (inflight) return (await inflight) as T[] | null
@@ -67,6 +81,8 @@ export async function queryInvertedWorldDatabase<T extends RecursivRow = Recursi
   try {
     return (await readPromise) as T[]
   } catch (error) {
+    const backoffMs = rateLimitBackoffMs(error)
+    if (backoffMs > 0) publicReadBackoffUntil = Math.max(publicReadBackoffUntil, Date.now() + backoffMs)
     const staleRows = getCachedRows(cacheKey, PUBLIC_READ_STALE_MS)
     if (staleRows) return staleRows as T[]
     if (process.env.RECURSIV_STRICT_READS === "1") throw error
