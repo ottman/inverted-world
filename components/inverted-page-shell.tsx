@@ -212,12 +212,20 @@ function SimpleFooter() {
           </a>
         ))}
       </div>
-      <a
-        href="/how-it-works"
-        className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f4efe2]/64 transition hover:text-[#df2f2f]"
-      >
-        How It Works
-      </a>
+      <nav className="flex flex-wrap items-center justify-center gap-4 text-xs font-semibold uppercase tracking-[0.14em] text-[#f4efe2]/64">
+        <a href="/archive" className="transition hover:text-[#df2f2f]">
+          Archive
+        </a>
+        <a href="/news" className="transition hover:text-[#df2f2f]">
+          News
+        </a>
+        <a href="/documents" className="transition hover:text-[#df2f2f]">
+          Sources
+        </a>
+        <a href="/how-it-works" className="transition hover:text-[#df2f2f]">
+          How It Works
+        </a>
+      </nav>
       <span className="text-xs uppercase tracking-[0.14em]">© {new Date().getFullYear()} Subverse, Inc.</span>
     </footer>
   )
