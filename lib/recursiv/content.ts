@@ -723,7 +723,7 @@ export async function fetchRecursivPipelineRuns(options: { limit?: number; jobNa
   const where = options.jobName ? "WHERE job_name = $2" : ""
   const params = options.jobName ? [limit, options.jobName] : [limit]
   const rows = await queryInvertedWorldDatabase<PipelineRunRow>(
-    `SELECT
+    `SELECT /* pipeline-runs:${Date.now()} */
       id,
       job_name,
       status,
@@ -744,7 +744,7 @@ export async function fetchRecursivPipelineRuns(options: { limit?: number; jobNa
 }
 
 export async function getLatestRecursivPipelineRun(jobName = "full-pipeline") {
-  const runs = await fetchRecursivPipelineRuns({ limit: 1, jobName })
+  const runs = await fetchRecursivPipelineRuns({ limit: 5, jobName })
   return runs?.[0] ?? null
 }
 
