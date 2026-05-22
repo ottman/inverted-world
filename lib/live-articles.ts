@@ -1,6 +1,7 @@
 import { intelligenceArticles, type IntelligenceArticle } from "@/data/intelligence-articles"
 import { featuredVideos, researchDocuments, topics } from "@/data/inverted-world"
 import {
+  fetchRecursivPublishedArticlesByTopic,
   fetchRecursivPublishedArticles,
   fetchRecursivPublishedArticlesForTopic,
   getRecursivPublishedArticle,
@@ -172,9 +173,51 @@ function staticArticlesForTopic(topicId: string) {
   return intelligenceArticles.filter((article) => article.topicId === topicId).slice(0, 12)
 }
 
+function staticArticleOverride(articleId: string) {
+  return intelligenceArticles.find((article) => article.id === articleId)
+}
+
+function applyStaticArticleOverrides(articles: IntelligenceArticle[]) {
+  return articles.map((article) => staticArticleOverride(article.id) || article)
+}
+
+export async function fetchLiveArticlesByTopic(options: { limitPerTopic?: number } & ProviderFallbackOptions = {}) {
+  const limitPerTopic = Math.max(1, Math.min(Math.trunc(options.limitPerTopic || 12), 24))
+  const topicIds = topics.map((topic) => topic.id)
+  const recursivByTopic = await fetchRecursivPublishedArticlesByTopic({ limitPerTopic, topicIds })
+  const hasRecursivRows = Object.values(recursivByTopic || {}).some((items) => items.length > 0)
+
+  if (hasRecursivRows || !allowProviderFallbacks(options)) {
+    return Object.fromEntries(
+      topicIds.map((topicId) => {
+        const recursivItems = recursivByTopic?.[topicId] || []
+        return [
+          topicId,
+          recursivItems.length
+            ? applyStaticArticleOverrides(recursivItems).slice(0, limitPerTopic)
+            : staticArticlesForTopic(topicId).slice(0, limitPerTopic),
+        ]
+      }),
+    )
+  }
+
+  const liveResults = await Promise.allSettled(
+    topics.map((topic) => fetchLiveArticlesForTopic(topic.id, topic.query.replaceAll('"', ""), options)),
+  )
+
+  return Object.fromEntries(
+    topics.map((topic, index) => [
+      topic.id,
+      liveResults[index].status === "fulfilled"
+        ? liveResults[index].value.slice(0, limitPerTopic)
+        : staticArticlesForTopic(topic.id).slice(0, limitPerTopic),
+    ]),
+  )
+}
+
 export async function fetchLiveArticlesForTopic(topicId: string, query: string, options: ProviderFallbackOptions = {}) {
   const recursivArticles = await fetchRecursivPublishedArticlesForTopic(topicId, { limit: 12 })
-  if (recursivArticles?.length) return recursivArticles
+  if (recursivArticles?.length) return applyStaticArticleOverrides(recursivArticles)
   if (!allowProviderFallbacks(options)) return staticArticlesForTopic(topicId)
 
   const exaArticles = await fetchExaArticlesForTopic(topicId, query).catch(() => [])
@@ -235,7 +278,7 @@ export async function fetchLiveArticlesForTopic(topicId: string, query: string, 
 
 export async function fetchLiveArticles(options: ProviderFallbackOptions = {}) {
   const recursivArticles = await fetchRecursivPublishedArticles({ limit: 100 })
-  if (recursivArticles?.length) return { articles: recursivArticles, warnings: [] }
+  if (recursivArticles?.length) return { articles: applyStaticArticleOverrides(recursivArticles), warnings: [] }
   if (!allowProviderFallbacks(options)) {
     return {
       articles: intelligenceArticles.slice(0, 100),
@@ -263,11 +306,11 @@ export async function fetchLiveArticles(options: ProviderFallbackOptions = {}) {
 }
 
 export async function getArticleById(articleId: string) {
+  const staticArticle = staticArticleOverride(articleId)
+  if (staticArticle) return staticArticle
+
   const recursivArticle = await getRecursivPublishedArticle(articleId)
   if (recursivArticle) return recursivArticle
-
-  const staticArticle = intelligenceArticles.find((article) => article.id === articleId)
-  if (staticArticle) return staticArticle
 
   const liveMatch = articleId.match(/^live-(.+)-(\d+)$/)
   if (!liveMatch) return null

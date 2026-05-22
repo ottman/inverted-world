@@ -102,7 +102,7 @@ export function InvertedPageShell({
                 className="h-10 w-auto max-w-[76vw] shrink sm:h-11 sm:max-w-none"
               />
             </a>
-            <nav className="flex w-full items-center gap-3 overflow-x-auto text-xs font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/64 lg:justify-center lg:gap-5 lg:tracking-[0.14em]">
+            <nav className="iw-serif flex w-full items-center gap-3 overflow-x-auto text-lg font-normal leading-none tracking-normal text-[#f4efe2]/70 lg:justify-center lg:gap-5 lg:text-xl">
               {topics.map((topic) => (
                 <a key={topic.id} className="shrink-0 transition hover:text-[#df2f2f]" href={`/#topic-${topic.id}`}>
                   {topic.title}
@@ -156,7 +156,7 @@ function BreakingTicker({ items }: { items?: BreakingItem[] }) {
     .map((item) => ({ ...item, title: cleanTickerTitle(item.title) }))
   const marqueeItems = [...visibleItems, ...visibleItems]
   const tickerCharacterCount = visibleItems.reduce((sum, item) => sum + item.title.length + (item.source?.length || 0) + 18, 0)
-  const tickerDurationSeconds = Math.max(150, Math.round(tickerCharacterCount * 0.72))
+  const tickerDurationSeconds = Math.max(60, Math.round(tickerCharacterCount * 0.288))
 
   return (
     <div>

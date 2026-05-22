@@ -111,6 +111,7 @@ export function ArchiveOnlyPage({
   const initialLeadVideo = initialLiveVideo || initialVideos.find((video) => !isShortVideo(video)) || initialVideos[0]
   const [videos, setVideos] = useState<ChannelVideo[]>(initialVideos)
   const [selectedVideo, setSelectedVideo] = useState<ChannelVideo | undefined>(initialLeadVideo)
+  const [autoplayVideoKey, setAutoplayVideoKey] = useState<string | undefined>()
   const [loading, setLoading] = useState(false)
   const [nextOffset, setNextOffset] = useState((initialArchive?.offset ?? 0) + (initialArchive?.limit ?? initialVideos.length))
   const [hasMore, setHasMore] = useState(Boolean(initialArchive?.hasMore))
@@ -127,6 +128,9 @@ export function ArchiveOnlyPage({
 
   const leadVideo = selectedVideo || initialLeadVideo || videos.find((video) => !isShortVideo(video)) || videos[0]
   const leadVideoIsArchiveItem = Boolean(leadVideo && videos.some((video) => videoKey(video) === videoKey(leadVideo)))
+  const leadVideoKey = leadVideo ? videoKey(leadVideo) : undefined
+  const leadVideoShouldAutoplay = Boolean(leadVideoKey && autoplayVideoKey === leadVideoKey)
+  const leadVideoEmbedUrl = videoEmbedUrl(leadVideo, leadVideoShouldAutoplay)
   const selectedTopic = topics.find((topic) => topic.id === leadVideo?.topicId) || topics[0]
   const topicSummaries = useMemo(
     () =>
@@ -196,6 +200,7 @@ export function ArchiveOnlyPage({
 
   function selectVideo(video: ChannelVideo) {
     setSelectedVideo(video)
+    setAutoplayVideoKey(videoKey(video))
     window.requestAnimationFrame(() => {
       document.getElementById("watch")?.scrollIntoView({ behavior: "smooth", block: "start" })
     })
@@ -213,8 +218,9 @@ export function ArchiveOnlyPage({
         <div className={cn("p-2 sm:p-3", archiveSurface)}>
           <div className="relative aspect-video overflow-hidden bg-[#050504]/60">
             <iframe
+              key={`${leadVideoKey || "uploads"}-${leadVideoShouldAutoplay ? "autoplay" : "idle"}`}
               className="absolute inset-0 h-full w-full"
-              src={leadVideo?.embedUrl || channelProfile.youtubeUploadsEmbedUrl}
+              src={leadVideoEmbedUrl}
               title={leadVideo?.title || "Tales From the Inverted World uploads"}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               referrerPolicy="strict-origin-when-cross-origin"
@@ -294,7 +300,7 @@ export function ArchiveOnlyPage({
                   <LiveFeed topicTitle={topic.title} articles={feed} />
                   <XSignalLane topic={topic} posts={xPosts} />
                 </div>
-                <VideoGrid videos={visibleTopicVideos} activeVideoKey={leadVideo ? videoKey(leadVideo) : undefined} onSelect={selectVideo} />
+                <VideoGrid videos={visibleTopicVideos} activeVideoKey={leadVideoKey} onSelect={selectVideo} />
               </div>
             </section>
           )
@@ -303,6 +309,26 @@ export function ArchiveOnlyPage({
       <Script src="https://platform.twitter.com/widgets.js" strategy="lazyOnload" />
     </InvertedPageShell>
   )
+}
+
+function videoEmbedUrl(video?: ChannelVideo, autoplay = false) {
+  const source = video?.embedUrl || channelProfile.youtubeUploadsEmbedUrl
+  if (!source) return source
+
+  try {
+    const url = new URL(source)
+    url.searchParams.set("rel", "0")
+    url.searchParams.set("playsinline", "1")
+    if (autoplay) {
+      url.searchParams.set("autoplay", "1")
+      url.searchParams.set("mute", "1")
+    }
+    return url.toString()
+  } catch {
+    if (!autoplay) return source
+    const separator = source.includes("?") ? "&" : "?"
+    return `${source}${separator}autoplay=1&mute=1&playsinline=1`
+  }
 }
 
 function TopicIndex({

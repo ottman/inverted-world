@@ -1,43 +1,19 @@
 import { ArchiveOnlyPage } from "@/components/archive-only-page"
-import { topics } from "@/data/inverted-world"
 import { getDeepArchive } from "@/lib/deep-archive"
-import { fetchLiveArticlesForTopic } from "@/lib/live-articles"
-import { fetchViralXPostsForTopic } from "@/lib/x-posts"
+import { fetchLiveArticlesByTopic } from "@/lib/live-articles"
+import { fetchViralXPostsByTopic } from "@/lib/x-posts"
 import { getYouTubeLiveStatus } from "@/lib/youtube-live"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 300
 
 export default async function ArchivePage() {
-  const [initialArchive, topicFeeds, topicXPosts, liveStatus] = await Promise.all([
+  const [initialArchive, initialTopicFeeds, initialTopicXPosts, liveStatus] = await Promise.all([
     getDeepArchive({ limit: 1000, maxLimit: 1000 }),
-    Promise.allSettled(
-      topics.map(async (topic) => ({
-        topicId: topic.id,
-        articles: await fetchLiveArticlesForTopic(topic.id, topic.query.replaceAll('"', "")),
-      })),
-    ),
-    Promise.allSettled(
-      topics.map(async (topic) => ({
-        topicId: topic.id,
-        posts: await fetchViralXPostsForTopic(topic.id),
-      })),
-    ),
+    fetchLiveArticlesByTopic({ allowProviderFallbacks: false, limitPerTopic: 12 }).catch(() => ({})),
+    fetchViralXPostsByTopic({ allowProviderFallbacks: false, limitPerTopic: 18 }).catch(() => ({})),
     getYouTubeLiveStatus().catch(() => null),
   ])
-
-  const initialTopicFeeds = Object.fromEntries(
-    topicFeeds.map((result, index) => [
-      topics[index].id,
-      result.status === "fulfilled" ? result.value.articles : [],
-    ]),
-  )
-  const initialTopicXPosts = Object.fromEntries(
-    topicXPosts.map((result, index) => [
-      topics[index].id,
-      result.status === "fulfilled" ? result.value.posts : [],
-    ]),
-  )
 
   return (
     <ArchiveOnlyPage

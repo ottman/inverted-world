@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, type ReactNode } from "react"
 import { Send } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -99,7 +99,7 @@ export function DossierChat({ slug }: { slug: string }) {
                   : "justify-self-start bg-black/36 text-[#f4efe2]/78",
               )}
             >
-              {item.text}
+              {item.role === "assistant" ? <MarkdownText text={item.text} /> : item.text}
             </div>
           ))
         ) : (
@@ -136,4 +136,208 @@ export function DossierChat({ slug }: { slug: string }) {
       </form>
     </section>
   )
+}
+
+type MarkdownBlock =
+  | { type: "heading"; level: number; text: string }
+  | { type: "paragraph"; text: string }
+  | { type: "ul"; items: string[] }
+  | { type: "ol"; items: string[] }
+  | { type: "quote"; text: string }
+  | { type: "code"; text: string }
+
+function MarkdownText({ text }: { text: string }) {
+  const blocks = parseMarkdownBlocks(text)
+
+  return (
+    <div className="grid gap-3">
+      {blocks.map((block, index) => {
+        if (block.type === "heading") {
+          const Heading = block.level === 1 ? "h3" : block.level === 2 ? "h4" : "h5"
+          return (
+            <Heading key={`${block.type}-${index}`} className="iw-serif text-2xl leading-none text-[#fff8e6]">
+              {renderInlineMarkdown(block.text)}
+            </Heading>
+          )
+        }
+
+        if (block.type === "ul" || block.type === "ol") {
+          const List = block.type === "ul" ? "ul" : "ol"
+          return (
+            <List
+              key={`${block.type}-${index}`}
+              className={cn(
+                "grid gap-1 pl-5 text-sm leading-6",
+                block.type === "ul" ? "list-disc" : "list-decimal",
+              )}
+            >
+              {block.items.map((item, itemIndex) => (
+                <li key={`${item}-${itemIndex}`}>{renderInlineMarkdown(item)}</li>
+              ))}
+            </List>
+          )
+        }
+
+        if (block.type === "quote") {
+          return (
+            <blockquote key={`${block.type}-${index}`} className="border-l border-[#df2f2f]/48 pl-3 text-[#f4efe2]/68">
+              {renderInlineMarkdown(block.text)}
+            </blockquote>
+          )
+        }
+
+        if (block.type === "code") {
+          return (
+            <pre key={`${block.type}-${index}`} className="overflow-x-auto bg-black/44 p-3 text-xs leading-5 text-[#f4efe2]/72">
+              <code>{block.text}</code>
+            </pre>
+          )
+        }
+
+        return <p key={`${block.type}-${index}`}>{renderInlineMarkdown(block.text)}</p>
+      })}
+    </div>
+  )
+}
+
+function parseMarkdownBlocks(value: string): MarkdownBlock[] {
+  const lines = value.replace(/\r\n/g, "\n").split("\n")
+  const blocks: MarkdownBlock[] = []
+  let paragraph: string[] = []
+  let list: { type: "ul" | "ol"; items: string[] } | null = null
+  let code: string[] | null = null
+
+  function flushParagraph() {
+    if (!paragraph.length) return
+    blocks.push({ type: "paragraph", text: paragraph.join(" ").trim() })
+    paragraph = []
+  }
+
+  function flushList() {
+    if (!list) return
+    blocks.push(list)
+    list = null
+  }
+
+  for (const line of lines) {
+    const trimmed = line.trim()
+
+    if (trimmed.startsWith("```")) {
+      flushParagraph()
+      flushList()
+      if (code) {
+        blocks.push({ type: "code", text: code.join("\n") })
+        code = null
+      } else {
+        code = []
+      }
+      continue
+    }
+
+    if (code) {
+      code.push(line)
+      continue
+    }
+
+    if (!trimmed) {
+      flushParagraph()
+      flushList()
+      continue
+    }
+
+    const headingMatch = trimmed.match(/^(#{1,3})\s+(.+)$/)
+    if (headingMatch) {
+      flushParagraph()
+      flushList()
+      blocks.push({ type: "heading", level: headingMatch[1].length, text: headingMatch[2].trim() })
+      continue
+    }
+
+    const unorderedMatch = trimmed.match(/^[-*]\s+(.+)$/)
+    if (unorderedMatch) {
+      flushParagraph()
+      if (!list || list.type !== "ul") {
+        flushList()
+        list = { type: "ul", items: [] }
+      }
+      list.items.push(unorderedMatch[1].trim())
+      continue
+    }
+
+    const orderedMatch = trimmed.match(/^\d+\.\s+(.+)$/)
+    if (orderedMatch) {
+      flushParagraph()
+      if (!list || list.type !== "ol") {
+        flushList()
+        list = { type: "ol", items: [] }
+      }
+      list.items.push(orderedMatch[1].trim())
+      continue
+    }
+
+    const quoteMatch = trimmed.match(/^>\s?(.+)$/)
+    if (quoteMatch) {
+      flushParagraph()
+      flushList()
+      blocks.push({ type: "quote", text: quoteMatch[1].trim() })
+      continue
+    }
+
+    flushList()
+    paragraph.push(trimmed)
+  }
+
+  if (code) blocks.push({ type: "code", text: code.join("\n") })
+  flushParagraph()
+  flushList()
+
+  return blocks.length ? blocks : [{ type: "paragraph", text: value }]
+}
+
+function renderInlineMarkdown(value: string) {
+  const nodes: ReactNode[] = []
+  const pattern = /(\[([^\]]+)\]\((https?:\/\/[^)\s]+|\/[^)\s]*)\)|`([^`]+)`|\*\*([^*]+)\*\*|\*([^*]+)\*)/g
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+
+  while ((match = pattern.exec(value)) !== null) {
+    if (match.index > lastIndex) nodes.push(value.slice(lastIndex, match.index))
+
+    if (match[2] && match[3]) {
+      nodes.push(
+        <a
+          key={`link-${match.index}`}
+          href={match[3]}
+          target={match[3].startsWith("http") ? "_blank" : undefined}
+          rel={match[3].startsWith("http") ? "noreferrer" : undefined}
+          className="text-[#dff7ff] underline decoration-[#df2f2f]/45 underline-offset-4 transition hover:text-[#fff8e6]"
+        >
+          {match[2]}
+        </a>,
+      )
+    } else if (match[4]) {
+      nodes.push(
+        <code key={`code-${match.index}`} className="bg-black/42 px-1.5 py-0.5 text-[0.92em] text-[#fff8e6]">
+          {match[4]}
+        </code>,
+      )
+    } else if (match[5]) {
+      nodes.push(
+        <strong key={`strong-${match.index}`} className="font-semibold text-[#fff8e6]">
+          {match[5]}
+        </strong>,
+      )
+    } else if (match[6]) {
+      nodes.push(
+        <em key={`em-${match.index}`} className="text-[#fff8e6]/88">
+          {match[6]}
+        </em>,
+      )
+    }
+
+    lastIndex = pattern.lastIndex
+  }
+
+  if (lastIndex < value.length) nodes.push(value.slice(lastIndex))
+  return nodes
 }

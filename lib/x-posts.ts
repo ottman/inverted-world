@@ -1,5 +1,5 @@
 import { topics } from "@/data/inverted-world"
-import { fetchRecursivXSignalsForTopic } from "@/lib/recursiv/content"
+import { fetchRecursivXSignalsByTopic, fetchRecursivXSignalsForTopic } from "@/lib/recursiv/content"
 import { allowProviderFallbacks, type ProviderFallbackOptions } from "@/lib/provider-fallbacks"
 import { getTopicXQueries } from "@/lib/x-search"
 
@@ -879,4 +879,42 @@ export async function fetchViralXPostsForTopic(
   )
 
   return mergeWithSeededPosts(topicId, [...recursivPosts, ...rankedPosts], limit)
+}
+
+export async function fetchViralXPostsByTopic(
+  options: { limitPerTopic?: number; allowProfileReader?: boolean } & ProviderFallbackOptions = {},
+) {
+  const limitPerTopic = Math.max(1, Math.min(Math.trunc(options.limitPerTopic || 18), 48))
+  const topicIds = topics.map((topic) => topic.id)
+  const recursivByTopic = await fetchRecursivXSignalsByTopic({ limitPerTopic, topicIds })
+  const result: Record<string, ViralXPost[]> = {}
+  const missingTopicIds: string[] = []
+
+  for (const topicId of topicIds) {
+    const posts = mergeWithSeededPosts(topicId, recursivByTopic?.[topicId] || [], limitPerTopic)
+    if (posts.length >= limitPerTopic || !allowProviderFallbacks(options)) {
+      result[topicId] = posts
+    } else {
+      missingTopicIds.push(topicId)
+    }
+  }
+
+  if (!missingTopicIds.length) return result
+
+  const fallbackResults = await Promise.allSettled(
+    missingTopicIds.map((topicId) =>
+      fetchViralXPostsForTopic(topicId, {
+        ...options,
+        limit: limitPerTopic,
+      }),
+    ),
+  )
+
+  for (let index = 0; index < missingTopicIds.length; index += 1) {
+    const topicId = missingTopicIds[index]
+    const fallback = fallbackResults[index]
+    result[topicId] = fallback.status === "fulfilled" ? fallback.value : mergeWithSeededPosts(topicId, [], limitPerTopic)
+  }
+
+  return result
 }

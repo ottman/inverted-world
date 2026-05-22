@@ -74,7 +74,7 @@ function socialThread(lead: ClaimDossier | undefined, editionHeadline: string, e
   if (!lead) {
     return [
       `${editionHeadline}\n\n${editionDeck}`,
-      "The daily packet is warming up from Recursiv-published articles, claim dossiers, X signals, source documents, and the Tales archive.",
+      "The daily packet is warming up from published stories, X signals, source documents, and the Tales archive.",
       `Read the latest desk: ${absoluteUrl("/news")}`,
     ]
   }
@@ -85,9 +85,9 @@ function socialThread(lead: ClaimDossier | undefined, editionHeadline: string, e
   return [
     `${lead.title}\n\n${lead.summary}`,
     `Evidence grade: ${lead.evidenceGrade}. Confidence: ${lead.confidenceScore}/100. X velocity: ${lead.xVelocityScore}.`,
-    `Weird read: ${lead.weirdRead}`,
+    `Context: ${lead.weirdRead}`,
     `Skeptical read: ${lead.skepticalRead}`,
-    `${sourceLine}. ${archiveLine}. Open the dossier: ${absoluteUrl(`/news/${lead.slug}`)}`,
+    `${sourceLine}. ${archiveLine}. Read the story: ${absoluteUrl(`/news/${lead.slug}`)}`,
   ]
 }
 

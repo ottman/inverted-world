@@ -1302,7 +1302,7 @@ export async function publishFrontPageEditionInRecursiv() {
   const editionDate = new Date().toISOString().slice(0, 10)
   const slug = `front-page-${editionDate}`
   const headline = leadArticle?.title || leadDossier?.title || "Inverted World front page"
-  const deck = `Today's Recursiv edition: ${articles.length} AI briefs, ${dossiers.length} claim dossiers, ${xSignals.length} X signals, and ${archiveVideos.length} Tales archive links.`
+  const deck = `Today's edition tracks ${articles.length} stories, ${xSignals.length} X signals, and ${archiveVideos.length} Tales archive links across the conspiracy-world desk.`
   const editionArticles = articles.slice(0, 5)
   const editionDossiers = dossiers.slice(0, 6)
   const editionSignals = xSignals.slice(0, 5)

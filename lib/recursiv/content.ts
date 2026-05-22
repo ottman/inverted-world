@@ -637,12 +637,16 @@ async function hydrateDossierRelatedVideos(dossiers: ClaimDossier[]) {
 }
 
 function frontPageEditionRowToEdition(row: FrontPageEditionRow): FrontPageEdition {
+  const deck = row.deck || ""
+
   return {
     id: row.id || row.slug || "front-page-edition",
     slug: row.slug || row.id || "front-page-edition",
     editionDate: safeDate(row.edition_date || row.published_at || row.generated_at),
     headline: row.headline || "Inverted World front page",
-    deck: row.deck || "The latest Recursiv-generated front page edition.",
+    deck: /Recursiv edition|AI briefs|claim dossiers/i.test(deck)
+      ? "Today's edition tracks the strongest stories, source links, X signal, and related Tales archive context across the conspiracy-world desk."
+      : deck || "The latest Inverted World front page edition.",
     status: row.status || "published",
     leadDossierSlug: row.lead_dossier_slug,
     sections: jsonObject(row.sections),
@@ -844,6 +848,66 @@ export async function fetchRecursivPublishedArticlesForTopic(topicId: string, op
   return rows?.map(articleRowToArticle) ?? null
 }
 
+export async function fetchRecursivPublishedArticlesByTopic(options: { limitPerTopic?: number; topicIds?: string[] } = {}) {
+  const limitPerTopic = Math.max(1, Math.min(Math.trunc(options.limitPerTopic || 12), 24))
+  const topicIds = (options.topicIds?.length ? options.topicIds : topics.map((topic) => topic.id)).filter(Boolean)
+  if (!topicIds.length) return null
+
+  const placeholders = topicIds.map((_, index) => `$${index + 2}`).join(", ")
+  const rows = await queryInvertedWorldDatabase<ArticleDraftRow>(
+    `WITH ranked AS (
+      SELECT
+        a.id,
+        a.slug,
+        a.title,
+        a.deck,
+        a.topic_id,
+        a.body,
+        a.source_name,
+        a.source_url,
+        a.heat,
+        a.thumbnail_prompt,
+        a.published_at,
+        a.metadata,
+        ga.url AS asset_url,
+        row_number() OVER (
+          PARTITION BY a.topic_id
+          ORDER BY a.published_at DESC NULLS LAST, a.generated_at DESC
+        ) AS topic_rank
+      FROM article_drafts a
+      LEFT JOIN generated_assets ga ON ga.id = a.thumbnail_asset_id
+      WHERE a.status = 'published' AND a.topic_id IN (${placeholders})
+    )
+    SELECT
+      id,
+      slug,
+      title,
+      deck,
+      topic_id,
+      body,
+      source_name,
+      source_url,
+      heat,
+      thumbnail_prompt,
+      published_at,
+      metadata,
+      asset_url
+    FROM ranked
+    WHERE topic_rank <= $1
+    ORDER BY topic_id, topic_rank`,
+    [limitPerTopic, ...topicIds],
+  )
+  if (!rows) return null
+
+  const grouped: Record<string, IntelligenceArticle[]> = Object.fromEntries(topicIds.map((topicId) => [topicId, []]))
+  for (const row of rows) {
+    const article = articleRowToArticle(row)
+    ;(grouped[article.topicId] ||= []).push(article)
+  }
+
+  return grouped
+}
+
 export async function getRecursivPublishedArticle(articleId: string) {
   const rows = await queryInvertedWorldDatabase<ArticleDraftRow>(
     `SELECT
@@ -892,6 +956,59 @@ export async function fetchRecursivXSignalsForTopic(topicId: string, options: { 
   )
 
   return rows?.map(xRowToPost) ?? null
+}
+
+export async function fetchRecursivXSignalsByTopic(options: { limitPerTopic?: number; topicIds?: string[] } = {}) {
+  const limitPerTopic = Math.max(1, Math.min(Math.trunc(options.limitPerTopic || 18), 48))
+  const topicIds = (options.topicIds?.length ? options.topicIds : topics.map((topic) => topic.id)).filter(Boolean)
+  if (!topicIds.length) return null
+
+  const placeholders = topicIds.map((_, index) => `$${index + 2}`).join(", ")
+  const rows = await queryInvertedWorldDatabase<XSignalRow>(
+    `WITH ranked AS (
+      SELECT
+        x_id,
+        url,
+        text,
+        topic_id,
+        author_name,
+        username,
+        posted_at,
+        source,
+        score,
+        metrics,
+        row_number() OVER (
+          PARTITION BY topic_id
+          ORDER BY score DESC NULLS LAST, posted_at DESC NULLS LAST, captured_at DESC
+        ) AS topic_rank
+      FROM x_signals
+      WHERE topic_id IN (${placeholders})
+    )
+    SELECT
+      x_id,
+      url,
+      text,
+      topic_id,
+      author_name,
+      username,
+      posted_at,
+      source,
+      score,
+      metrics
+    FROM ranked
+    WHERE topic_rank <= $1
+    ORDER BY topic_id, topic_rank`,
+    [limitPerTopic, ...topicIds],
+  )
+  if (!rows) return null
+
+  const grouped: Record<string, ViralXPost[]> = Object.fromEntries(topicIds.map((topicId) => [topicId, []]))
+  for (const row of rows) {
+    const post = xRowToPost(row)
+    ;(grouped[post.topicId || "secret-programs"] ||= []).push(post)
+  }
+
+  return grouped
 }
 
 export async function fetchRecursivClaimDossiers(options: { limit?: number; topicId?: string } = {}) {

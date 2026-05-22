@@ -1,6 +1,6 @@
 import { cache, type ReactNode } from "react"
 import type { Metadata } from "next"
-import { ArrowLeft, ArrowUpRight, Gauge, MessageSquare, Radio } from "lucide-react"
+import { ArrowLeft, ArrowUpRight, BookOpen, FileText, Gauge, MessageSquare, Radio } from "lucide-react"
 import { DossierChat } from "@/components/dossier-chat"
 import { archiveSurface, InvertedPageShell, type BreakingItem } from "@/components/inverted-page-shell"
 import type { IntelligenceArticle } from "@/data/intelligence-articles"
@@ -180,6 +180,7 @@ export default async function NewsArticlePage({ params }: PageProps) {
   const body = storyParagraphs(article, dossier)
   const topic = article?.topic || dossier?.topic || "INVERTED WORLD"
   const publishedAt = formatDate(article?.publishedAt || dossier?.publishedAt)
+  const articleFirst = Boolean(article)
 
   const breakingItems: BreakingItem[] = dossier ? [
     ...dossier.xSignals.slice(0, 8).map((post) => ({
@@ -218,7 +219,7 @@ export default async function NewsArticlePage({ params }: PageProps) {
             <div className="mb-5 flex flex-wrap items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#df2f2f]">
               {article?.source ? <span>{article.source}</span> : null}
               {publishedAt ? <span>{publishedAt}</span> : null}
-              {dossier?.evidenceGrade ? <span>{dossier.evidenceGrade}</span> : null}
+              {!articleFirst && dossier?.evidenceGrade ? <span>{dossier.evidenceGrade}</span> : null}
             </div>
             <div className="grid gap-5 text-lg leading-8 text-[#f4efe2]/78">
               {body.map((paragraph) => (
@@ -240,7 +241,7 @@ export default async function NewsArticlePage({ params }: PageProps) {
 
           {dossier ? (
             <div className="grid gap-3 md:grid-cols-2">
-              <ReadBlock title="Open Questions" body={dossier.weirdRead} />
+              <ReadBlock title={articleFirst ? "What To Verify" : "Open Questions"} body={dossier.weirdRead} />
               <ReadBlock title="Skeptical Check" body={dossier.skepticalRead} />
             </div>
           ) : null}
@@ -290,14 +291,25 @@ export default async function NewsArticlePage({ params }: PageProps) {
           {dossier ? (
             <>
               <div className="grid grid-cols-2 gap-2">
-                <Metric icon={<Gauge className="h-4 w-4" />} label="Evidence" value={`${dossier.confidenceScore}/100`} />
-                <Metric icon={<Radio className="h-4 w-4" />} label="X Velocity" value={formatScore(dossier.xVelocityScore)} />
-                <Metric icon={<MessageSquare className="h-4 w-4" />} label="Sources" value={String(dossier.sourceCount)} />
-                <Metric icon={<MessageSquare className="h-4 w-4" />} label="X Posts" value={String(dossier.xSignalCount)} />
+                {articleFirst ? (
+                  <>
+                    <Metric icon={<FileText className="h-4 w-4" />} label="Sources" value={String(dossier.sourceCount)} />
+                    <Metric icon={<Radio className="h-4 w-4" />} label="X Posts" value={String(dossier.xSignalCount)} />
+                    <Metric icon={<BookOpen className="h-4 w-4" />} label="Archive" value={String(dossier.relatedVideoCount)} />
+                    <Metric icon={<MessageSquare className="h-4 w-4" />} label="AI Guide" value="Ready" />
+                  </>
+                ) : (
+                  <>
+                    <Metric icon={<Gauge className="h-4 w-4" />} label="Evidence" value={`${dossier.confidenceScore}/100`} />
+                    <Metric icon={<Radio className="h-4 w-4" />} label="X Velocity" value={formatScore(dossier.xVelocityScore)} />
+                    <Metric icon={<MessageSquare className="h-4 w-4" />} label="Sources" value={String(dossier.sourceCount)} />
+                    <Metric icon={<MessageSquare className="h-4 w-4" />} label="X Posts" value={String(dossier.xSignalCount)} />
+                  </>
+                )}
               </div>
 
               <section className="bg-[#050504]/42 p-4">
-                <h2 className="iw-serif text-3xl leading-none text-[#fff8e6]">Angles To Watch</h2>
+                <h2 className="iw-serif text-3xl leading-none text-[#fff8e6]">What To Watch</h2>
                 <div className="mt-4 grid gap-2">
                   {dossier.viralHeadlines.length ? dossier.viralHeadlines.slice(0, 4).map((headline) => (
                     <p key={headline} className="bg-black/28 p-3 text-sm leading-5 text-[#f4efe2]/72">
