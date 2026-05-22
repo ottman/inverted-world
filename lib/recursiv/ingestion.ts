@@ -1169,6 +1169,13 @@ export async function publishFrontPageEditionInRecursiv() {
   await sdk.databases.query({
     project_id: config.projectId,
     database_name: config.databaseName,
+    sql: "DELETE FROM front_page_editions WHERE slug = $1 OR edition_date = $2",
+    params: [slug, editionDate],
+  })
+
+  await sdk.databases.query({
+    project_id: config.projectId,
+    database_name: config.databaseName,
     sql: `INSERT INTO front_page_editions (
         slug,
         edition_date,
@@ -1182,18 +1189,7 @@ export async function publishFrontPageEditionInRecursiv() {
         metadata,
         updated_at
       )
-      VALUES ($1, $2::date, $3, $4, 'published', $5, $6::jsonb, $7::jsonb, now(), $8::jsonb, now())
-      ON CONFLICT (slug) DO UPDATE SET
-        edition_date = EXCLUDED.edition_date,
-        headline = EXCLUDED.headline,
-        deck = EXCLUDED.deck,
-        status = EXCLUDED.status,
-        lead_dossier_slug = EXCLUDED.lead_dossier_slug,
-        sections = EXCLUDED.sections,
-        metrics = EXCLUDED.metrics,
-        published_at = EXCLUDED.published_at,
-        metadata = EXCLUDED.metadata,
-        updated_at = now()`,
+      VALUES ($1, $2::date, $3, $4, 'published', $5, $6::jsonb, $7::jsonb, now(), $8::jsonb, now())`,
     params: [
       slug,
       editionDate,
