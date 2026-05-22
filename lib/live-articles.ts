@@ -5,6 +5,7 @@ import {
   fetchRecursivPublishedArticlesForTopic,
   getRecursivPublishedArticle,
 } from "@/lib/recursiv/content"
+import { allowProviderFallbacks, type ProviderFallbackOptions } from "@/lib/provider-fallbacks"
 
 const NEWS_TIMEOUT_MS = 6500
 const EXA_TIMEOUT_MS = 10000
@@ -167,9 +168,14 @@ async function fetchExaArticlesForTopic(topicId: string, query: string) {
     })
 }
 
-export async function fetchLiveArticlesForTopic(topicId: string, query: string) {
+function staticArticlesForTopic(topicId: string) {
+  return intelligenceArticles.filter((article) => article.topicId === topicId).slice(0, 12)
+}
+
+export async function fetchLiveArticlesForTopic(topicId: string, query: string, options: ProviderFallbackOptions = {}) {
   const recursivArticles = await fetchRecursivPublishedArticlesForTopic(topicId, { limit: 12 })
   if (recursivArticles?.length) return recursivArticles
+  if (!allowProviderFallbacks(options)) return staticArticlesForTopic(topicId)
 
   const exaArticles = await fetchExaArticlesForTopic(topicId, query).catch(() => [])
   if (exaArticles.length) return exaArticles
@@ -227,13 +233,19 @@ export async function fetchLiveArticlesForTopic(topicId: string, query: string) 
   })
 }
 
-export async function fetchLiveArticles() {
+export async function fetchLiveArticles(options: ProviderFallbackOptions = {}) {
   const recursivArticles = await fetchRecursivPublishedArticles({ limit: 100 })
   if (recursivArticles?.length) return { articles: recursivArticles, warnings: [] }
+  if (!allowProviderFallbacks(options)) {
+    return {
+      articles: intelligenceArticles.slice(0, 100),
+      warnings: ["Provider fallbacks are disabled for public reads; Recursiv jobs own live ingestion."],
+    }
+  }
 
   const warnings: string[] = []
   const liveResults = await Promise.allSettled(
-    topics.map((topic) => fetchLiveArticlesForTopic(topic.id, topic.query.replaceAll('"', ""))),
+    topics.map((topic) => fetchLiveArticlesForTopic(topic.id, topic.query.replaceAll('"', ""), options)),
   )
 
   const liveArticles = liveResults.flatMap((result, index) => {
@@ -265,7 +277,7 @@ export async function getArticleById(articleId: string) {
   if (!topic) return null
 
   try {
-    const liveArticles = await fetchLiveArticlesForTopic(topic.id, topic.query.replaceAll('"', ""))
+    const liveArticles = await fetchLiveArticlesForTopic(topic.id, topic.query.replaceAll('"', ""), { allowProviderFallbacks: true })
     return liveArticles[Number(rawIndex)] ?? null
   } catch {
     return null

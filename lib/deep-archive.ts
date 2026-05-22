@@ -1,4 +1,5 @@
 import { channelProfile, featuredVideos, type ChannelVideo } from "@/data/inverted-world"
+import { allowProviderFallbacks, type ProviderFallbackOptions } from "@/lib/provider-fallbacks"
 import { getRecursivChannelArchive } from "@/lib/recursiv/content"
 import { classifyInvertedWorldTopic } from "@/lib/topic-classifier"
 
@@ -131,15 +132,12 @@ async function fetchYouTubeDataApi() {
   return videos
 }
 
-export async function getDeepArchive({
-  limit = 100,
-  offset = 0,
-  maxLimit = 100,
-}: {
+export async function getDeepArchive(options: {
   limit?: number
   offset?: number
   maxLimit?: number
-} = {}): Promise<DeepArchiveResponse> {
+} & ProviderFallbackOptions = {}): Promise<DeepArchiveResponse> {
+  const { limit = 100, offset = 0, maxLimit = 100 } = options
   const warnings: string[] = []
   const seeded = featuredVideos.filter((video) => video.source === "YouTube" && video.videoId)
   const recursivArchive = await getRecursivChannelArchive({ limit, offset, maxLimit })
@@ -174,6 +172,11 @@ export async function getDeepArchive({
       hasMore: safeOffset + safeLimit < totalCount,
       warnings: extraWarnings,
     }
+  }
+  if (!allowProviderFallbacks(options)) {
+    return sliceArchive(dedupeVideos(seeded), "seed", false, [
+      "Provider fallbacks are disabled for public reads; Recursiv archive sync owns YouTube ingestion.",
+    ])
   }
 
   try {

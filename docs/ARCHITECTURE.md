@@ -10,6 +10,7 @@ Current runtime lanes:
 - Archive ingestion: `lib/deep-archive.ts` now reads Recursiv `channel_items` first, then falls back to YouTube Data API, RSS, and seeded local videos.
 - Live articles: `lib/live-articles.ts` now reads published Recursiv `article_drafts` first, then falls back to Exa source discovery and Google News RSS.
 - X signals: `lib/x-posts.ts` now reads Recursiv `x_signals` first, then falls back to X API, Brave, public syndication, and seed posts.
+- Provider fallback policy: public request paths default to Recursiv/static/seeded data and do not directly call third-party provider APIs; Recursiv job handlers explicitly opt into provider fallbacks for ingestion.
 - Claim dossier sources: `lib/source-extraction.ts` extracts short source excerpts with Firecrawl first and Jina Reader fallback so `/news/[slug]` chat is grounded in page text, not links alone.
 - Article generation: `lib/recursiv/ingestion.ts` now turns published claim dossiers into Recursiv `article_drafts`, using the configured Recursiv agent when available and a deterministic sourced fallback when the agent is unavailable.
 - Front-page editions: `front_page_editions` snapshots the published lead mix from articles, dossiers, X signals, and Tales archive items so `/news` has persistent daily-return editorial state.

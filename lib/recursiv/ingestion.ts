@@ -599,7 +599,9 @@ export async function syncTopicPulseToRecursiv() {
   let xCount = 0
 
   for (const topic of topics) {
-    const articles = await fetchLiveArticlesForTopic(topic.id, topic.query.replaceAll('"', "")).catch(() => [])
+    const articles = await fetchLiveArticlesForTopic(topic.id, topic.query.replaceAll('"', ""), {
+      allowProviderFallbacks: true,
+    }).catch(() => [])
     await sdk.databases.query({
       project_id: config.projectId,
       database_name: config.databaseName,
@@ -624,7 +626,7 @@ export async function syncTopicPulseToRecursiv() {
     })
     coverageCount += 1
 
-    const posts = await fetchViralXPostsForTopic(topic.id, { limit: 12 }).catch(() => [])
+    const posts = await fetchViralXPostsForTopic(topic.id, { limit: 12, allowProviderFallbacks: true }).catch(() => [])
     for (const post of posts) {
       await upsertXSignal(sdk, config.projectId, config.databaseName, post)
       xCount += 1
@@ -684,8 +686,8 @@ export async function generateClaimDossiersInRecursiv() {
 
   for (const topic of topics) {
     const [articles, posts, videosResult] = await Promise.all([
-      fetchLiveArticlesForTopic(topic.id, topic.query.replaceAll('"', "")).catch(() => []),
-      fetchViralXPostsForTopic(topic.id, { limit: 12 }).catch(() => []),
+      fetchLiveArticlesForTopic(topic.id, topic.query.replaceAll('"', ""), { allowProviderFallbacks: true }).catch(() => []),
+      fetchViralXPostsForTopic(topic.id, { limit: 12, allowProviderFallbacks: true }).catch(() => []),
       sdk.databases.query({
         project_id: config.projectId,
         database_name: config.databaseName,

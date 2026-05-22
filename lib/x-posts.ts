@@ -1,5 +1,6 @@
 import { topics } from "@/data/inverted-world"
 import { fetchRecursivXSignalsForTopic } from "@/lib/recursiv/content"
+import { allowProviderFallbacks, type ProviderFallbackOptions } from "@/lib/provider-fallbacks"
 import { getTopicXQueries } from "@/lib/x-search"
 
 export type ViralXPost = {
@@ -595,10 +596,11 @@ async function fetchSyndicatedPriorityPosts(topicId: string, limit: number) {
     .slice(0, limit)
 }
 
-export async function fetchViralXPostsForTopic(topicId: string, options: { limit?: number } = {}) {
+export async function fetchViralXPostsForTopic(topicId: string, options: { limit?: number } & ProviderFallbackOptions = {}) {
   const limit = Math.max(1, Math.min(Math.trunc(options.limit || 12), 24))
   const recursivPosts = await fetchRecursivXSignalsForTopic(topicId, { limit })
   if (recursivPosts?.length) return mergeWithSeededPosts(topicId, recursivPosts, limit)
+  if (!allowProviderFallbacks(options)) return mergeWithSeededPosts(topicId, [], limit)
 
   try {
     const xPosts = await fetchXApiPosts(topicId, limit)
