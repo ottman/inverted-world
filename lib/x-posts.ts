@@ -34,10 +34,48 @@ const TOPIC_X_SCORE_FLOORS: Record<string, number> = {
   "uap-disclosure": 250,
   "secret-programs": 140,
   "epstein-networks": 160,
-  "cryptids-paranormal": 90,
+  "cryptids-paranormal": 60,
   "ai-technocracy": 140,
   "space-anomalies": 110,
 }
+const TOPIC_CORE_TERMS: Record<string, string[]> = {
+  "uap-disclosure": ["uap", "ufo", "aaro", "disclosure", "grusch", "crash retrieval", "non-human intelligence"],
+  "secret-programs": ["mkultra", "cia", "foia", "declassified", "classified program", "black budget", "psyop"],
+  "epstein-networks": ["epstein", "maxwell", "client list", "flight logs", "sealed documents", "court records"],
+  "cryptids-paranormal": [
+    "bigfoot",
+    "sasquatch",
+    "cryptid",
+    "mothman",
+    "dogman",
+    "skinwalker",
+    "ghost sighting",
+    "ghost video",
+    "paranormal investigation",
+    "poltergeist",
+    "missing 411",
+    "remote viewing",
+  ],
+  "ai-technocracy": ["ai surveillance", "palantir", "digital id", "facial recognition", "predictive policing", "deepfake", "autonomous weapons"],
+  "space-anomalies": [
+    "space anomaly",
+    "mars anomaly",
+    "moon anomaly",
+    "meteor",
+    "asteroid",
+    "solar storm",
+    "solar flare",
+    "geomagnetic storm",
+    "space weather",
+    "bolide",
+    "interstellar object",
+  ],
+}
+const TOPIC_EXCLUDED_TERMS: Record<string, string[]> = {
+  "cryptids-paranormal": ["nsfw", "onlyfans", "freeuse", "panties", "booktok", "urban fantasy", "paranormal romance"],
+  "space-anomalies": ["bruno mars", "mars bar", "mars inc", "$fly", "meme coin", "memecoin", "ca :", "mc :", "pump", "to mars"],
+}
+const GLOBAL_EXCLUDED_TERMS = ["porn", "tits", "escort", "giveaway", "airdrop"]
 const X_STATUS_URL_PATTERN =
   /https?:\/\/(?:www\.)?(?:x\.com|twitter\.com)\/(?!i\/web)([A-Za-z0-9_]{1,20})\/status(?:es)?\/(\d+)/i
 
@@ -171,6 +209,27 @@ function minViralScoreForTopic(topicId: string) {
   return TOPIC_X_SCORE_FLOORS[topicId] ?? 140
 }
 
+function containsAnyTerm(text: string, terms: string[]) {
+  return terms.some((term) => text.includes(term))
+}
+
+function hasCoreTopicTerm(topicId: string, text: string) {
+  return containsAnyTerm(text, TOPIC_CORE_TERMS[topicId] || [])
+}
+
+function rejectsTopicText(topicId: string, text?: string) {
+  const normalized = (text || "").toLowerCase()
+  if (!normalized) return false
+  return containsAnyTerm(normalized, GLOBAL_EXCLUDED_TERMS) || containsAnyTerm(normalized, TOPIC_EXCLUDED_TERMS[topicId] || [])
+}
+
+function isQualityTopicPost(topicId: string, post: ViralXPost) {
+  const normalized = post.text.toLowerCase()
+  if (rejectsTopicText(topicId, normalized)) return false
+  if (hasCoreTopicTerm(topicId, normalized)) return true
+  return (post.score || 0) >= minViralScoreForTopic(topicId)
+}
+
 function getPostTimestamp(post: ViralXPost) {
   if (post.createdAt) {
     const timestamp = new Date(post.createdAt).getTime()
@@ -196,6 +255,7 @@ function mergeWithSeededPosts(topicId: string, posts: ViralXPost[], limit: numbe
   return [...posts, ...seededPostsForTopic(topicId)]
     .map((post) => ({ ...post, topicId: post.topicId || topicId }))
     .filter((post) => isFreshXPost(post))
+    .filter((post) => isQualityTopicPost(topicId, post))
     .filter((post) => {
       const key = post.id || post.url
       if (seen.has(key)) return false
@@ -354,7 +414,10 @@ async function fetchXApiPosts(topicId: string, limit: number) {
   ]).sort((left, right) => (right.score || 0) - (left.score || 0))
 
   const viral = ranked.filter((post) => (post.score || 0) >= minViralScoreForTopic(topicId))
-  return (viral.length ? viral : ranked).filter((post) => isFreshXPost(post)).slice(0, limit)
+  return (viral.length ? viral : ranked)
+    .filter((post) => isFreshXPost(post))
+    .filter((post) => isQualityTopicPost(topicId, post))
+    .slice(0, limit)
 }
 
 async function fetchBraveSearchResults(query: string) {

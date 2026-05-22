@@ -21,7 +21,7 @@ const topicXQueries: Record<string, string[]> = {
   ],
   "cryptids-paranormal": [
     '(Bigfoot OR Sasquatch OR cryptid OR Mothman OR Dogman)',
-    '(paranormal OR haunting OR "ghost video" OR poltergeist)',
+    '("ghost sighting" OR "ghost video" OR poltergeist OR "paranormal investigation")',
     '("high strangeness" OR Skinwalker OR "missing 411" OR "remote viewing")',
     '("near death experience" OR "consciousness anomaly" OR "strange lights")',
   ],
@@ -32,7 +32,7 @@ const topicXQueries: Record<string, string[]> = {
     '(deepfake OR "synthetic media" OR "autonomous weapons" OR "AI governance")',
   ],
   "space-anomalies": [
-    '(NASA OR "space anomaly" OR meteor OR asteroid OR "solar storm")',
+    '((NASA OR NOAA OR ESA) ("space anomaly" OR anomaly OR meteor OR asteroid OR "solar storm" OR "geomagnetic storm"))',
     '("Mars anomaly" OR "moon anomaly" OR "lost satellite" OR "interstellar object")',
     '("NOAA SWPC" OR "space weather" OR "geomagnetic storm")',
     '("Bermuda Triangle" OR "ocean anomaly" OR comet OR bolide)',
