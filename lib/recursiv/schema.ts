@@ -6,6 +6,8 @@ export const INVERTED_WORLD_TABLES = [
   "generated_assets",
   "claim_dossiers",
   "claim_sources",
+  "source_documents",
+  "media_items",
   "claim_chat_messages",
   "front_page_editions",
   "pipeline_runs",
@@ -147,6 +149,60 @@ export const INVERTED_WORLD_SCHEMA_SQL = [
   )`,
   "CREATE UNIQUE INDEX IF NOT EXISTS claim_sources_dossier_url_unique ON claim_sources (dossier_id, url)",
   "CREATE INDEX IF NOT EXISTS claim_sources_dossier_kind_idx ON claim_sources (dossier_id, source_kind, bias_lane)",
+  `CREATE TABLE IF NOT EXISTS source_documents (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    slug TEXT NOT NULL UNIQUE,
+    title TEXT NOT NULL,
+    source TEXT NOT NULL,
+    url TEXT NOT NULL,
+    host TEXT,
+    kind TEXT NOT NULL,
+    topic_ids JSONB NOT NULL DEFAULT '[]'::jsonb,
+    status TEXT NOT NULL DEFAULT 'active',
+    metadata JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+  )`,
+  "ALTER TABLE IF EXISTS source_documents ADD COLUMN IF NOT EXISTS slug TEXT",
+  "ALTER TABLE IF EXISTS source_documents ADD COLUMN IF NOT EXISTS host TEXT",
+  "ALTER TABLE IF EXISTS source_documents ADD COLUMN IF NOT EXISTS topic_id TEXT",
+  "ALTER TABLE IF EXISTS source_documents ADD COLUMN IF NOT EXISTS topic_ids JSONB DEFAULT '[]'::jsonb",
+  "ALTER TABLE IF EXISTS source_documents ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active'",
+  "ALTER TABLE IF EXISTS source_documents ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'::jsonb",
+  `UPDATE source_documents
+    SET slug = trim(both '-' from regexp_replace(lower(coalesce(source, 'source') || ' ' || coalesce(title, url, id)), '[^a-z0-9]+', '-', 'g'))
+    WHERE slug IS NULL OR slug = ''`,
+  `UPDATE source_documents
+    SET topic_ids = CASE
+      WHEN topic_ids IS NULL OR topic_ids = '[]'::jsonb THEN jsonb_build_array(topic_id)
+      ELSE topic_ids
+    END
+    WHERE topic_id IS NOT NULL`,
+  "UPDATE source_documents SET status = COALESCE(NULLIF(status, ''), 'active')",
+  "CREATE UNIQUE INDEX IF NOT EXISTS source_documents_slug_unique ON source_documents (slug)",
+  "CREATE INDEX IF NOT EXISTS source_documents_status_kind_idx ON source_documents (status, kind)",
+  `CREATE TABLE IF NOT EXISTS media_items (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    slug TEXT NOT NULL UNIQUE,
+    title TEXT NOT NULL,
+    source TEXT NOT NULL,
+    source_url TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    viewer TEXT NOT NULL DEFAULT 'link',
+    topic_ids JSONB NOT NULL DEFAULT '[]'::jsonb,
+    summary TEXT,
+    published_at TIMESTAMPTZ,
+    embed_url TEXT,
+    thumbnail_url TEXT,
+    file_type TEXT,
+    agency TEXT,
+    collection TEXT,
+    status TEXT NOT NULL DEFAULT 'active',
+    metadata JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+  )`,
+  "CREATE INDEX IF NOT EXISTS media_items_status_kind_idx ON media_items (status, kind, published_at DESC)",
   `CREATE TABLE IF NOT EXISTS claim_chat_messages (
     id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
     dossier_slug TEXT NOT NULL,

@@ -28,6 +28,23 @@ export type ResearchDocument = {
   topicIds: string[]
 }
 
+export type MediaLibraryItem = {
+  id: string
+  title: string
+  source: string
+  url: string
+  kind: "video" | "document" | "image" | "archive"
+  viewer: "youtube" | "pdf" | "video" | "image" | "link"
+  topicIds: string[]
+  summary: string
+  publishedAt?: string
+  embedUrl?: string
+  thumbnailUrl?: string
+  fileType?: string
+  agency?: string
+  collection?: string
+}
+
 export type NewsCoverageItem = {
   title: string
   outlet: string
@@ -344,6 +361,20 @@ export const featuredVideos: ChannelVideo[] = [
 
 export const researchDocuments: ResearchDocument[] = [
   {
+    title: "PURSUE Release 02 senior U.S. intelligence officer UAP narrative",
+    source: "Department of War / ODNI",
+    url: "https://www.war.gov/medialink/ufo/052226/release_02/documents/ODNI-UAP-D001_USPER_Narrative_Senior_USIC.pdf",
+    kind: "government",
+    topicIds: ["uap-disclosure", "secret-programs"],
+  },
+  {
+    title: "PURSUE Release 02 UAP media and documents",
+    source: "Department of War",
+    url: "https://www.war.gov/UFO/?releaseDate=Release+02",
+    kind: "government",
+    topicIds: ["uap-disclosure", "secret-programs"],
+  },
+  {
     title: "All-domain Anomaly Resolution Office public reporting",
     source: "AARO",
     url: "https://www.aaro.mil/",
@@ -587,6 +618,54 @@ export const researchDocuments: ResearchDocument[] = [
     url: "https://www.gdeltproject.org/",
     kind: "news-index",
     topicIds: topics.map((topic) => topic.id),
+  },
+]
+
+export const curatedMediaItems: MediaLibraryItem[] = [
+  {
+    id: "war-uap-release-02-senior-usic-narrative",
+    title: "Senior U.S. intelligence officer UAP narrative",
+    source: "Department of War / ODNI",
+    url: "https://www.war.gov/medialink/ufo/052226/release_02/documents/ODNI-UAP-D001_USPER_Narrative_Senior_USIC.pdf",
+    kind: "document",
+    viewer: "pdf",
+    topicIds: ["uap-disclosure", "secret-programs"],
+    summary:
+      "A primary-source UAP release document from the official Release 02 media package, ready to read inline beside related Inverted World coverage.",
+    publishedAt: "2026-05-22",
+    fileType: "PDF",
+    agency: "ODNI",
+    collection: "PURSUE Release 02",
+  },
+  {
+    id: "war-uap-release-02-index",
+    title: "Release 02 UAP media package",
+    source: "Department of War",
+    url: "https://www.war.gov/UFO/?releaseDate=Release+02",
+    kind: "archive",
+    viewer: "link",
+    topicIds: ["uap-disclosure", "secret-programs"],
+    summary:
+      "The official release hub for UAP videos, images, and documents. The media library uses this as a source for new primary material.",
+    publishedAt: "2026-05-22",
+    fileType: "Release hub",
+    agency: "Department of War",
+    collection: "PURSUE",
+  },
+  {
+    id: "nsa-mkultra-gottlieb-testimony",
+    title: "CIA MKULTRA chief testimony, 50 years later",
+    source: "National Security Archive",
+    url: "https://nsarchive.gwu.edu/briefing-book/intelligence/2025-09-04/top-secret-testimony-cias-mkultra-chief-50-years-later",
+    kind: "document",
+    viewer: "link",
+    topicIds: ["secret-programs"],
+    summary:
+      "A clean primary-source landing point for the Gottlieb testimony story, connecting declassified records with current Inverted World coverage.",
+    publishedAt: "2025-09-04",
+    fileType: "Archive briefing",
+    agency: "National Security Archive",
+    collection: "MKULTRA",
   },
 ]
 

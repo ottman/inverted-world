@@ -88,6 +88,7 @@ export async function POST(request: Request, { params }: RouteContext) {
     "Answer as the Inverted World dossier analyst.",
     "Use only the supplied dossier context. If the dossier does not prove something, say what is missing.",
     "Separate documented fact, allegation, inference, speculation, and unknowns.",
+    "Return clean Markdown: short paragraphs, bullets when useful, bold labels for categories, and inline links to supplied source URLs. Do not return HTML.",
     dossierContext(dossier),
     `User question: ${message}`,
   ].join("\n\n")

@@ -41,6 +41,11 @@ export function InvertedPageShell({
 }) {
   const [liveStatus, setLiveStatus] = useState<LiveStatus>({ isLive: false })
   const longHeroTitle = heroTitle.length > 56
+  const primaryNavItems = [
+    { href: "/news", label: "News" },
+    { href: "/media", label: "Media" },
+    { href: "/documents", label: "Sources" },
+  ]
 
   useEffect(() => {
     let active = true
@@ -103,6 +108,11 @@ export function InvertedPageShell({
               />
             </a>
             <nav className="iw-serif flex w-full items-center gap-3 overflow-x-auto text-lg font-normal leading-none tracking-normal text-[#f4efe2]/70 lg:justify-center lg:gap-5 lg:text-xl">
+              {primaryNavItems.map((item) => (
+                <a key={item.href} className="shrink-0 text-[#fff8e6] transition hover:text-[#df2f2f]" href={item.href}>
+                  {item.label}
+                </a>
+              ))}
               {topics.map((topic) => (
                 <a key={topic.id} className="shrink-0 transition hover:text-[#df2f2f]" href={`/#topic-${topic.id}`}>
                   {topic.title}
@@ -156,7 +166,7 @@ function BreakingTicker({ items }: { items?: BreakingItem[] }) {
     .map((item) => ({ ...item, title: cleanTickerTitle(item.title) }))
   const marqueeItems = [...visibleItems, ...visibleItems]
   const tickerCharacterCount = visibleItems.reduce((sum, item) => sum + item.title.length + (item.source?.length || 0) + 18, 0)
-  const tickerDurationSeconds = Math.max(60, Math.round(tickerCharacterCount * 0.288))
+  const tickerDurationSeconds = Math.max(24, Math.round(tickerCharacterCount * 0.1152))
 
   return (
     <div>
@@ -230,6 +240,9 @@ function SimpleFooter() {
         </a>
         <a href="/news" className="transition hover:text-[#df2f2f]">
           News
+        </a>
+        <a href="/media" className="transition hover:text-[#df2f2f]">
+          Media
         </a>
         <a href="/documents" className="transition hover:text-[#df2f2f]">
           Sources

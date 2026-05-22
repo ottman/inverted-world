@@ -13,6 +13,8 @@ const EXPECTED_JOBS = [
   "inverted-world-topic-pulse",
   "inverted-world-article-generation",
   "inverted-world-claim-dossiers",
+  "inverted-world-source-documents",
+  "inverted-world-media-library",
   "inverted-world-image-generation",
   "inverted-world-publishing",
   "inverted-world-front-page-edition",

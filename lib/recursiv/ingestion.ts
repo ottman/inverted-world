@@ -1,5 +1,6 @@
-import { channelProfile, featuredVideos, topics, type ChannelVideo } from "@/data/inverted-world"
+import { channelProfile, featuredVideos, researchDocuments, topics, type ChannelVideo } from "@/data/inverted-world"
 import { fetchLiveArticlesForTopic } from "@/lib/live-articles"
+import { fetchMediaSeedItemsForSync } from "@/lib/media-library"
 import { createRecursivServerClient } from "@/lib/recursiv/client"
 import { INVERTED_WORLD_SCHEMA_SQL } from "@/lib/recursiv/schema"
 import { extractSourceText } from "@/lib/source-extraction"
@@ -198,6 +199,24 @@ function publicNewsSlug(rawSlug: string, title: string, topicId: string) {
 
 function publicNewsHref(rawSlug: string, title: string, topicId: string) {
   return `/news/${publicNewsSlug(rawSlug, title, topicId)}`
+}
+
+function sourceDocumentSlug(source: string, title: string, url: string) {
+  return slugifyPublicTitle(`${source} ${title}`) || slugifyPublicTitle(url) || "source-document"
+}
+
+function sourceDocumentHost(url: string) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "")
+  } catch {
+    return ""
+  }
+}
+
+function normalizedTimestamp(value?: string) {
+  if (!value) return ""
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? "" : date.toISOString()
 }
 
 function asNumber(value: unknown) {
@@ -580,6 +599,149 @@ export async function ensureInvertedWorldSchema() {
 
 function getInvertedWorldDatabase() {
   return createRecursivServerClient({ timeout: 120000 })
+}
+
+export async function syncSourceDocumentsToRecursiv() {
+  const { sdk, config } = getInvertedWorldDatabase()
+  let synced = 0
+
+  for (const document of researchDocuments) {
+    const slug = sourceDocumentSlug(document.source, document.title, document.url)
+    await sdk.databases.query({
+      project_id: config.projectId,
+      database_name: config.databaseName,
+      sql: `INSERT INTO source_documents (
+          slug,
+          title,
+          source,
+          url,
+          host,
+          kind,
+          topic_ids,
+          status,
+          metadata,
+          updated_at
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, 'active', $8::jsonb, now())
+        ON CONFLICT (slug) DO UPDATE SET
+          title = EXCLUDED.title,
+          source = EXCLUDED.source,
+          url = EXCLUDED.url,
+          host = EXCLUDED.host,
+          kind = EXCLUDED.kind,
+          topic_ids = EXCLUDED.topic_ids,
+          status = EXCLUDED.status,
+          metadata = EXCLUDED.metadata,
+          updated_at = now()`,
+      params: [
+        slug,
+        document.title,
+        document.source,
+        document.url,
+        sourceDocumentHost(document.url),
+        document.kind,
+        JSON.stringify(document.topicIds),
+        JSON.stringify({ generatedBy: "inverted-world-static-source-shelf-v1" }),
+      ],
+    })
+    synced += 1
+  }
+
+  return {
+    synced,
+    sourceMode: "static-seed-to-recursiv",
+  }
+}
+
+export async function syncMediaLibraryToRecursiv() {
+  const { sdk, config } = getInvertedWorldDatabase()
+  const items = await fetchMediaSeedItemsForSync()
+  let synced = 0
+
+  for (const item of items) {
+    await sdk.databases.query({
+      project_id: config.projectId,
+      database_name: config.databaseName,
+      sql: `INSERT INTO media_items (
+          slug,
+          title,
+          source,
+          source_url,
+          kind,
+          viewer,
+          topic_ids,
+          summary,
+          published_at,
+          embed_url,
+          thumbnail_url,
+          file_type,
+          agency,
+          collection,
+          status,
+          metadata,
+          updated_at
+        )
+        VALUES (
+          $1,
+          $2,
+          $3,
+          $4,
+          $5,
+          $6,
+          $7::jsonb,
+          $8,
+          NULLIF($9, '')::timestamptz,
+          $10,
+          $11,
+          $12,
+          $13,
+          $14,
+          'active',
+          $15::jsonb,
+          now()
+        )
+        ON CONFLICT (slug) DO UPDATE SET
+          title = EXCLUDED.title,
+          source = EXCLUDED.source,
+          source_url = EXCLUDED.source_url,
+          kind = EXCLUDED.kind,
+          viewer = EXCLUDED.viewer,
+          topic_ids = EXCLUDED.topic_ids,
+          summary = EXCLUDED.summary,
+          published_at = EXCLUDED.published_at,
+          embed_url = EXCLUDED.embed_url,
+          thumbnail_url = EXCLUDED.thumbnail_url,
+          file_type = EXCLUDED.file_type,
+          agency = EXCLUDED.agency,
+          collection = EXCLUDED.collection,
+          status = EXCLUDED.status,
+          metadata = EXCLUDED.metadata,
+          updated_at = now()`,
+      params: [
+        item.id,
+        item.title,
+        item.source,
+        item.url,
+        item.kind,
+        item.viewer,
+        JSON.stringify(item.topicIds),
+        item.summary,
+        normalizedTimestamp(item.publishedAt),
+        item.embedUrl || "",
+        item.thumbnailUrl || "",
+        item.fileType || "",
+        item.agency || "",
+        item.collection || "",
+        JSON.stringify({ generatedBy: "inverted-world-media-library-v1" }),
+      ],
+    })
+    synced += 1
+  }
+
+  return {
+    synced,
+    sourceMode: "static-and-official-media-to-recursiv",
+  }
 }
 
 export async function syncYouTubeArchiveToRecursiv() {
@@ -1278,6 +1440,8 @@ export async function publishFrontPageEditionInRecursiv() {
     "generated_assets",
     "claim_dossiers",
     "claim_sources",
+    "source_documents",
+    "media_items",
   ]
   const [articlesResult, dossiersResult, xSignalsResult, videosResult, countResults] = await Promise.all([
     sdk.databases.query({
@@ -1675,6 +1839,8 @@ export async function runFullPipelineInRecursiv(options: { mode?: string | null;
   const steps: PipelineStep[] = []
 
   const allStepDefinitions: Array<[string, () => Promise<unknown>]> = [
+    ["source-documents", syncSourceDocumentsToRecursiv],
+    ["media-library", syncMediaLibraryToRecursiv],
     ["youtube-archive-sync", syncYouTubeArchiveToRecursiv],
     ["topic-pulse", syncTopicPulseToRecursiv],
     ["claim-dossiers", generateClaimDossiersInRecursiv],
@@ -1684,6 +1850,8 @@ export async function runFullPipelineInRecursiv(options: { mode?: string | null;
     ["front-page-edition", publishFrontPageEditionInRecursiv],
   ]
   const scheduledStepDefinitions: Array<[string, () => Promise<unknown>]> = [
+    ["source-documents", syncSourceDocumentsToRecursiv],
+    ["media-library", syncMediaLibraryToRecursiv],
     ["youtube-archive-sync", syncYouTubeArchiveToRecursiv],
     ["topic-pulse", syncTopicPulseToRecursiv],
     ["publishing", publishReadyDraftsInRecursiv],

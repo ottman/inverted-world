@@ -296,7 +296,7 @@ function parseMarkdownBlocks(value: string): MarkdownBlock[] {
 
 function renderInlineMarkdown(value: string) {
   const nodes: ReactNode[] = []
-  const pattern = /(\[([^\]]+)\]\((https?:\/\/[^)\s]+|\/[^)\s]*)\)|`([^`]+)`|\*\*([^*]+)\*\*|\*([^*]+)\*)/g
+  const pattern = /(\[([^\]]+)\]\((https?:\/\/[^)\s]+|\/[^)\s]*)\)|`([^`]+)`|\*\*([^*]+)\*\*|\*([^*]+)\*|(https?:\/\/[^\s)]+))/g
   let lastIndex = 0
   let match: RegExpExecArray | null
 
@@ -332,6 +332,18 @@ function renderInlineMarkdown(value: string) {
         <em key={`em-${match.index}`} className="text-[#fff8e6]/88">
           {match[6]}
         </em>,
+      )
+    } else if (match[7]) {
+      nodes.push(
+        <a
+          key={`url-${match.index}`}
+          href={match[7]}
+          target="_blank"
+          rel="noreferrer"
+          className="text-[#dff7ff] underline decoration-[#df2f2f]/45 underline-offset-4 transition hover:text-[#fff8e6]"
+        >
+          {match[7]}
+        </a>,
       )
     }
 

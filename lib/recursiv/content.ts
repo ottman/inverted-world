@@ -1,4 +1,4 @@
-import { topics, type ChannelVideo } from "@/data/inverted-world"
+import { researchDocuments, topics, type ChannelVideo, type ResearchDocument } from "@/data/inverted-world"
 import type { IntelligenceArticle } from "@/data/intelligence-articles"
 import type { ViralXPost } from "@/lib/x-posts"
 import { queryInvertedWorldDatabase, type RecursivRow } from "@/lib/recursiv/database"
@@ -111,6 +111,19 @@ type ClaimChatMessageRow = RecursivRow & {
   created_at?: string
 }
 
+type SourceDocumentRow = RecursivRow & {
+  id?: string
+  slug?: string
+  title?: string
+  source?: string
+  url?: string
+  host?: string
+  kind?: ResearchDocument["kind"]
+  topic_ids?: unknown
+  status?: string
+  metadata?: unknown
+}
+
 const DOSSIER_RELATED_VIDEO_TARGET = 6
 
 export type ClaimSourceLink = {
@@ -190,6 +203,24 @@ export type ClaimChatMessage = {
   response: string
   createdAt: string
   metadata: Record<string, unknown>
+}
+
+export type SourceDocument = {
+  id: string
+  title: string
+  source: string
+  url: string
+  host: string
+  kind: ResearchDocument["kind"]
+  topicIds: string[]
+  topics: string[]
+  status: string
+  metadata: Record<string, unknown>
+}
+
+export type SourceDocumentsResult = {
+  sourceMode: "recursiv-database" | "static"
+  documents: SourceDocument[]
 }
 
 function jsonObject(value: unknown): Record<string, unknown> {
@@ -297,6 +328,18 @@ function publicNewsUrl(rowSlug: string | undefined, title: string, topicId: stri
   return `/news/${publicDossierSlug(rowSlug, title, topicId)}`
 }
 
+function sourceDocumentSlug(document: Pick<ResearchDocument, "source" | "title" | "url">) {
+  return slugify(`${document.source}-${document.title}`) || slugify(document.url) || "source-document"
+}
+
+function sourceDocumentHost(url: string) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "")
+  } catch {
+    return ""
+  }
+}
+
 function cleanDossierDeck(value: string | undefined, topicId: string) {
   const fallback = `Latest sourced reporting in ${topicDisplayTitle(topicId)}, with original links, social context, and related Tales archive material beside it.`
   const deck = value?.trim() || fallback
@@ -374,6 +417,41 @@ function articleRowToArticle(row: ArticleDraftRow): IntelligenceArticle {
           (typeof metadata.thumbnailPrompt === "string" ? metadata.thumbnailPrompt.replace(row.title || "", title) : ""),
         topicId,
       ),
+  }
+}
+
+function sourceDocumentFromResearchDocument(document: ResearchDocument): SourceDocument {
+  return {
+    id: sourceDocumentSlug(document),
+    title: document.title,
+    source: document.source,
+    url: document.url,
+    host: sourceDocumentHost(document.url),
+    kind: document.kind,
+    topicIds: document.topicIds,
+    topics: document.topicIds.map((id) => topicDisplayTitle(id)),
+    status: "active",
+    metadata: {},
+  }
+}
+
+function sourceDocumentRowToDocument(row: SourceDocumentRow): SourceDocument {
+  const topicIds = jsonArray(row.topic_ids).map(String).filter(Boolean)
+  const title = row.title || "Untitled source"
+  const source = row.source || sourceDocumentHost(row.url || "") || "Source"
+  const url = row.url || "#"
+
+  return {
+    id: row.slug || row.id || sourceDocumentSlug({ source, title, url }),
+    title,
+    source,
+    url,
+    host: row.host || sourceDocumentHost(url),
+    kind: row.kind || "archive",
+    topicIds,
+    topics: topicIds.map((id) => topicDisplayTitle(id)),
+    status: row.status || "active",
+    metadata: jsonObject(row.metadata),
   }
 }
 
@@ -726,6 +804,51 @@ function claimChatMessageRowToMessage(row: ClaimChatMessageRow): ClaimChatMessag
     response: row.response || "",
     createdAt: row.created_at || "",
     metadata: jsonObject(row.metadata),
+  }
+}
+
+function filterSourceDocuments(
+  documents: SourceDocument[],
+  options: { topicId?: string; kind?: string } = {},
+) {
+  return documents.filter((document) => {
+    if (options.topicId && !document.topicIds.includes(options.topicId)) return false
+    if (options.kind && document.kind !== options.kind) return false
+    return true
+  })
+}
+
+function staticSourceDocuments(options: { topicId?: string; kind?: string } = {}): SourceDocumentsResult {
+  const documents = researchDocuments.map(sourceDocumentFromResearchDocument)
+  return {
+    sourceMode: "static",
+    documents: filterSourceDocuments(documents, options),
+  }
+}
+
+export async function fetchSourceDocuments(options: { topicId?: string; kind?: string } = {}): Promise<SourceDocumentsResult> {
+  const rows = await queryInvertedWorldDatabase<SourceDocumentRow>(
+    `SELECT
+      id,
+      slug,
+      title,
+      source,
+      url,
+      host,
+      kind,
+      topic_ids,
+      status,
+      metadata
+    FROM source_documents
+    WHERE status = 'active'
+    ORDER BY kind, title`,
+  )
+
+  if (!rows?.length) return staticSourceDocuments(options)
+
+  return {
+    sourceMode: "recursiv-database",
+    documents: filterSourceDocuments(rows.map(sourceDocumentRowToDocument), options),
   }
 }
 

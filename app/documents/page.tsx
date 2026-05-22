@@ -1,8 +1,12 @@
 import type { Metadata } from "next"
 import { ArrowUpRight } from "lucide-react"
 import { archiveSurface, InvertedPageShell } from "@/components/inverted-page-shell"
-import { researchDocuments, topics, type ResearchDocument } from "@/data/inverted-world"
+import { topics } from "@/data/inverted-world"
+import { fetchSourceDocuments, type SourceDocument } from "@/lib/recursiv/content"
 import { cn } from "@/lib/utils"
+
+export const dynamic = "force-dynamic"
+export const revalidate = 300
 
 export const metadata: Metadata = {
   title: "Source Documents | Inverted World",
@@ -13,7 +17,7 @@ export const metadata: Metadata = {
   },
 }
 
-const kindLabels: Record<ResearchDocument["kind"], string> = {
+const kindLabels: Record<SourceDocument["kind"], string> = {
   government: "Government",
   science: "Science",
   archive: "Archive",
@@ -29,12 +33,9 @@ function hostName(url: string) {
   }
 }
 
-function documentsForTopic(topicId: string) {
-  return researchDocuments.filter((document) => document.topicIds.includes(topicId))
-}
-
-export default function DocumentsPage() {
-  const documentsByKind = researchDocuments.reduce<Record<string, number>>((counts, document) => {
+export default async function DocumentsPage() {
+  const { sourceMode, documents } = await fetchSourceDocuments()
+  const documentsByKind = documents.reduce<Record<string, number>>((counts, document) => {
     counts[document.kind] = (counts[document.kind] || 0) + 1
     return counts
   }, {})
@@ -47,7 +48,13 @@ export default function DocumentsPage() {
       heroDescription="Court records, declassified archives, official portals, science datasets, and news indexes for checking the claims behind each lane."
     >
       <div className="grid gap-5">
-        <section className={cn("grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-5", archiveSurface)}>
+        <section className={cn("grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-6", archiveSurface)}>
+          <div className="bg-black/24 p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#df2f2f]">Source Mode</p>
+            <p className="iw-serif mt-2 text-3xl leading-none text-[#fff8e6]">
+              {sourceMode === "recursiv-database" ? "Recursiv" : "Static"}
+            </p>
+          </div>
           {Object.entries(kindLabels).map(([kind, label]) => (
             <div key={kind} className="bg-black/24 p-3">
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#df2f2f]">{label}</p>
@@ -58,7 +65,7 @@ export default function DocumentsPage() {
 
         <section className="grid gap-3 lg:grid-cols-2">
           {topics.map((topic) => {
-            const topicDocuments = documentsForTopic(topic.id)
+            const topicDocuments = documents.filter((document) => document.topicIds.includes(topic.id))
             return (
               <article key={topic.id} id={`topic-${topic.id}`} className={cn("p-4 sm:p-5", archiveSurface)}>
                 <div className="flex items-start justify-between gap-4">

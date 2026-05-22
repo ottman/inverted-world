@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState, type KeyboardEvent } from "react"
+import { useEffect, useMemo, useState, type KeyboardEvent } from "react"
 import { ArrowUpRight, Play, RefreshCw, Youtube } from "lucide-react"
 import Script from "next/script"
 import { archiveSurface, InvertedPageShell, XIcon, type BreakingItem } from "@/components/inverted-page-shell"
@@ -112,6 +112,8 @@ export function ArchiveOnlyPage({
   const [videos, setVideos] = useState<ChannelVideo[]>(initialVideos)
   const [selectedVideo, setSelectedVideo] = useState<ChannelVideo | undefined>(initialLeadVideo)
   const [autoplayVideoKey, setAutoplayVideoKey] = useState<string | undefined>()
+  const [playRequest, setPlayRequest] = useState(0)
+  const [pendingScrollKey, setPendingScrollKey] = useState<string | undefined>()
   const [loading, setLoading] = useState(false)
   const [nextOffset, setNextOffset] = useState((initialArchive?.offset ?? 0) + (initialArchive?.limit ?? initialVideos.length))
   const [hasMore, setHasMore] = useState(Boolean(initialArchive?.hasMore))
@@ -142,6 +144,12 @@ export function ArchiveOnlyPage({
       })),
     [initialTopicFeeds, initialTopicXPosts, videosByTopic],
   )
+
+  useEffect(() => {
+    if (!pendingScrollKey || pendingScrollKey !== leadVideoKey) return
+    document.getElementById("watch")?.scrollIntoView({ behavior: "smooth", block: "start" })
+    setPendingScrollKey(undefined)
+  }, [leadVideoKey, pendingScrollKey, playRequest])
   const breakingItems = useMemo<BreakingItem[]>(
     () => {
       const newsItems = Object.values(initialTopicFeeds ?? {})
@@ -199,11 +207,11 @@ export function ArchiveOnlyPage({
   }
 
   function selectVideo(video: ChannelVideo) {
+    const key = videoKey(video)
     setSelectedVideo(video)
-    setAutoplayVideoKey(videoKey(video))
-    window.requestAnimationFrame(() => {
-      document.getElementById("watch")?.scrollIntoView({ behavior: "smooth", block: "start" })
-    })
+    setAutoplayVideoKey(key)
+    setPendingScrollKey(key)
+    setPlayRequest((current) => current + 1)
   }
 
   return (
@@ -218,7 +226,7 @@ export function ArchiveOnlyPage({
         <div className={cn("p-2 sm:p-3", archiveSurface)}>
           <div className="relative aspect-video overflow-hidden bg-[#050504]/60">
             <iframe
-              key={`${leadVideoKey || "uploads"}-${leadVideoShouldAutoplay ? "autoplay" : "idle"}`}
+              key={`${leadVideoKey || "uploads"}-${leadVideoShouldAutoplay ? "autoplay" : "idle"}-${playRequest}`}
               className="absolute inset-0 h-full w-full"
               src={leadVideoEmbedUrl}
               title={leadVideo?.title || "Tales From the Inverted World uploads"}
@@ -323,6 +331,8 @@ function videoEmbedUrl(video?: ChannelVideo, autoplay = false) {
       url.searchParams.set("autoplay", "1")
       url.searchParams.set("mute", "1")
     }
+    url.searchParams.set("controls", "1")
+    url.searchParams.set("playsinline", "1")
     return url.toString()
   } catch {
     if (!autoplay) return source
