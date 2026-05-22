@@ -618,7 +618,7 @@ export async function getRecursivChannelArchive({
   const safeLimit = Math.min(Math.max(Math.trunc(limit) || 100, 1), safeMaxLimit)
   const safeOffset = Math.max(Math.trunc(offset) || 0, 0)
   const rows = await queryInvertedWorldDatabase<ChannelItemRow>(
-    `SELECT
+    `SELECT /* channel-archive:${Date.now()} */
       id,
       source_id,
       source_url,
