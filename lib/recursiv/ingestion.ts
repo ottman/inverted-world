@@ -1,4 +1,4 @@
-import { channelProfile, topics, type ChannelVideo } from "@/data/inverted-world"
+import { channelProfile, featuredVideos, topics, type ChannelVideo } from "@/data/inverted-world"
 import { fetchLiveArticlesForTopic } from "@/lib/live-articles"
 import { createRecursivServerClient } from "@/lib/recursiv/client"
 import { INVERTED_WORLD_SCHEMA_SQL } from "@/lib/recursiv/schema"
@@ -106,6 +106,16 @@ function buildVideo(videoId: string, title: string, publishedAt?: string, descri
     description: description?.trim() || undefined,
     kind: normalizedTitle.includes("#shorts") ? "short" : "episode",
   }
+}
+
+function dedupeVideos(videos: ChannelVideo[]) {
+  const seen = new Set<string>()
+  return videos.filter((video) => {
+    const key = video.videoId || video.href
+    if (!key || seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
 }
 
 async function fetchYouTubeRss() {
@@ -461,7 +471,36 @@ function getInvertedWorldDatabase() {
 export async function syncYouTubeArchiveToRecursiv() {
   const { sdk, config } = getInvertedWorldDatabase()
   const fullSync = process.env.YOUTUBE_ARCHIVE_FULL_SYNC === "1"
-  const videos = fullSync ? (await fetchYouTubeDataApi()) || (await fetchYouTubeRss()) : await fetchYouTubeRss()
+  const seeded = featuredVideos.filter((video) => video.source === "YouTube" && video.videoId)
+  const warnings: string[] = []
+  let videos: ChannelVideo[] = []
+  let sourceMode = "seed"
+
+  if (fullSync && process.env.YOUTUBE_API_KEY) {
+    try {
+      const apiVideos = await fetchYouTubeDataApi()
+      if (apiVideos?.length) {
+        videos = dedupeVideos([...apiVideos, ...seeded])
+        sourceMode = "youtube-data-api"
+      }
+    } catch (error) {
+      warnings.push(error instanceof Error ? error.message : "YouTube Data API archive failed")
+    }
+  }
+
+  if (!videos.length) {
+    try {
+      const rssVideos = await fetchYouTubeRss()
+      videos = dedupeVideos([...rssVideos, ...seeded])
+      sourceMode = "rss-plus-seed"
+    } catch (error) {
+      warnings.push(error instanceof Error ? error.message : "YouTube RSS archive failed")
+    }
+  }
+
+  if (!videos.length) {
+    videos = dedupeVideos(seeded)
+  }
 
   for (const video of videos) {
     await sdk.databases.query({
@@ -508,7 +547,7 @@ export async function syncYouTubeArchiveToRecursiv() {
     })
   }
 
-  return { synced: videos.length, sourceMode: fullSync && process.env.YOUTUBE_API_KEY ? "youtube-data-api" : "rss" }
+  return { synced: videos.length, sourceMode, warnings }
 }
 
 export async function syncTopicPulseToRecursiv() {

@@ -27,7 +27,7 @@ The site is still mostly a live-rendered frontend with fetch helpers. It is not 
 - The next product layer is `claim_dossiers`, `claim_sources`, and `claim_chat_messages`: Ground News-style coverage pages for conspiracy/anomaly claims with source split, X velocity, evidence grading, Tales archive context, viral headline variants, and AI chat history.
 - scheduled Recursiv jobs are implemented as authenticated route targets and provisionable jobs, but they should only be enabled after the Recursiv-hosted URL and `CRON_SECRET` are live;
 - Recursiv's scheduled-job API currently returns `HTTP 500` during job registration, so the hosted routes are live and manually provable while `/api/recursiv/jobs/full-pipeline` is the single fallback target for recurring automation once the scheduler API is healthy;
-- AI article generation is implemented as a Recursiv job handler over published claim dossiers; image generation tries Recursiv media first and stores a generated SVG fallback asset when the media endpoint is unavailable;
+- AI article generation is implemented as a Recursiv job handler over published claim dossiers; image generation tries Recursiv media first and stores a generated SVG fallback asset when the media endpoint is unavailable; YouTube archive sync now falls back to the seeded Tales video list when RSS/Data API access is unavailable;
 - Vercel should not own YouTube, X, Brave, OpenRouter, or image-generation keys;
 - the archive is complete only when a backend with the YouTube key paginates the full uploads playlist.
 
