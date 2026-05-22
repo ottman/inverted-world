@@ -228,6 +228,11 @@ const JOBS = [
     cron: "2 * * * *",
     endpoint: "/api/recursiv/jobs/full-pipeline",
   },
+  {
+    name: "inverted-world-pipeline-maintenance",
+    cron: "*/15 * * * *",
+    endpoint: "/api/recursiv/jobs/pipeline-maintenance",
+  },
 ]
 
 function loadEnvFile(file) {

@@ -41,7 +41,7 @@ Server-side Recursiv calls use `RECURSIV_SERVER_API_KEY`. Local proof may use a 
 - `/documents`: browsable source database backed by `/api/documents`.
 - `/api/dossiers`: JSON feed of published claim dossiers.
 - `/api/dossiers/[slug]/chat`: Recursiv-agent chat over one dossier context.
-- `/api/recursiv/jobs/*`: authenticated scheduled job targets for archive sync, topic pulse, article generation, claim dossier generation, image generation, and publishing.
+- `/api/recursiv/jobs/*`: authenticated scheduled job targets for archive sync, topic pulse, article generation, claim dossier generation, image generation, publishing, front-page editions, bounded pipeline refresh, and pipeline maintenance.
 
 ## First Tables
 
