@@ -576,12 +576,24 @@ export async function reclassifyYouTubeArchiveInRecursiv() {
     })
   }
 
-  const legacyDeckPrefix = ["A Ground", "News-style dossier for "].join(" ")
   const deckResult = await sdk.databases.query({
     project_id: config.projectId,
     database_name: config.databaseName,
-    sql: "UPDATE claim_dossiers SET deck = replace(deck, $1, $2), updated_at = now() WHERE deck ILIKE $3 RETURNING id",
-    params: [legacyDeckPrefix, "", `%${legacyDeckPrefix.trim()}%`],
+    sql: `UPDATE claim_dossiers
+      SET deck = CASE topic_id
+        WHEN 'uap-disclosure' THEN 'A sourced Skywatch file with records, social velocity, skeptical reads, and Tales archive context.'
+        WHEN 'secret-programs' THEN 'A sourced Declassified file with records, social velocity, skeptical reads, and Tales archive context.'
+        WHEN 'epstein-networks' THEN 'A sourced Power Web file with records, social velocity, skeptical reads, and Tales archive context.'
+        WHEN 'cryptids-paranormal' THEN 'A sourced High Strangeness file with records, social velocity, skeptical reads, and Tales archive context.'
+        WHEN 'ai-technocracy' THEN 'A sourced Machine State file with records, social velocity, skeptical reads, and Tales archive context.'
+        WHEN 'space-anomalies' THEN 'A sourced Off-World Signals file with records, social velocity, skeptical reads, and Tales archive context.'
+        ELSE 'A sourced Inverted World file with records, social velocity, skeptical reads, and Tales archive context.'
+      END,
+      updated_at = now()
+      WHERE deck ILIKE '%Ground News-style dossier for %'
+        OR deck ILIKE '%dossier: source split, X velocity, evidence grade, and Tales archive context.%'
+        OR deck ILIKE '%: source split, X velocity, evidence grade, and Tales archive context.%'
+      RETURNING id`,
   })
 
   return {
@@ -804,7 +816,7 @@ export async function generateClaimDossiersInRecursiv() {
       params: [
         slug,
         title,
-        `${topic.title} dossier: source split, X velocity, evidence grade, and Tales archive context.`,
+        `A sourced ${topic.title} file with records, social velocity, skeptical reads, and Tales archive context.`,
         topic.id,
         claim,
         summary,

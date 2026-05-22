@@ -79,10 +79,10 @@ export const topics: ContentTopic[] = [
   {
     id: "epstein-networks",
     title: "Power Web",
-    signal: "Court records, travel logs, institutional ties, unresolved names",
-    query: '"Jeffrey Epstein" court records documents network',
+    signal: "Court records, elite access networks, blackmail claims, institutional ties",
+    query: '"Jeffrey Epstein" OR Maxwell OR "client list" OR "blackmail network" OR "elite network" court records documents',
     stance: "Use court filings and primary records before narratives. Flag allegations, sealed gaps, and confirmed facts separately.",
-    documents: ["CourtListener", "DOJ releases", "Federal court dockets"],
+    documents: ["CourtListener", "DOJ releases", "Federal court dockets", "SEC and nonprofit filings"],
   },
   {
     id: "cryptids-paranormal",

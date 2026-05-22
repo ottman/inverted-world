@@ -79,7 +79,8 @@ export function XSignalPage({ topic, initialPosts }: { topic: ContentTopic; init
             Live X Stream
           </div>
           <div className="flex flex-wrap items-center gap-3 text-[10px] uppercase tracking-[0.14em] text-[#f4efe2]/48">
-            <span>last pull {formatAge(updatedAt)} ago</span>
+            <span>{posts.length} ranked posts</span>
+            <span>updated {formatAge(updatedAt)} ago</span>
             <span>last 7 days</span>
             <RefreshCw className={cn("h-3.5 w-3.5", refreshing && "animate-spin text-[#df2f2f]")} />
           </div>

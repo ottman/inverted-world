@@ -29,8 +29,9 @@ const configuredMinViralScore = process.env.X_MIN_VIRAL_SCORE ? Number(process.e
 export const X_FRESHNESS_WINDOW_HOURS = 24 * 7
 const X_EPOCH_MS = BigInt(1_288_834_974_657)
 const X_SNOWFLAKE_SHIFT_BITS = BigInt(22)
-const PRIORITY_X_ACCOUNTS = ["Timcast", "TimcastNews", "ShaneCashman", "InvertedTales"] as const
-const DEFAULT_TOPIC_QUERY_PACK_LIMIT = 2
+const PRIORITY_X_ACCOUNTS = ["Timcast", "TimcastNews", "TimcastIRL", "ShaneCashman", "InvertedTales"] as const
+const PRIORITY_X_ACCOUNT_SET = new Set(PRIORITY_X_ACCOUNTS.map((account) => account.toLowerCase()))
+const DEFAULT_TOPIC_QUERY_PACK_LIMIT = 4
 const TOPIC_X_SCORE_FLOORS: Record<string, number> = {
   "uap-disclosure": 250,
   "secret-programs": 140,
@@ -38,6 +39,14 @@ const TOPIC_X_SCORE_FLOORS: Record<string, number> = {
   "cryptids-paranormal": 60,
   "ai-technocracy": 140,
   "space-anomalies": 110,
+}
+const TOPIC_CORE_TERM_SCORE_FLOORS: Record<string, number> = {
+  "uap-disclosure": 35,
+  "secret-programs": 35,
+  "epstein-networks": 35,
+  "cryptids-paranormal": 25,
+  "ai-technocracy": 35,
+  "space-anomalies": 30,
 }
 const TOPIC_CORE_TERMS: Record<string, string[]> = {
   "uap-disclosure": ["uap", "ufo", "aaro", "disclosure", "grusch", "crash retrieval", "non-human intelligence"],
@@ -76,7 +85,19 @@ const TOPIC_EXCLUDED_TERMS: Record<string, string[]> = {
   "cryptids-paranormal": ["nsfw", "onlyfans", "freeuse", "panties", "booktok", "urban fantasy", "paranormal romance"],
   "space-anomalies": ["bruno mars", "mars bar", "mars inc", "$fly", "meme coin", "memecoin", "ca :", "mc :", "pump", "to mars"],
 }
-const GLOBAL_EXCLUDED_TERMS = ["porn", "tits", "escort", "giveaway", "airdrop"]
+const GLOBAL_EXCLUDED_TERMS = [
+  "porn",
+  "tits",
+  "escort",
+  "giveaway",
+  "airdrop",
+  "onlyfans",
+  "freeuse",
+  "fucking",
+  "shitpost",
+  "meme coin",
+  "memecoin",
+]
 const X_STATUS_URL_PATTERN =
   /https?:\/\/(?:www\.)?(?:x\.com|twitter\.com)\/(?!i\/web)([A-Za-z0-9_]{1,20})\/status(?:es)?\/(\d+)/i
 
@@ -210,6 +231,10 @@ function minViralScoreForTopic(topicId: string) {
   return TOPIC_X_SCORE_FLOORS[topicId] ?? 140
 }
 
+function minCoreTopicScore(topicId: string) {
+  return TOPIC_CORE_TERM_SCORE_FLOORS[topicId] ?? 35
+}
+
 function containsAnyTerm(text: string, terms: string[]) {
   return terms.some((term) => text.includes(term))
 }
@@ -224,10 +249,18 @@ function rejectsTopicText(topicId: string, text?: string) {
   return containsAnyTerm(normalized, GLOBAL_EXCLUDED_TERMS) || containsAnyTerm(normalized, TOPIC_EXCLUDED_TERMS[topicId] || [])
 }
 
+function isPriorityPost(post: ViralXPost) {
+  return Boolean(post.username && PRIORITY_X_ACCOUNT_SET.has(post.username.toLowerCase()))
+}
+
 function isQualityTopicPost(topicId: string, post: ViralXPost) {
   const normalized = post.text.toLowerCase()
   if (rejectsTopicText(topicId, normalized)) return false
-  if (hasCoreTopicTerm(topicId, normalized)) return true
+  if (hasCoreTopicTerm(topicId, normalized)) {
+    if (isPriorityPost(post)) return true
+    if (post.source === "x-api") return (post.score || 0) >= minCoreTopicScore(topicId)
+    return true
+  }
   return (post.score || 0) >= minViralScoreForTopic(topicId)
 }
 
@@ -602,24 +635,14 @@ export async function fetchViralXPostsForTopic(topicId: string, options: { limit
   if (recursivPosts?.length) return mergeWithSeededPosts(topicId, recursivPosts, limit)
   if (!allowProviderFallbacks(options)) return mergeWithSeededPosts(topicId, [], limit)
 
-  try {
-    const xPosts = await fetchXApiPosts(topicId, limit)
-    if (xPosts.length) return mergeWithSeededPosts(topicId, xPosts, limit)
-  } catch {
-    // Fall back to indexed public X posts when the paid X API is absent, limited, or unavailable.
-  }
+  const [xPosts, indexedPosts, syndicatedPosts] = await Promise.all([
+    fetchXApiPosts(topicId, limit).catch(() => []),
+    fetchBraveIndexedXPosts(topicId, limit).catch(() => []),
+    fetchSyndicatedPriorityPosts(topicId, limit).catch(() => []),
+  ])
+  const rankedPosts = dedupePosts([...xPosts, ...indexedPosts, ...syndicatedPosts]).sort(
+    (left, right) => (right.score || 0) - (left.score || 0),
+  )
 
-  try {
-    const indexedPosts = await fetchBraveIndexedXPosts(topicId, limit)
-    if (indexedPosts.length) return mergeWithSeededPosts(topicId, indexedPosts, limit)
-  } catch {
-    // Public embed fallback below keeps Shane Cashman visible when no search API is configured.
-  }
-
-  try {
-    const syndicatedPosts = await fetchSyndicatedPriorityPosts(topicId, limit)
-    return mergeWithSeededPosts(topicId, syndicatedPosts, limit)
-  } catch {
-    return mergeWithSeededPosts(topicId, [], limit)
-  }
+  return mergeWithSeededPosts(topicId, rankedPosts, limit)
 }

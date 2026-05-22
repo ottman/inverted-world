@@ -18,6 +18,8 @@ const topicXQueries: Record<string, string[]> = {
     '("client list" OR "flight logs" OR "sealed documents" OR "court records")',
     '(Giuffre OR "Prince Andrew" OR "JPMorgan Epstein" OR "Epstein island")',
     '("DOJ Epstein" OR "Epstein documents" OR "unsealed Epstein")',
+    '("blackmail network" OR "elite network" OR "elite access" OR "institutional corruption")',
+    '("Les Wexner" OR "Bill Clinton" OR "Ghislaine Maxwell" OR "Zorro Ranch")',
   ],
   "cryptids-paranormal": [
     '(Bigfoot OR Sasquatch OR cryptid OR Mothman OR Dogman)',

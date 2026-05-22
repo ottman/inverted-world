@@ -76,6 +76,10 @@ function postMetricLabel(post: ViralXPost) {
   return "curated signal"
 }
 
+function topicTitle(topicId?: string) {
+  return topics.find((topic) => topic.id === topicId)?.title || "Live"
+}
+
 function openInAppSignal(topicId: string) {
   window.location.href = `/x/${topicId}`
 }
@@ -119,6 +123,16 @@ export function ArchiveOnlyPage({
   const leadVideo = selectedVideo || initialLeadVideo || videos.find((video) => !isShortVideo(video)) || videos[0]
   const leadVideoIsArchiveItem = Boolean(leadVideo && videos.some((video) => videoKey(video) === videoKey(leadVideo)))
   const selectedTopic = topics.find((topic) => topic.id === leadVideo?.topicId) || topics[0]
+  const topicSummaries = useMemo(
+    () =>
+      topics.map((topic) => ({
+        topic,
+        videoCount: videosByTopic.get(topic.id)?.length ?? 0,
+        liveCount: initialTopicFeeds?.[topic.id]?.length ?? 0,
+        xCount: initialTopicXPosts?.[topic.id]?.length ?? 0,
+      })),
+    [initialTopicFeeds, initialTopicXPosts, videosByTopic],
+  )
   const breakingItems = useMemo<BreakingItem[]>(
     () => {
       const newsItems = Object.values(initialTopicFeeds ?? {})
@@ -233,6 +247,8 @@ export function ArchiveOnlyPage({
         </aside>
       </section>
 
+      <TopicIndex summaries={topicSummaries} />
+
       <XEmbedStrip
         posts={Object.values(initialTopicXPosts ?? {})
           .map((posts) => posts[0])
@@ -274,6 +290,36 @@ export function ArchiveOnlyPage({
       </div>
       <Script src="https://platform.twitter.com/widgets.js" strategy="lazyOnload" />
     </InvertedPageShell>
+  )
+}
+
+function TopicIndex({
+  summaries,
+}: {
+  summaries: Array<{ topic: ContentTopic; videoCount: number; liveCount: number; xCount: number }>
+}) {
+  return (
+    <section className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      {summaries.map(({ topic, videoCount, liveCount, xCount }) => (
+        <a
+          key={topic.id}
+          href={`#topic-${topic.id}`}
+          className="group grid min-h-[132px] content-between bg-[#050504]/38 p-3 transition hover:bg-black/62"
+        >
+          <span>
+            <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-[#df2f2f]">
+              {topic.title}
+            </span>
+            <span className="mt-2 block text-xs leading-5 text-[#f4efe2]/58">{topic.signal}</span>
+          </span>
+          <span className="mt-4 flex flex-wrap gap-2 text-[10px] font-semibold uppercase tracking-[0.11em] text-[#f4efe2]/42 group-hover:text-[#fff8e6]">
+            <span>{videoCount} videos</span>
+            <span>{liveCount} links</span>
+            <span>{xCount ? `${xCount} X` : "X stream"}</span>
+          </span>
+        </a>
+      ))}
+    </section>
   )
 }
 
@@ -357,7 +403,7 @@ function XEmbedStrip({ posts }: { posts: ViralXPost[] }) {
           <div className="mb-2 flex items-center justify-between gap-3">
             <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#fff8e6]">
               <XIcon className="h-4 w-4 text-[#df2f2f]" />
-              Embedded X
+              {topicTitle(post.topicId)} X
             </h2>
             <a
               href={`/x/${post.topicId || "uap-disclosure"}`}
