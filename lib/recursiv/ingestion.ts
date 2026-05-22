@@ -1088,19 +1088,18 @@ export async function publishFrontPageEditionInRecursiv() {
   const articles = articlesResult.data.rows.map((row) => {
     const item = jsonObject(row)
     return {
-      title: textField(item.title),
+      title: shorten(item.title, 180),
       href: textField(item.source_url) || `/news/${textField(item.slug).replace(/^brief-/, "")}`,
       topicId: textField(item.topic_id),
-      source: textField(item.source_name) || "Inverted World",
+      source: shorten(item.source_name, 80) || "Inverted World",
       heat: asNumber(item.heat),
-      imageUrl: textField(item.asset_url),
       publishedAt: textField(item.published_at),
     }
   })
   const dossiers = dossiersResult.data.rows.map((row) => {
     const item = jsonObject(row)
     return {
-      title: textField(item.title),
+      title: shorten(item.title, 180),
       href: `/news/${textField(item.slug)}`,
       slug: textField(item.slug),
       topicId: textField(item.topic_id),
