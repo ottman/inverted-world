@@ -303,7 +303,11 @@ async function fetchXApiSearch(query: string, topicId: string, token: string) {
 }
 
 async function fetchXApiPosts(topicId: string, limit: number) {
-  const token = process.env.X_BEARER_TOKEN || process.env.TWITTER_BEARER_TOKEN || process.env.TWITTER_API_BEARER_TOKEN
+  const token =
+    process.env.X_BEARER_TOKEN ||
+    process.env.X_API_BEARER_TOKEN ||
+    process.env.TWITTER_BEARER_TOKEN ||
+    process.env.TWITTER_API_BEARER_TOKEN
   if (!token) return [] satisfies ViralXPost[]
 
   const topic = topics.find((item) => item.id === topicId)

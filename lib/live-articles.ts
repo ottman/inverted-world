@@ -7,6 +7,17 @@ import {
 } from "@/lib/recursiv/content"
 
 const NEWS_TIMEOUT_MS = 6500
+const EXA_TIMEOUT_MS = 10000
+
+type ExaSearchResult = {
+  id?: string
+  title?: string
+  url?: string
+  publishedDate?: string
+  author?: string
+  highlights?: string[]
+  text?: string
+}
 
 function decodeXml(value: string) {
   return value
@@ -89,9 +100,79 @@ function liveArticleBody({
   ]
 }
 
+async function fetchExaArticlesForTopic(topicId: string, query: string) {
+  const apiKey = process.env.EXA_API_KEY || process.env.EXA_SEARCH_API_KEY
+  if (!apiKey) return []
+
+  const topic = topics.find((item) => item.id === topicId)
+  const response = await fetch("https://api.exa.ai/search", {
+    method: "POST",
+    next: { revalidate: 1800 },
+    signal: AbortSignal.timeout(EXA_TIMEOUT_MS),
+    headers: {
+      "content-type": "application/json",
+      "user-agent": "InvertedWorldExaResearch/1.0",
+      "x-api-key": apiKey,
+    },
+    body: JSON.stringify({
+      query: `${query} latest reporting official records primary sources`,
+      type: "auto",
+      numResults: 12,
+      contents: {
+        highlights: true,
+      },
+    }),
+  })
+
+  if (!response.ok) return []
+
+  const data = (await response.json()) as { results?: ExaSearchResult[] }
+  return (data.results || [])
+    .filter((result) => result.title && result.url)
+    .slice(0, 12)
+    .map((result, index) => {
+      const sourceUrl = result.url || "https://exa.ai/"
+      const host = sourceUrl.startsWith("http") ? new URL(sourceUrl).hostname.replace(/^www\./, "") : "Exa"
+      const title = normalizeInvertedLabels(result.title || `${topic?.title || "Inverted World"} source`)
+      const seed = topicSeed(topicId, index)
+      const highlight = result.highlights?.find(Boolean)
+
+      return {
+        ...seed,
+        id: `exa-${topicId}-${result.id || index}`,
+        title,
+        deck: `${host}. Exa source discovery; verify against primary records, hostile coverage, X velocity, and Tales archive context.`,
+        topicId,
+        topic: topic?.title.toUpperCase() || seed.topic,
+        publishedAt: result.publishedDate || new Date().toISOString(),
+        source: normalizeInvertedLabels(result.author || host),
+        sourceUrl,
+        heat: 110 - index,
+        body: [
+          highlight
+            ? `Signal: ${highlight}`
+            : `Signal: Exa surfaced this source for ${topic?.title || "the current Inverted World lane"}.`,
+          ...liveArticleBody({
+            title,
+            source: result.author || host,
+            topicId,
+            query,
+            index,
+          }).slice(1),
+        ],
+        thumbnailPrompt:
+          `Inverted World thumbnail for "${title}": ${topic?.title || seed.topic} signal, ` +
+          "source graph, X velocity, amber-black palette, no fake documents, no faces.",
+      } satisfies IntelligenceArticle
+    })
+}
+
 export async function fetchLiveArticlesForTopic(topicId: string, query: string) {
   const recursivArticles = await fetchRecursivPublishedArticlesForTopic(topicId, { limit: 12 })
   if (recursivArticles?.length) return recursivArticles
+
+  const exaArticles = await fetchExaArticlesForTopic(topicId, query).catch(() => [])
+  if (exaArticles.length) return exaArticles
 
   const topic = topics.find((item) => item.id === topicId)
   const url = new URL("https://news.google.com/rss/search")

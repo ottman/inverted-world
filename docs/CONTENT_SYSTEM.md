@@ -27,7 +27,7 @@ Server-side Recursiv calls use `RECURSIV_SERVER_API_KEY`. Local proof may use a 
 ## Data Lanes
 
 - Channel archive: Tales From The Inverted World YouTube handle and uploads feed.
-- News coverage: GDELT/global article search and later paid/indexed providers.
+- News coverage: Exa AI search first when `EXA_API_KEY` or `EXA_SEARCH_API_KEY` is configured, then Google News RSS fallback, with GDELT/global article search as the next expansion lane.
 - Official records: Federal Register, AARO, NASA, NOAA, FBI Vault, CIA Reading Room.
 - Legal records: CourtListener and direct court dockets where available.
 - Science/open data: NASA NTRS, NOAA SWPC, arXiv/Crossref where relevant.

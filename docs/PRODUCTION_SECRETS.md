@@ -5,8 +5,9 @@ Use Recursiv as the application host/backend and Infisical as the source of trut
 ## Required Backend Keys
 
 - `YOUTUBE_API_KEY`: required for the full Tales From The Inverted World upload history.
-- `X_BEARER_TOKEN`: best source for fresh, metric-aware X posts.
+- `X_BEARER_TOKEN` or `X_API_BEARER_TOKEN`: best source for fresh, metric-aware X posts.
 - `BRAVE_SEARCH_API_KEY`: backup source for public web and X-result discovery.
+- `EXA_API_KEY`: AI-native article/source discovery for claim dossiers. `EXA_SEARCH_API_KEY` is also accepted.
 - `OPENROUTER_API_KEY`: preferred model gateway for AI article generation.
 - `RECURSIV_SERVER_API_KEY`: server-only Recursiv SDK access.
 - `CRON_SECRET`: required bearer token for Recursiv scheduled job endpoints.
