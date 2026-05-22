@@ -22,6 +22,7 @@ type YouTubePlaylistResponse = {
 }
 
 type RecursivServerClient = ReturnType<typeof createRecursivServerClient>["sdk"]
+type RecursivDatabaseConfig = ReturnType<typeof createRecursivServerClient>["config"]
 
 type ClaimSourceCandidate = {
   title: string
@@ -1311,6 +1312,11 @@ type PipelineStep = {
   error?: string
 }
 
+const PIPELINE_STALE_AFTER_MINUTES = Math.max(
+  1,
+  Math.trunc(Number(process.env.RECURSIV_PIPELINE_STALE_AFTER_MINUTES || "30")) || 30,
+)
+
 async function runPipelineStep(step: string, fn: () => Promise<unknown>): Promise<PipelineStep> {
   const started = Date.now()
   try {
@@ -1331,9 +1337,82 @@ async function runPipelineStep(step: string, fn: () => Promise<unknown>): Promis
   }
 }
 
+async function markStalePipelineRuns(
+  sdk: RecursivServerClient,
+  config: RecursivDatabaseConfig,
+  jobName: string,
+) {
+  const staleMessage = `Pipeline run did not complete within ${PIPELINE_STALE_AFTER_MINUTES} minutes.`
+  const { data } = await sdk.databases.query({
+    project_id: config.projectId,
+    database_name: config.databaseName,
+    sql: `UPDATE pipeline_runs
+      SET status = $1,
+        completed_at = COALESCE(completed_at, now()),
+        duration_ms = GREATEST(duration_ms, FLOOR(EXTRACT(EPOCH FROM (now() - started_at)) * 1000)::int),
+        error = COALESCE(NULLIF(error, ''), $2),
+        metadata = metadata || $3::jsonb,
+        updated_at = now()
+      WHERE job_name = $4
+        AND status = $5
+        AND started_at < now() - ($6::int * interval '1 minute')
+      RETURNING id`,
+    params: [
+      "stale_running",
+      staleMessage,
+      JSON.stringify({
+        staleMarkedAt: new Date().toISOString(),
+        staleAfterMinutes: PIPELINE_STALE_AFTER_MINUTES,
+      }),
+      jobName,
+      "running",
+      PIPELINE_STALE_AFTER_MINUTES,
+    ],
+  })
+
+  return {
+    staleRunCount: data.rows.length,
+    staleRunIds: data.rows.map((row) => textField((row as { id?: unknown }).id)).filter(Boolean),
+  }
+}
+
+async function persistPipelineProgress(
+  sdk: RecursivServerClient,
+  config: RecursivDatabaseConfig,
+  runId: string,
+  started: number,
+  steps: PipelineStep[],
+  currentStep = "",
+) {
+  if (!runId) return
+  const lastStep = steps.at(-1)
+  await sdk.databases.query({
+    project_id: config.projectId,
+    database_name: config.databaseName,
+    sql: `UPDATE pipeline_runs
+      SET duration_ms = $1,
+        results = $2::jsonb,
+        metadata = metadata || $3::jsonb,
+        updated_at = now()
+      WHERE id = $4`,
+    params: [
+      Date.now() - started,
+      JSON.stringify(steps),
+      JSON.stringify({
+        progressUpdatedAt: new Date().toISOString(),
+        currentStep,
+        lastCompletedStep: lastStep?.step || "",
+        lastCompletedStepOk: lastStep?.ok ?? null,
+      }),
+      runId,
+    ],
+  })
+}
+
 export async function runFullPipelineInRecursiv() {
   const { sdk, config } = getInvertedWorldDatabase()
   const started = Date.now()
+  const staleCleanup = await markStalePipelineRuns(sdk, config, "full-pipeline")
   const run = await sdk.databases.query({
     project_id: config.projectId,
     database_name: config.databaseName,
@@ -1346,6 +1425,7 @@ export async function runFullPipelineInRecursiv() {
       JSON.stringify({
         generatedBy: "recursiv-full-pipeline-v1",
         siteUrl: process.env.INVERTED_WORLD_SITE_URL || "https://invertedworld.on.recursiv.io",
+        staleCleanup,
       }),
     ],
   })
@@ -1363,7 +1443,9 @@ export async function runFullPipelineInRecursiv() {
   ]
 
   for (const [step, fn] of stepDefinitions) {
+    await persistPipelineProgress(sdk, config, runId, started, steps, step).catch(() => undefined)
     steps.push(await runPipelineStep(step, fn))
+    await persistPipelineProgress(sdk, config, runId, started, steps).catch(() => undefined)
   }
 
   const status = steps.every((step) => step.ok) ? "succeeded" : "partial_failure"
@@ -1396,6 +1478,7 @@ export async function runFullPipelineInRecursiv() {
     runId,
     status,
     durationMs,
+    staleCleanup,
     steps,
   }
 }
