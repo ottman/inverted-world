@@ -1,14 +1,15 @@
 import type { MetadataRoute } from "next"
 import { getDeepArchive } from "@/lib/deep-archive"
+import { fetchRecursivClaimDossiers } from "@/lib/recursiv/content"
 
 const baseUrl = "https://www.inverted.world"
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const staticRoutes: MetadataRoute.Sitemap = ["", "/archive", "/llms.txt"].map((path) => ({
+  const staticRoutes: MetadataRoute.Sitemap = ["", "/archive", "/news", "/llms.txt"].map((path) => ({
     url: `${baseUrl}${path}`,
     lastModified: new Date(),
     changeFrequency: "hourly",
-    priority: path === "" ? 1 : path === "/archive" ? 0.92 : 0.62,
+    priority: path === "" ? 1 : path === "/archive" ? 0.92 : path === "/news" ? 0.94 : 0.62,
   }))
 
   try {
@@ -22,7 +23,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.86,
       }))
 
-    return [...staticRoutes, ...videoRoutes]
+    const dossiers = (await fetchRecursivClaimDossiers({ limit: 50 })) || []
+    const dossierRoutes: MetadataRoute.Sitemap = dossiers.map((dossier) => ({
+      url: `${baseUrl}/news/${dossier.slug}`,
+      lastModified: dossier.publishedAt ? new Date(dossier.publishedAt) : new Date(),
+      changeFrequency: "hourly",
+      priority: 0.9,
+    }))
+
+    return [...staticRoutes, ...dossierRoutes, ...videoRoutes]
   } catch {
     return staticRoutes
   }

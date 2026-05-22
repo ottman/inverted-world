@@ -20,6 +20,7 @@ The `@recursiv/sdk` package is now used for server-side Recursiv database reads,
 The site is still mostly a live-rendered frontend with fetch helpers. It is not yet a serious AI news machine because:
 
 - Recursiv tables now exist for `channel_items`, `coverage_snapshots`, `x_signals`, `article_drafts`, and `generated_assets`, but only the YouTube archive seed has been proven live so far;
+- The next product layer is `claim_dossiers`, `claim_sources`, and `claim_chat_messages`: Ground News-style coverage pages for conspiracy/anomaly claims with source split, X velocity, evidence grading, Tales archive context, viral headline variants, and AI chat history.
 - scheduled Recursiv jobs are implemented as authenticated route targets and provisionable jobs, but they should only be enabled after the Recursiv-hosted URL and `CRON_SECRET` are live;
 - AI/image generation paths are implemented as Recursiv job handlers and still need production provider keys and live job runs;
 - Vercel should not own YouTube, X, Brave, OpenRouter, or image-generation keys;
@@ -39,9 +40,13 @@ Recommended backend flow:
    - `x_signals`
    - `article_drafts`
    - `generated_assets`
+   - `claim_dossiers`
+   - `claim_sources`
+   - `claim_chat_messages`
 3. Recursiv agents generate:
    - hourly topic briefs;
    - sourced article drafts;
+   - claim dossiers with evidence grade, source split, X velocity, weird read, skeptical read, and viral headline variants;
    - skeptical/weird read pairs;
    - claim ledgers;
    - social hooks;
@@ -51,6 +56,8 @@ Recommended backend flow:
    - `/api/archive`
    - `/api/x/[topicId]`
    - `/news/[articleId]`
+   - `/api/dossiers`
+   - `/api/dossiers/[slug]/chat`
 5. Vercel gets no third-party provider keys. Remove Vercel hosting/domain binding only after Recursiv hosting is proven live.
 
 ## A+ Product Bar
@@ -59,7 +66,7 @@ The site becomes A+ when:
 
 - every Tales video is indexed and assigned to a topic;
 - topic pages update at least hourly with sourced coverage;
-- article pages are real, authored by the AI pipeline, image-backed, and cite sources;
+- `/news` and `/news/[slug]` are real claim-dossier surfaces, authored by the AI pipeline, source-backed, and chat-enabled;
 - X/news signals are stored historically so the site shows velocity, not just a current fetch;
 - there is a daily editorial front page that feels like the Drudge/Ground News of paranormal and conspiracy topics;
 - all secrets live behind Recursiv/Infisical, not in the frontend host.

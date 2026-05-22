@@ -46,6 +46,71 @@ type XSignalRow = RecursivRow & {
   metrics?: unknown
 }
 
+type ClaimDossierRow = RecursivRow & {
+  id?: string
+  slug?: string
+  title?: string
+  deck?: string
+  topic_id?: string
+  claim?: string
+  summary?: string
+  status?: string
+  evidence_grade?: string
+  confidence_score?: number | string
+  x_velocity_score?: number | string
+  source_count?: number | string
+  x_signal_count?: number | string
+  related_video_count?: number | string
+  source_links?: unknown
+  x_signals?: unknown
+  related_videos?: unknown
+  weird_read?: string
+  skeptical_read?: string
+  viral_headlines?: unknown
+  chat_prompt?: string
+  published_at?: string
+  generated_at?: string
+  metadata?: unknown
+}
+
+export type ClaimSourceLink = {
+  title: string
+  url: string
+  outlet?: string
+  sourceKind?: string
+  stance?: string
+  biasLane?: string
+  publishedAt?: string
+  credibilityScore?: number
+}
+
+export type ClaimDossier = {
+  id: string
+  slug: string
+  title: string
+  deck: string
+  topicId: string
+  topic: string
+  claim: string
+  summary: string
+  status: string
+  evidenceGrade: string
+  confidenceScore: number
+  xVelocityScore: number
+  sourceCount: number
+  xSignalCount: number
+  relatedVideoCount: number
+  sourceLinks: ClaimSourceLink[]
+  xSignals: ViralXPost[]
+  relatedVideos: ChannelVideo[]
+  weirdRead: string
+  skepticalRead: string
+  viralHeadlines: string[]
+  chatPrompt: string
+  publishedAt: string
+  metadata: Record<string, unknown>
+}
+
 function jsonObject(value: unknown): Record<string, unknown> {
   if (!value) return {}
   if (typeof value === "string") {
@@ -156,6 +221,101 @@ function xRowToPost(row: XSignalRow): ViralXPost {
       quotes: Number(metrics.quotes ?? metrics.quote_count ?? 0) || undefined,
       views: Number(metrics.views ?? metrics.impression_count ?? 0) || undefined,
     },
+  }
+}
+
+function sourceLinkFromJson(value: unknown): ClaimSourceLink | null {
+  const item = jsonObject(value)
+  const title = typeof item.title === "string" ? item.title : ""
+  const url = typeof item.url === "string" ? item.url : ""
+  if (!title || !url) return null
+
+  return {
+    title,
+    url,
+    outlet: typeof item.outlet === "string" ? item.outlet : undefined,
+    sourceKind: typeof item.sourceKind === "string" ? item.sourceKind : typeof item.source_kind === "string" ? item.source_kind : undefined,
+    stance: typeof item.stance === "string" ? item.stance : undefined,
+    biasLane: typeof item.biasLane === "string" ? item.biasLane : typeof item.bias_lane === "string" ? item.bias_lane : undefined,
+    publishedAt: typeof item.publishedAt === "string" ? item.publishedAt : typeof item.published_at === "string" ? item.published_at : undefined,
+    credibilityScore: Number(item.credibilityScore ?? item.credibility_score ?? 0) || undefined,
+  }
+}
+
+function postFromJson(value: unknown): ViralXPost | null {
+  const item = jsonObject(value)
+  const id = typeof item.id === "string" ? item.id : typeof item.x_id === "string" ? item.x_id : ""
+  const url = typeof item.url === "string" ? item.url : ""
+  const text = typeof item.text === "string" ? item.text : ""
+  if (!id || !url || !text) return null
+
+  return {
+    id,
+    url,
+    text,
+    topicId: typeof item.topicId === "string" ? item.topicId : typeof item.topic_id === "string" ? item.topic_id : undefined,
+    authorName: typeof item.authorName === "string" ? item.authorName : typeof item.author_name === "string" ? item.author_name : undefined,
+    username: typeof item.username === "string" ? item.username : undefined,
+    createdAt: typeof item.createdAt === "string" ? item.createdAt : typeof item.posted_at === "string" ? item.posted_at : undefined,
+    source:
+      item.source === "x-api" || item.source === "brave-search" || item.source === "x-syndication" || item.source === "seed"
+        ? item.source
+        : "x-api",
+    score: Number(item.score || 0),
+    metrics: jsonObject(item.metrics) as ViralXPost["metrics"],
+  }
+}
+
+function videoFromJson(value: unknown): ChannelVideo | null {
+  const item = jsonObject(value)
+  const title = typeof item.title === "string" ? item.title : ""
+  const href = typeof item.href === "string" ? item.href : typeof item.source_url === "string" ? item.source_url : ""
+  if (!title || !href) return null
+
+  return {
+    title,
+    date: typeof item.date === "string" ? item.date : typeof item.published_at === "string" ? safeDate(item.published_at) : "",
+    href,
+    topicId: typeof item.topicId === "string" ? item.topicId : typeof item.topic_id === "string" ? item.topic_id : "secret-programs",
+    source: "YouTube",
+    videoId: typeof item.videoId === "string" ? item.videoId : typeof item.source_id === "string" ? item.source_id : undefined,
+    embedUrl: typeof item.embedUrl === "string" ? item.embedUrl : typeof item.embed_url === "string" ? item.embed_url : undefined,
+    thumbnail: typeof item.thumbnail === "string" ? item.thumbnail : typeof item.thumbnail_url === "string" ? item.thumbnail_url : undefined,
+    description: typeof item.description === "string" ? item.description : undefined,
+    kind: item.kind === "short" ? "short" : "episode",
+  }
+}
+
+function claimDossierRowToDossier(row: ClaimDossierRow): ClaimDossier {
+  const topicId = row.topic_id || "secret-programs"
+  const metadata = jsonObject(row.metadata)
+  const publishedAt = safeDate(row.published_at || row.generated_at) || new Date().toISOString().slice(0, 10)
+
+  return {
+    id: row.id || row.slug || "claim-dossier",
+    slug: row.slug || row.id || "claim-dossier",
+    title: row.title || "Inverted World dossier",
+    deck: row.deck || "A Recursiv-built claim dossier from news, X, records, and the Tales archive.",
+    topicId,
+    topic: topicTitle(topicId),
+    claim: row.claim || row.title || "The live claim is still being mapped.",
+    summary: row.summary || "The research desk has not written a summary yet.",
+    status: row.status || "draft",
+    evidenceGrade: row.evidence_grade || "developing",
+    confidenceScore: Number(row.confidence_score || 0),
+    xVelocityScore: Number(row.x_velocity_score || 0),
+    sourceCount: Number(row.source_count || 0),
+    xSignalCount: Number(row.x_signal_count || 0),
+    relatedVideoCount: Number(row.related_video_count || 0),
+    sourceLinks: jsonArray(row.source_links).map(sourceLinkFromJson).filter((item): item is ClaimSourceLink => Boolean(item)),
+    xSignals: jsonArray(row.x_signals).map(postFromJson).filter((item): item is ViralXPost => Boolean(item)),
+    relatedVideos: jsonArray(row.related_videos).map(videoFromJson).filter((item): item is ChannelVideo => Boolean(item)),
+    weirdRead: row.weird_read || "The weird read has not been generated yet.",
+    skepticalRead: row.skeptical_read || "The skeptical read has not been generated yet.",
+    viralHeadlines: jsonArray(row.viral_headlines).map(String).filter(Boolean),
+    chatPrompt: row.chat_prompt || "",
+    publishedAt,
+    metadata,
   }
 }
 
@@ -309,4 +469,80 @@ export async function fetchRecursivXSignalsForTopic(topicId: string, options: { 
   )
 
   return rows?.map(xRowToPost) ?? null
+}
+
+export async function fetchRecursivClaimDossiers(options: { limit?: number; topicId?: string } = {}) {
+  const limit = Math.max(1, Math.min(Math.trunc(options.limit || 24), 50))
+  const where = options.topicId ? "WHERE status = 'published' AND topic_id = $2" : "WHERE status = 'published'"
+  const params = options.topicId ? [limit, options.topicId] : [limit]
+  const rows = await queryInvertedWorldDatabase<ClaimDossierRow>(
+    `SELECT
+      id,
+      slug,
+      title,
+      deck,
+      topic_id,
+      claim,
+      summary,
+      status,
+      evidence_grade,
+      confidence_score,
+      x_velocity_score,
+      source_count,
+      x_signal_count,
+      related_video_count,
+      source_links,
+      x_signals,
+      related_videos,
+      weird_read,
+      skeptical_read,
+      viral_headlines,
+      chat_prompt,
+      published_at,
+      generated_at,
+      metadata
+    FROM claim_dossiers
+    ${where}
+    ORDER BY x_velocity_score DESC NULLS LAST, published_at DESC NULLS LAST, updated_at DESC
+    LIMIT $1`,
+    params,
+  )
+
+  return rows?.map(claimDossierRowToDossier) ?? null
+}
+
+export async function getRecursivClaimDossier(slug: string) {
+  const rows = await queryInvertedWorldDatabase<ClaimDossierRow>(
+    `SELECT
+      id,
+      slug,
+      title,
+      deck,
+      topic_id,
+      claim,
+      summary,
+      status,
+      evidence_grade,
+      confidence_score,
+      x_velocity_score,
+      source_count,
+      x_signal_count,
+      related_video_count,
+      source_links,
+      x_signals,
+      related_videos,
+      weird_read,
+      skeptical_read,
+      viral_headlines,
+      chat_prompt,
+      published_at,
+      generated_at,
+      metadata
+    FROM claim_dossiers
+    WHERE status = 'published' AND slug = $1
+    LIMIT 1`,
+    [slug],
+  )
+
+  return rows?.[0] ? claimDossierRowToDossier(rows[0]) : null
 }

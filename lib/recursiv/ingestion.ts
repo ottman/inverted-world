@@ -130,6 +130,74 @@ function cleanSlug(value: string) {
     .slice(0, 80)
 }
 
+function asNumber(value: unknown) {
+  const number = Number(value)
+  return Number.isFinite(number) ? number : 0
+}
+
+function sourceKind(sourceName: string, sourceUrl = "") {
+  const value = `${sourceName} ${sourceUrl}`.toLowerCase()
+  if (value.includes(".gov") || value.includes("congress") || value.includes("courtlistener") || value.includes("federal")) {
+    return "official"
+  }
+  if (value.includes("youtube.com") || value.includes("youtu.be")) return "archive"
+  if (value.includes("x.com") || value.includes("twitter.com")) return "x"
+  return "news"
+}
+
+function biasLane(sourceName: string, sourceUrl = "") {
+  const value = `${sourceName} ${sourceUrl}`.toLowerCase()
+  if (value.includes(".gov") || value.includes("nasa") || value.includes("aaro") || value.includes("courtlistener")) return "official-record"
+  if (
+    value.includes("ap") ||
+    value.includes("reuters") ||
+    value.includes("bbc") ||
+    value.includes("nytimes") ||
+    value.includes("washingtonpost") ||
+    value.includes("cnn") ||
+    value.includes("npr")
+  ) {
+    return "mainstream"
+  }
+  if (value.includes("substack") || value.includes("youtube") || value.includes("x.com") || value.includes("twitter")) return "independent"
+  return "open-web"
+}
+
+function evidenceGrade(sourceLinks: Array<{ sourceKind: string; biasLane: string }>, xVelocityScore: number) {
+  const hasOfficial = sourceLinks.some((source) => source.sourceKind === "official" || source.biasLane === "official-record")
+  const hasMultipleLanes = new Set(sourceLinks.map((source) => source.biasLane)).size >= 3
+  if (hasOfficial && hasMultipleLanes) return "document-backed"
+  if (hasOfficial) return "record-present"
+  if (sourceLinks.length >= 4 && xVelocityScore > 500) return "contested-viral"
+  if (xVelocityScore > 500) return "viral-unverified"
+  return "developing"
+}
+
+function confidenceScoreFor(grade: string, sourceCount: number, xSignalCount: number) {
+  const base =
+    grade === "document-backed"
+      ? 82
+      : grade === "record-present"
+        ? 70
+        : grade === "contested-viral"
+          ? 58
+          : grade === "viral-unverified"
+            ? 38
+            : 46
+  return Math.min(94, base + Math.min(sourceCount, 8) * 2 + Math.min(xSignalCount, 8))
+}
+
+function postScore(post: ViralXPost) {
+  return (
+    (post.score || 0) ||
+    (post.metrics?.likes || 0) +
+      (post.metrics?.reposts || 0) * 2 +
+      (post.metrics?.quotes || 0) * 2 +
+      (post.metrics?.replies || 0) * 0.5 +
+      (post.metrics?.views || 0) * 0.01
+  )
+}
+
 export async function ensureInvertedWorldSchema() {
   const { sdk, config } = createRecursivServerClient({ timeout: 120000 })
   await sdk.databases.ensure({ project_id: config.projectId, name: config.databaseName })
@@ -278,6 +346,209 @@ async function upsertXSignal(sdk: RecursivServerClient, projectId: string, datab
       JSON.stringify(post.metrics || {}),
     ],
   })
+}
+
+export async function generateClaimDossiersInRecursiv() {
+  const { sdk, config } = getInvertedWorldDatabase()
+  let dossiersUpserted = 0
+  let sourcesUpserted = 0
+
+  for (const topic of topics) {
+    const [articles, posts, videosResult] = await Promise.all([
+      fetchLiveArticlesForTopic(topic.id, topic.query.replaceAll('"', "")).catch(() => []),
+      fetchViralXPostsForTopic(topic.id, { limit: 12 }).catch(() => []),
+      sdk.databases.query({
+        project_id: config.projectId,
+        database_name: config.databaseName,
+        sql: `SELECT source_id, source_url, title, description, published_at, topic_id, thumbnail_url, embed_url, kind
+          FROM channel_items
+          WHERE source = 'youtube' AND topic_id = $1
+          ORDER BY published_at DESC NULLS LAST
+          LIMIT 6`,
+        params: [topic.id],
+      }),
+    ])
+
+    const lead = articles[0]
+    const videos = (videosResult.data.rows || []).map((row) => ({
+      title: String(row.title || "Tales From the Inverted World"),
+      date: row.published_at ? String(row.published_at).slice(0, 10) : "",
+      href: String(row.source_url || "#"),
+      topicId: String(row.topic_id || topic.id),
+      source: "YouTube",
+      videoId: typeof row.source_id === "string" ? row.source_id : undefined,
+      embedUrl: typeof row.embed_url === "string" ? row.embed_url : undefined,
+      thumbnail: typeof row.thumbnail_url === "string" ? row.thumbnail_url : undefined,
+      description: typeof row.description === "string" ? row.description : undefined,
+      kind: row.kind === "short" ? "short" : "episode",
+    })) satisfies ChannelVideo[]
+
+    const xVelocityScore = Math.round(posts.reduce((sum, post) => sum + postScore(post), 0))
+    const sourceLinks = articles.slice(0, 10).map((article, index) => {
+      const kind = sourceKind(article.source, article.sourceUrl)
+      const lane = biasLane(article.source, article.sourceUrl)
+      return {
+        title: article.title,
+        url: article.sourceUrl,
+        outlet: article.source,
+        sourceKind: kind,
+        stance: index === 0 ? "lead" : "context",
+        biasLane: lane,
+        publishedAt: article.publishedAt,
+        credibilityScore: kind === "official" ? 92 : lane === "mainstream" ? 72 : lane === "independent" ? 64 : 58,
+      }
+    })
+    const grade = evidenceGrade(sourceLinks, xVelocityScore)
+    const confidenceScore = confidenceScoreFor(grade, sourceLinks.length, posts.length)
+    const title = `${topic.title}: ${lead?.title || topic.signal}`
+    const slug = `${topic.id}-${cleanSlug(lead?.title || topic.signal || title)}`
+    const claim = lead?.title || `${topic.signal} is generating new coverage and archive relevance.`
+    const viralHeadlines = [
+      `${topic.title}: what they are not saying about ${lead?.title || "the latest signal"}`,
+      `X is moving this ${topic.title} story before the institutions catch up`,
+      `The weird read and skeptical read on ${lead?.title || topic.signal}`,
+      `What records show, what X claims, and what is still missing`,
+    ]
+    const summary = [
+      lead ? `${lead.source} is carrying the lead item: ${lead.title}.` : `${topic.title} has a fresh signal cluster but no single lead article yet.`,
+      `${sourceLinks.length} source links, ${posts.length} X signals, and ${videos.length} Tales archive items are attached to this dossier.`,
+      `Evidence grade is ${grade}; this is an editorial assessment of source strength, not a final truth verdict.`,
+    ].join(" ")
+    const weirdRead = `The weird read: repeated timing, institutional silence, or language drift around ${topic.title.toLowerCase()} may be the actual signal. Watch for documents that appear only after the narrative has already moved.`
+    const skepticalRead = `The skeptical read: viral heat can come from old claims, weak sourcing, or incentive loops. Treat X velocity as a lead generator, then demand primary records before upgrading the claim.`
+    const chatPrompt = `You are the Inverted World dossier analyst. Answer from this dossier only. Separate documented fact, allegation, inference, speculation, and unknowns. Dossier: ${title}. Claim: ${claim}. Evidence grade: ${grade}. Summary: ${summary}`
+
+    const dossierResult = await sdk.databases.query({
+      project_id: config.projectId,
+      database_name: config.databaseName,
+      sql: `INSERT INTO claim_dossiers (
+          slug,
+          title,
+          deck,
+          topic_id,
+          claim,
+          summary,
+          status,
+          evidence_grade,
+          confidence_score,
+          x_velocity_score,
+          source_count,
+          x_signal_count,
+          related_video_count,
+          source_links,
+          x_signals,
+          related_videos,
+          weird_read,
+          skeptical_read,
+          viral_headlines,
+          chat_prompt,
+          published_at,
+          metadata,
+          updated_at
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, 'published', $7, $8, $9, $10, $11, $12, $13::jsonb, $14::jsonb, $15::jsonb, $16, $17, $18::jsonb, $19, now(), $20::jsonb, now())
+        ON CONFLICT (slug) DO UPDATE SET
+          title = EXCLUDED.title,
+          deck = EXCLUDED.deck,
+          claim = EXCLUDED.claim,
+          summary = EXCLUDED.summary,
+          status = EXCLUDED.status,
+          evidence_grade = EXCLUDED.evidence_grade,
+          confidence_score = EXCLUDED.confidence_score,
+          x_velocity_score = EXCLUDED.x_velocity_score,
+          source_count = EXCLUDED.source_count,
+          x_signal_count = EXCLUDED.x_signal_count,
+          related_video_count = EXCLUDED.related_video_count,
+          source_links = EXCLUDED.source_links,
+          x_signals = EXCLUDED.x_signals,
+          related_videos = EXCLUDED.related_videos,
+          weird_read = EXCLUDED.weird_read,
+          skeptical_read = EXCLUDED.skeptical_read,
+          viral_headlines = EXCLUDED.viral_headlines,
+          chat_prompt = EXCLUDED.chat_prompt,
+          published_at = COALESCE(claim_dossiers.published_at, EXCLUDED.published_at),
+          metadata = EXCLUDED.metadata,
+          updated_at = now()
+        RETURNING id`,
+      params: [
+        slug,
+        title,
+        `A Ground News-style dossier for ${topic.title}: source split, X velocity, evidence grade, and Tales archive context.`,
+        topic.id,
+        claim,
+        summary,
+        grade,
+        confidenceScore,
+        xVelocityScore,
+        sourceLinks.length,
+        posts.length,
+        videos.length,
+        JSON.stringify(sourceLinks),
+        JSON.stringify(posts.slice(0, 12)),
+        JSON.stringify(videos),
+        weirdRead,
+        skepticalRead,
+        JSON.stringify(viralHeadlines),
+        chatPrompt,
+        JSON.stringify({ generatedBy: "recursiv-claim-dossier-v1", leadSource: lead?.source || null }),
+      ],
+    })
+
+    const dossierId = dossierResult.data.rows[0]?.id
+    if (dossierId) {
+      await sdk.databases.query({
+        project_id: config.projectId,
+        database_name: config.databaseName,
+        sql: "DELETE FROM claim_sources WHERE dossier_id = $1",
+        params: [dossierId],
+      })
+      for (const source of sourceLinks) {
+        await sdk.databases.query({
+          project_id: config.projectId,
+          database_name: config.databaseName,
+          sql: `INSERT INTO claim_sources (
+              dossier_id,
+              source_kind,
+              title,
+              url,
+              outlet,
+              stance,
+              bias_lane,
+              published_at,
+              credibility_score,
+              metadata
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, NULLIF($8, '')::timestamptz, $9, $10::jsonb)
+            ON CONFLICT (dossier_id, url) DO UPDATE SET
+              source_kind = EXCLUDED.source_kind,
+              title = EXCLUDED.title,
+              outlet = EXCLUDED.outlet,
+              stance = EXCLUDED.stance,
+              bias_lane = EXCLUDED.bias_lane,
+              published_at = EXCLUDED.published_at,
+              credibility_score = EXCLUDED.credibility_score,
+              metadata = EXCLUDED.metadata`,
+          params: [
+            dossierId,
+            source.sourceKind,
+            source.title,
+            source.url,
+            source.outlet || "",
+            source.stance || "context",
+            source.biasLane || "open-web",
+            source.publishedAt || "",
+            source.credibilityScore || 0,
+            JSON.stringify({ topic: topic.title }),
+          ],
+        })
+        sourcesUpserted += 1
+      }
+    }
+
+    dossiersUpserted += 1
+  }
+
+  return { dossiersUpserted, sourcesUpserted }
 }
 
 export async function generateArticleDraftsInRecursiv() {

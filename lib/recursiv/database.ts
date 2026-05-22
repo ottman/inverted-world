@@ -1,6 +1,6 @@
 import { createRecursivServerClient } from "@/lib/recursiv/client"
 import { getRecursivRuntimeConfig } from "@/lib/recursiv/config"
-import { INVERTED_WORLD_SCHEMA_SQL } from "@/lib/recursiv/schema"
+import { INVERTED_WORLD_SCHEMA_SQL, INVERTED_WORLD_TABLES } from "@/lib/recursiv/schema"
 
 export type RecursivRow = Record<string, unknown>
 
@@ -50,6 +50,6 @@ export async function provisionInvertedWorldDatabase(options: { allowDeveloperAp
   return {
     projectId: config.projectId,
     databaseName: config.databaseName,
-    tableCount: 5,
+    tableCount: INVERTED_WORLD_TABLES.length,
   }
 }

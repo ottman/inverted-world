@@ -36,9 +36,12 @@ Server-side Recursiv calls use `RECURSIV_SERVER_API_KEY`. Local proof may use a 
 ## Live Routes
 
 - `/archive`: embedded channel archive. Reads Recursiv `channel_items` first, then falls back to YouTube RSS/API.
-- `/news`: daily brief surface backed by `/api/articles` and published Recursiv `article_drafts`.
+- `/news`: claim-dossier desk backed by published Recursiv `claim_dossiers`.
+- `/news/[slug]`: source split, evidence grade, X velocity, Tales archive context, viral headlines, and AI chat for one dossier.
 - `/documents`: browsable source database backed by `/api/documents`.
-- `/api/recursiv/jobs/*`: authenticated scheduled job targets for archive sync, topic pulse, article generation, image generation, and publishing.
+- `/api/dossiers`: JSON feed of published claim dossiers.
+- `/api/dossiers/[slug]/chat`: Recursiv-agent chat over one dossier context.
+- `/api/recursiv/jobs/*`: authenticated scheduled job targets for archive sync, topic pulse, article generation, claim dossier generation, image generation, and publishing.
 
 ## First Tables
 
@@ -120,6 +123,61 @@ CREATE TABLE generated_assets (
   object_key TEXT,
   url TEXT,
   status TEXT DEFAULT 'generated',
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE claim_dossiers (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  slug TEXT NOT NULL UNIQUE,
+  title TEXT NOT NULL,
+  deck TEXT,
+  topic_id TEXT NOT NULL,
+  claim TEXT NOT NULL,
+  summary TEXT,
+  status TEXT NOT NULL DEFAULT 'draft',
+  evidence_grade TEXT NOT NULL DEFAULT 'developing',
+  confidence_score NUMERIC DEFAULT 0,
+  x_velocity_score NUMERIC DEFAULT 0,
+  source_count INTEGER DEFAULT 0,
+  x_signal_count INTEGER DEFAULT 0,
+  related_video_count INTEGER DEFAULT 0,
+  source_links JSONB DEFAULT '[]'::jsonb,
+  x_signals JSONB DEFAULT '[]'::jsonb,
+  related_videos JSONB DEFAULT '[]'::jsonb,
+  weird_read TEXT,
+  skeptical_read TEXT,
+  viral_headlines JSONB DEFAULT '[]'::jsonb,
+  chat_prompt TEXT,
+  generated_at TIMESTAMPTZ DEFAULT now(),
+  published_at TIMESTAMPTZ,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE claim_sources (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  dossier_id TEXT NOT NULL REFERENCES claim_dossiers(id) ON DELETE CASCADE,
+  source_kind TEXT NOT NULL DEFAULT 'news',
+  title TEXT NOT NULL,
+  url TEXT NOT NULL,
+  outlet TEXT,
+  stance TEXT,
+  bias_lane TEXT,
+  published_at TIMESTAMPTZ,
+  credibility_score NUMERIC DEFAULT 0,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE claim_chat_messages (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  dossier_slug TEXT NOT NULL,
+  conversation_id TEXT,
+  role TEXT NOT NULL DEFAULT 'user',
+  message TEXT NOT NULL,
+  response TEXT,
   metadata JSONB DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ DEFAULT now()
 );
