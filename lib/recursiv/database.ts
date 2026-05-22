@@ -4,6 +4,11 @@ import { INVERTED_WORLD_SCHEMA_SQL, INVERTED_WORLD_TABLES } from "@/lib/recursiv
 
 export type RecursivRow = Record<string, unknown>
 
+const PUBLIC_READ_TIMEOUT_MS = Math.max(
+  1000,
+  Math.min(Math.trunc(Number(process.env.RECURSIV_PUBLIC_READ_TIMEOUT_MS || "5000")) || 5000, 15000),
+)
+
 export async function queryInvertedWorldDatabase<T extends RecursivRow = RecursivRow>(
   sql: string,
   params: unknown[] = [],
@@ -12,7 +17,7 @@ export async function queryInvertedWorldDatabase<T extends RecursivRow = Recursi
   if (!config.apiKey || !config.projectId) return null
 
   try {
-    const { sdk } = createRecursivServerClient()
+    const { sdk } = createRecursivServerClient({ maxRetries: 0, timeout: PUBLIC_READ_TIMEOUT_MS })
     const { data } = await sdk.databases.query({
       project_id: config.projectId,
       database_name: config.databaseName,

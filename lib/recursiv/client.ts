@@ -3,6 +3,7 @@ import { requireRecursivRuntimeConfig } from "@/lib/recursiv/config"
 
 type ClientOptions = {
   allowDeveloperApiKey?: boolean
+  maxRetries?: number
   timeout?: number
 }
 
@@ -14,7 +15,7 @@ export function createRecursivServerClient(options: ClientOptions = {}) {
       apiKey: config.apiKey,
       baseUrl: config.baseUrl,
       timeout: options.timeout ?? 30000,
-      maxRetries: 2,
+      maxRetries: options.maxRetries ?? 2,
     }),
     config,
   }
