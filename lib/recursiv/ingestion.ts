@@ -1068,9 +1068,10 @@ export async function publishFrontPageEditionInRecursiv() {
           thumbnail_url,
           published_at
         FROM channel_items
-        WHERE source = 'youtube'
+        WHERE source = $1
         ORDER BY published_at DESC NULLS LAST
-        LIMIT 8`,
+        LIMIT $2`,
+      params: ["youtube", 8],
     }),
     sdk.databases.query({
       project_id: config.projectId,
