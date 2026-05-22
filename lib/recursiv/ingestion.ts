@@ -1001,7 +1001,16 @@ export async function publishReadyDraftsInRecursiv() {
 
 export async function publishFrontPageEditionInRecursiv() {
   const { sdk, config } = getInvertedWorldDatabase()
-  const [articlesResult, dossiersResult, xSignalsResult, videosResult, countsResult] = await Promise.all([
+  const countTables = [
+    "channel_items",
+    "coverage_snapshots",
+    "x_signals",
+    "article_drafts",
+    "generated_assets",
+    "claim_dossiers",
+    "claim_sources",
+  ]
+  const [articlesResult, dossiersResult, xSignalsResult, videosResult, countResults] = await Promise.all([
     sdk.databases.query({
       project_id: config.projectId,
       database_name: config.databaseName,
@@ -1017,9 +1026,10 @@ export async function publishFrontPageEditionInRecursiv() {
           ga.url AS asset_url
         FROM article_drafts a
         LEFT JOIN generated_assets ga ON ga.id = a.thumbnail_asset_id
-        WHERE a.status = 'published'
+        WHERE a.status = $1
         ORDER BY a.heat DESC NULLS LAST, a.published_at DESC NULLS LAST
-        LIMIT 12`,
+        LIMIT $2`,
+      params: ["published", 12],
     }),
     sdk.databases.query({
       project_id: config.projectId,
@@ -1037,9 +1047,10 @@ export async function publishFrontPageEditionInRecursiv() {
           related_video_count,
           published_at
         FROM claim_dossiers
-        WHERE status = 'published'
+        WHERE status = $1
         ORDER BY x_velocity_score DESC NULLS LAST, published_at DESC NULLS LAST, updated_at DESC
-        LIMIT 12`,
+        LIMIT $2`,
+      params: ["published", 12],
     }),
     sdk.databases.query({
       project_id: config.projectId,
@@ -1073,17 +1084,15 @@ export async function publishFrontPageEditionInRecursiv() {
         LIMIT $2`,
       params: ["youtube", 8],
     }),
-    sdk.databases.query({
-      project_id: config.projectId,
-      database_name: config.databaseName,
-      sql: `SELECT 'channel_items' AS name, count(*)::int AS count FROM channel_items
-        UNION ALL SELECT 'coverage_snapshots', count(*)::int FROM coverage_snapshots
-        UNION ALL SELECT 'x_signals', count(*)::int FROM x_signals
-        UNION ALL SELECT 'article_drafts', count(*)::int FROM article_drafts
-        UNION ALL SELECT 'generated_assets', count(*)::int FROM generated_assets
-        UNION ALL SELECT 'claim_dossiers', count(*)::int FROM claim_dossiers
-        UNION ALL SELECT 'claim_sources', count(*)::int FROM claim_sources`,
-    }),
+    Promise.all(
+      countTables.map((table) =>
+        sdk.databases.query({
+          project_id: config.projectId,
+          database_name: config.databaseName,
+          sql: `SELECT count(*)::int AS count FROM ${table}`,
+        }),
+      ),
+    ),
   ])
 
   const articles = articlesResult.data.rows.map((row) => {
@@ -1138,10 +1147,7 @@ export async function publishFrontPageEditionInRecursiv() {
   })
 
   const countMetrics = Object.fromEntries(
-    countsResult.data.rows.map((row) => {
-      const item = jsonObject(row)
-      return [textField(item.name), asNumber(item.count)]
-    }),
+    countTables.map((table, index) => [table, asNumber(countResults[index]?.data.rows[0]?.count)]),
   )
   const leadDossier = dossiers[0]
   const leadArticle = articles[0]
@@ -1169,8 +1175,8 @@ export async function publishFrontPageEditionInRecursiv() {
   await sdk.databases.query({
     project_id: config.projectId,
     database_name: config.databaseName,
-    sql: "DELETE FROM front_page_editions WHERE slug = $1 OR edition_date = $2",
-    params: [slug, editionDate],
+    sql: "DELETE FROM front_page_editions WHERE slug = $1",
+    params: [slug],
   })
 
   await sdk.databases.query({
@@ -1189,12 +1195,13 @@ export async function publishFrontPageEditionInRecursiv() {
         metadata,
         updated_at
       )
-      VALUES ($1, $2::date, $3, $4, 'published', $5, $6::jsonb, $7::jsonb, now(), $8::jsonb, now())`,
+      VALUES ($1, $2::date, $3, $4, $5, $6, $7::jsonb, $8::jsonb, now(), $9::jsonb, now())`,
     params: [
       slug,
       editionDate,
       headline,
       deck,
+      "published",
       leadDossier?.slug || "",
       JSON.stringify(sections),
       JSON.stringify(metrics),
