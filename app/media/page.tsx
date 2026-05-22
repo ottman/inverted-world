@@ -59,7 +59,7 @@ export default async function MediaPage() {
       heroTitle="Media Library"
       heroDescription="Watch the clips, read the source files, and keep the primary media close to every developing story."
     >
-      <MediaLibraryPage items={items} sourceMode={library.sourceMode} />
+      <MediaLibraryPage items={items} />
     </InvertedPageShell>
   )
 }

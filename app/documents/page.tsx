@@ -34,7 +34,7 @@ function hostName(url: string) {
 }
 
 export default async function DocumentsPage() {
-  const { sourceMode, documents } = await fetchSourceDocuments()
+  const { documents } = await fetchSourceDocuments()
   const documentsByKind = documents.reduce<Record<string, number>>((counts, document) => {
     counts[document.kind] = (counts[document.kind] || 0) + 1
     return counts
@@ -48,13 +48,7 @@ export default async function DocumentsPage() {
       heroDescription="Court records, declassified archives, official portals, science datasets, and news indexes for checking the claims behind each lane."
     >
       <div className="grid gap-5">
-        <section className={cn("grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-6", archiveSurface)}>
-          <div className="bg-black/24 p-3">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#df2f2f]">Source Mode</p>
-            <p className="iw-serif mt-2 text-3xl leading-none text-[#fff8e6]">
-              {sourceMode === "recursiv-database" ? "Recursiv" : "Static"}
-            </p>
-          </div>
+        <section className={cn("grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-5", archiveSurface)}>
           {Object.entries(kindLabels).map(([kind, label]) => (
             <div key={kind} className="bg-black/24 p-3">
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#df2f2f]">{label}</p>

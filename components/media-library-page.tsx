@@ -105,10 +105,8 @@ function renderViewer(item: MediaLibraryItem) {
 
 export function MediaLibraryPage({
   items,
-  sourceMode,
 }: {
   items: MediaLibraryItem[]
-  sourceMode: "recursiv-database" | "static"
 }) {
   const [filter, setFilter] = useState<MediaFilter>("all")
   const [selectedId, setSelectedId] = useState(items[0]?.id)
@@ -230,7 +228,6 @@ export function MediaLibraryPage({
             ))}
           </div>
           <div className="flex flex-wrap gap-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/42">
-            <span>{sourceMode === "recursiv-database" ? "Recursiv" : "Static"} library</span>
             <span>{stats.video || 0} video</span>
             <span>{stats.document || 0} docs</span>
             <span>{stats.image || 0} images</span>
