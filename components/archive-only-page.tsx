@@ -403,8 +403,8 @@ function LiveFeed({ topicTitle, articles }: { topicTitle: string; articles: Inte
           <a
             key={article.id}
             href={article.sourceUrl}
-            target="_blank"
-            rel="noreferrer"
+            target={article.sourceUrl.startsWith("/") ? undefined : "_blank"}
+            rel={article.sourceUrl.startsWith("/") ? undefined : "noreferrer"}
             className="group block bg-[#050504]/36 p-2.5 transition hover:bg-[#070706]/58"
           >
             <span className="flex items-start justify-between gap-3">

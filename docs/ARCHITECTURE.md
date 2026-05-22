@@ -11,6 +11,7 @@ Current runtime lanes:
 - Live articles: `lib/live-articles.ts` now reads published Recursiv `article_drafts` first, then falls back to Exa source discovery and Google News RSS.
 - X signals: `lib/x-posts.ts` now reads Recursiv `x_signals` first, then falls back to X API, Brave, public syndication, and seed posts.
 - Claim dossier sources: `lib/source-extraction.ts` extracts short source excerpts with Firecrawl first and Jina Reader fallback so `/news/[slug]` chat is grounded in page text, not links alone.
+- Article generation: `lib/recursiv/ingestion.ts` now turns published claim dossiers into Recursiv `article_drafts`, using the configured Recursiv agent when available and a deterministic sourced fallback when the agent is unavailable.
 - Video pages: `app/archive/[videoId]/page.tsx` renders one embedded video and related Tales videos.
 - Static editorial scaffolding: `data/intelligence-articles.ts`, `data/inverted-world.ts`, and docs files.
 
@@ -23,7 +24,7 @@ The site is still mostly a live-rendered frontend with fetch helpers. It is not 
 - Recursiv tables now exist for `channel_items`, `coverage_snapshots`, `x_signals`, `article_drafts`, and `generated_assets`, but only the YouTube archive seed has been proven live so far;
 - The next product layer is `claim_dossiers`, `claim_sources`, and `claim_chat_messages`: Ground News-style coverage pages for conspiracy/anomaly claims with source split, X velocity, evidence grading, Tales archive context, viral headline variants, and AI chat history.
 - scheduled Recursiv jobs are implemented as authenticated route targets and provisionable jobs, but they should only be enabled after the Recursiv-hosted URL and `CRON_SECRET` are live;
-- AI/image generation paths are implemented as Recursiv job handlers and still need production provider keys and live job runs;
+- AI article generation is implemented as a Recursiv job handler over published claim dossiers; image generation still needs recurring production proof for generated assets;
 - Vercel should not own YouTube, X, Brave, OpenRouter, or image-generation keys;
 - the archive is complete only when a backend with the YouTube key paginates the full uploads playlist.
 

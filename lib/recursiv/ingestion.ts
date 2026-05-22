@@ -37,6 +37,36 @@ type ClaimSourceCandidate = {
   extractedDescription?: string
 }
 
+type ClaimDossierDraftRow = {
+  id?: string
+  slug?: string
+  title?: string
+  deck?: string
+  topic_id?: string
+  claim?: string
+  summary?: string
+  evidence_grade?: string
+  confidence_score?: number | string
+  x_velocity_score?: number | string
+  source_count?: number | string
+  x_signal_count?: number | string
+  related_video_count?: number | string
+  source_links?: unknown
+  x_signals?: unknown
+  related_videos?: unknown
+  weird_read?: string
+  skeptical_read?: string
+  viral_headlines?: unknown
+  metadata?: unknown
+}
+
+type GeneratedArticleDraft = {
+  title: string
+  deck: string
+  body: string[]
+  mode: "agent" | "fallback"
+}
+
 const TOPIC_KEYWORDS: Array<{ topicId: string; words: string[] }> = [
   { topicId: "uap-disclosure", words: ["ufo", "uap", "alien", "retrieval", "aaro", "pentagon", "disclosure"] },
   { topicId: "secret-programs", words: ["mkultra", "cia", "fbi", "psyop", "coverup", "classified", "hearing"] },
@@ -151,6 +181,42 @@ function asNumber(value: unknown) {
   return Number.isFinite(number) ? number : 0
 }
 
+function jsonObject(value: unknown): Record<string, unknown> {
+  if (!value) return {}
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value)
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {}
+    } catch {
+      return {}
+    }
+  }
+  return typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {}
+}
+
+function jsonArray(value: unknown): unknown[] {
+  if (Array.isArray(value)) return value
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  }
+  return []
+}
+
+function textField(value: unknown) {
+  return typeof value === "string" ? value.trim() : ""
+}
+
+function shorten(value: unknown, maxLength: number) {
+  const text = textField(value).replace(/\s+/g, " ")
+  if (!text) return ""
+  return text.length > maxLength ? `${text.slice(0, maxLength - 1).trim()}...` : text
+}
+
 function sourceKind(sourceName: string, sourceUrl = "") {
   const value = `${sourceName} ${sourceUrl}`.toLowerCase()
   if (value.includes(".gov") || value.includes("congress") || value.includes("courtlistener") || value.includes("federal")) {
@@ -234,6 +300,131 @@ async function enrichSourceLinks(sourceLinks: ClaimSourceCandidate[]) {
   )
 
   return [...enriched, ...sourceLinks.slice(limit)]
+}
+
+function dossierSourceLines(row: ClaimDossierDraftRow) {
+  return jsonArray(row.source_links)
+    .map(jsonObject)
+    .slice(0, 8)
+    .map((source, index) => {
+      const label = [source.outlet, source.biasLane || source.bias_lane, source.sourceKind || source.source_kind]
+        .map(textField)
+        .filter(Boolean)
+        .join(" / ")
+      const excerpt = shorten(source.excerpt, 360)
+      return `${index + 1}. ${textField(source.title)}${label ? ` (${label})` : ""}: ${textField(source.url)}${excerpt ? `\n   Extract: ${excerpt}` : ""}`
+    })
+    .join("\n")
+}
+
+function dossierXLines(row: ClaimDossierDraftRow) {
+  return jsonArray(row.x_signals)
+    .map(jsonObject)
+    .slice(0, 5)
+    .map((post, index) => `${index + 1}. @${textField(post.username) || "x"}: ${shorten(post.text, 220)}`)
+    .join("\n")
+}
+
+function dossierVideoLines(row: ClaimDossierDraftRow) {
+  return jsonArray(row.related_videos)
+    .map(jsonObject)
+    .slice(0, 4)
+    .map((video, index) => `${index + 1}. ${textField(video.title)} (${textField(video.href) || textField(video.source_url)})`)
+    .join("\n")
+}
+
+function fallbackDossierArticleDraft(row: ClaimDossierDraftRow, topic: (typeof topics)[number]): GeneratedArticleDraft {
+  const sourceLinks = jsonArray(row.source_links).map(jsonObject)
+  const headlines = jsonArray(row.viral_headlines).map(String).filter(Boolean)
+  const leadSource = sourceLinks[0]
+  const sourceLanes = Array.from(
+    new Set(sourceLinks.map((source) => textField(source.biasLane || source.bias_lane)).filter(Boolean)),
+  )
+  const title = `${topic.title}: ${row.claim || row.title || topic.signal}`
+
+  return {
+    title,
+    deck:
+      row.deck ||
+      `${row.evidence_grade || "Developing"} dossier with ${row.source_count || sourceLinks.length || 0} sources, ${
+        row.x_signal_count || 0
+      } X signals, and Tales archive context.`,
+    mode: "fallback",
+    body: [
+      `Signal: ${row.summary || row.claim || row.title || topic.signal}`,
+      `Documented record: start with ${textField(leadSource.outlet) || "the lead source"}${
+        textField(leadSource.url) ? ` at ${textField(leadSource.url)}` : ""
+      }. Evidence grade is ${row.evidence_grade || "developing"} with confidence ${asNumber(row.confidence_score)}/100.`,
+      `Source split: this dossier currently spans ${sourceLinks.length} links${
+        sourceLanes.length ? ` across ${sourceLanes.join(", ")}` : ""
+      }. The most important task is separating primary records from commentary and secondhand amplification.`,
+      `X velocity: ${row.x_signal_count || 0} stored X signals are attached. Treat social velocity as a lead generator, not a truth verdict.`,
+      `Weird read: ${row.weird_read || "repeated timing, omissions, or language drift may be the real signal."}`,
+      `Skeptical read: ${row.skeptical_read || "old claims, weak sourcing, incentive loops, or stale documents may explain the heat."}`,
+      `Tales context: ${row.related_video_count || 0} related videos are attached from the Tales From The Inverted World archive. Use them as context, not proof.`,
+      `Viral frame: ${headlines[0] || "What records show, what X claims, and what is still missing."}`,
+    ],
+  }
+}
+
+function parseAgentArticleDraft(content: string): Omit<GeneratedArticleDraft, "mode"> | null {
+  const match = content.match(/\{[\s\S]*\}/)
+  if (!match) return null
+
+  try {
+    const parsed = JSON.parse(match[0]) as Record<string, unknown>
+    const title = shorten(parsed.title, 180)
+    const deck = shorten(parsed.deck, 320)
+    const body = jsonArray(parsed.body)
+      .map((item) => shorten(item, 900))
+      .filter(Boolean)
+      .slice(0, 8)
+
+    if (!title || !deck || body.length < 4) return null
+    return { title, deck, body }
+  } catch {
+    return null
+  }
+}
+
+async function generateDossierArticleDraft(
+  sdk: RecursivServerClient,
+  agentId: string | undefined,
+  row: ClaimDossierDraftRow,
+  topic: (typeof topics)[number],
+): Promise<GeneratedArticleDraft> {
+  const fallback = fallbackDossierArticleDraft(row, topic)
+  if (!agentId || process.env.ARTICLE_GENERATION_USE_AGENT === "0") return fallback
+
+  const prompt = [
+    "Write one Inverted World news brief from the supplied claim dossier.",
+    "Return only valid JSON with keys: title, deck, body.",
+    "body must be 6 to 8 short paragraphs as strings.",
+    "Do not invent facts. Separate documented fact, allegation, inference, speculation, and unknowns.",
+    "Make the headline viral, but keep the body sober and source-grounded.",
+    `Topic: ${topic.title}`,
+    `Claim: ${row.claim || row.title}`,
+    `Summary: ${row.summary || row.deck || ""}`,
+    `Evidence grade: ${row.evidence_grade || "developing"}`,
+    `Confidence: ${asNumber(row.confidence_score)}/100`,
+    `X velocity score: ${asNumber(row.x_velocity_score)}`,
+    `Weird read: ${row.weird_read || ""}`,
+    `Skeptical read: ${row.skeptical_read || ""}`,
+    `Sources:\n${dossierSourceLines(row) || "No source links attached."}`,
+    `X signals:\n${dossierXLines(row) || "No X signals attached."}`,
+    `Tales archive:\n${dossierVideoLines(row) || "No related videos attached."}`,
+  ].join("\n\n")
+
+  try {
+    const response = await sdk.agents.chatStreamText(agentId, {
+      message: prompt,
+      new_conversation: true,
+    })
+    const parsed = parseAgentArticleDraft(response.content)
+    return parsed ? { ...parsed, mode: "agent" } : fallback
+  } catch {
+    return fallback
+  }
 }
 
 export async function ensureInvertedWorldSchema() {
@@ -601,42 +792,44 @@ export async function generateArticleDraftsInRecursiv() {
     project_id: config.projectId,
     database_name: config.databaseName,
     sql: `SELECT
-        c.topic_id,
-        c.query,
-        c.items,
-        c.summary,
-        c.captured_at,
-        ci.title AS video_title,
-        ci.source_url AS video_url
-      FROM coverage_snapshots c
-      LEFT JOIN LATERAL (
-        SELECT title, source_url
-        FROM channel_items
-        WHERE topic_id = c.topic_id
-        ORDER BY published_at DESC NULLS LAST
-        LIMIT 1
-      ) ci ON true
-      WHERE c.captured_at > now() - interval '2 days'
-      ORDER BY c.captured_at DESC
-      LIMIT 12`,
+        id,
+        slug,
+        title,
+        deck,
+        topic_id,
+        claim,
+        summary,
+        evidence_grade,
+        confidence_score,
+        x_velocity_score,
+        source_count,
+        x_signal_count,
+        related_video_count,
+        source_links,
+        x_signals,
+        related_videos,
+        weird_read,
+        skeptical_read,
+        viral_headlines,
+        metadata
+      FROM claim_dossiers
+      WHERE status = 'published'
+      ORDER BY x_velocity_score DESC NULLS LAST, updated_at DESC
+      LIMIT $1`,
+    params: [Math.max(1, Math.min(Number(process.env.ARTICLE_GENERATION_LIMIT || "6"), 12))],
   })
 
   let created = 0
-  for (const row of data.rows) {
+  for (const row of data.rows as ClaimDossierDraftRow[]) {
     const topic = topics.find((item) => item.id === row.topic_id)
     if (!topic) continue
-    const items = Array.isArray(row.items) ? row.items : []
-    const lead = items[0] as { title?: string; source?: string; sourceUrl?: string } | undefined
-    const title = `${topic.title}: ${lead?.title || "the live signal map"}`
-    const slug = `${topic.id}-${cleanSlug(String(lead?.title || row.captured_at || Date.now()))}`
-    const body = [
-      `Signal: ${lead?.title || row.summary || topic.signal}`,
-      `Record: start with ${lead?.source || "the current source cluster"}${lead?.sourceUrl ? ` at ${lead.sourceUrl}` : ""}, then compare primary documents before publishing a stronger claim.`,
-      `Archive lens: ${row.video_title || "the Tales From the Inverted World archive"}${row.video_url ? ` (${row.video_url})` : ""}.`,
-      `Weird read: the pattern may matter more than the headline if repeated language, timing, or institutional silence keeps appearing.`,
-      `Skeptical read: older claims, weak sourcing, incentive loops, or stale records may explain the heat.`,
-      `Next search: ${topic.query} site:.gov OR filetype:pdf.`,
-    ]
+
+    const draft = await generateDossierArticleDraft(sdk, config.agentId, row, topic)
+    const sourceLinks = jsonArray(row.source_links).map(jsonObject)
+    const leadSource = sourceLinks[0] || {}
+    const dossierSlug = row.slug || cleanSlug(row.title || row.claim || topic.title)
+    const slug = `brief-${dossierSlug}`
+    const heat = Math.min(100, Math.round(asNumber(row.confidence_score) + Math.min(asNumber(row.x_velocity_score) / 90, 24)))
 
     await sdk.databases.query({
       project_id: config.projectId,
@@ -648,36 +841,61 @@ export async function generateArticleDraftsInRecursiv() {
           topic_id,
           status,
           body,
+          source_ids,
           source_name,
           source_url,
           heat,
           thumbnail_prompt,
+          model,
           prompt_version,
           metadata,
           updated_at
         )
-        VALUES ($1, $2, $3, $4, 'draft', $5::jsonb, $6, $7, $8, $9, 'recursiv-v1', $10::jsonb, now())
+        VALUES ($1, $2, $3, $4, 'draft', $5::jsonb, $6::jsonb, $7, $8, $9, $10, $11, 'dossier-article-v2', $12::jsonb, now())
         ON CONFLICT (slug) DO UPDATE SET
           title = EXCLUDED.title,
           deck = EXCLUDED.deck,
+          topic_id = EXCLUDED.topic_id,
+          status = CASE WHEN article_drafts.status = 'published' THEN article_drafts.status ELSE EXCLUDED.status END,
           body = EXCLUDED.body,
+          source_ids = EXCLUDED.source_ids,
           source_name = EXCLUDED.source_name,
           source_url = EXCLUDED.source_url,
           heat = EXCLUDED.heat,
           thumbnail_prompt = EXCLUDED.thumbnail_prompt,
+          model = EXCLUDED.model,
+          prompt_version = EXCLUDED.prompt_version,
           metadata = EXCLUDED.metadata,
           updated_at = now()`,
       params: [
         slug,
-        title,
-        `A sourced ${topic.title} brief generated from Recursiv coverage snapshots and the Tales archive.`,
+        draft.title,
+        draft.deck,
         topic.id,
-        JSON.stringify(body),
-        lead?.source || "Inverted World Research Desk",
-        lead?.sourceUrl || "/archive",
-        Math.max(60, items.length * 8),
-        `Inverted World thumbnail for "${title}": ${topic.signal}, terminal grid, redacted source trail, amber-black palette, one iconic symbol, no fake documents, no faces.`,
-        JSON.stringify({ generatedBy: "recursiv-job", sourceItemCount: items.length }),
+        JSON.stringify(draft.body),
+        JSON.stringify([row.id, ...sourceLinks.slice(0, 8).map((source) => textField(source.url)).filter(Boolean)].filter(Boolean)),
+        String(leadSource.outlet || leadSource.sourceKind || "Inverted World Dossier"),
+        `/news/${dossierSlug}`,
+        heat,
+        `Inverted World thumbnail for "${draft.title}": ${topic.signal}, source graph, X velocity, evidence grade ${row.evidence_grade || "developing"}, amber-black editorial palette, no fake documents, no faces.`,
+        draft.mode === "agent" ? "recursiv-agent" : "deterministic-dossier-writer",
+        JSON.stringify({
+          generatedBy: draft.mode === "agent" ? "recursiv-agent-dossier-article-v2" : "recursiv-dossier-article-v2",
+          dossierId: row.id || null,
+          dossierSlug,
+          evidenceGrade: row.evidence_grade || "developing",
+          confidenceScore: asNumber(row.confidence_score),
+          xVelocityScore: asNumber(row.x_velocity_score),
+          sourceCount: asNumber(row.source_count),
+          xSignalCount: asNumber(row.x_signal_count),
+          sourceLinks: sourceLinks.slice(0, 8).map((source) => ({
+            title: textField(source.title),
+            url: textField(source.url),
+            outlet: textField(source.outlet),
+            biasLane: textField(source.biasLane || source.bias_lane),
+            sourceKind: textField(source.sourceKind || source.source_kind),
+          })),
+        }),
       ],
     })
     created += 1
