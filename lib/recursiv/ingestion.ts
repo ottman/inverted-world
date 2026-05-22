@@ -1312,10 +1312,20 @@ type PipelineStep = {
   error?: string
 }
 
+export type FullPipelineMode = "scheduled" | "all"
+
 const PIPELINE_STALE_AFTER_MINUTES = Math.max(
   1,
   Math.trunc(Number(process.env.RECURSIV_PIPELINE_STALE_AFTER_MINUTES || "30")) || 30,
 )
+
+function normalizePipelineMode(mode?: string | null): FullPipelineMode {
+  return mode === "all" ? "all" : "scheduled"
+}
+
+function normalizeStaleAfterMinutes(value?: number) {
+  return Math.max(1, Math.trunc(Number(value || PIPELINE_STALE_AFTER_MINUTES)) || PIPELINE_STALE_AFTER_MINUTES)
+}
 
 async function runPipelineStep(step: string, fn: () => Promise<unknown>): Promise<PipelineStep> {
   const started = Date.now()
@@ -1341,8 +1351,10 @@ async function markStalePipelineRuns(
   sdk: RecursivServerClient,
   config: RecursivDatabaseConfig,
   jobName: string,
+  staleAfterMinutes = PIPELINE_STALE_AFTER_MINUTES,
 ) {
-  const staleMessage = `Pipeline run did not complete within ${PIPELINE_STALE_AFTER_MINUTES} minutes.`
+  const staleMinutes = normalizeStaleAfterMinutes(staleAfterMinutes)
+  const staleMessage = `Pipeline run did not complete within ${staleMinutes} minutes.`
   const { data } = await sdk.databases.query({
     project_id: config.projectId,
     database_name: config.databaseName,
@@ -1362,11 +1374,11 @@ async function markStalePipelineRuns(
       staleMessage,
       JSON.stringify({
         staleMarkedAt: new Date().toISOString(),
-        staleAfterMinutes: PIPELINE_STALE_AFTER_MINUTES,
+        staleAfterMinutes: staleMinutes,
       }),
       jobName,
       "running",
-      PIPELINE_STALE_AFTER_MINUTES,
+      staleMinutes,
     ],
   })
 
@@ -1374,6 +1386,16 @@ async function markStalePipelineRuns(
     staleRunCount: data.rows.length,
     staleRunIds: data.rows.map((row) => textField((row as { id?: unknown }).id)).filter(Boolean),
   }
+}
+
+export async function markStalePipelineRunsInRecursiv(options: { jobName?: string; staleAfterMinutes?: number } = {}) {
+  const { sdk, config } = getInvertedWorldDatabase()
+  return markStalePipelineRuns(
+    sdk,
+    config,
+    options.jobName || "full-pipeline",
+    options.staleAfterMinutes,
+  )
 }
 
 async function persistPipelineProgress(
@@ -1409,10 +1431,11 @@ async function persistPipelineProgress(
   })
 }
 
-export async function runFullPipelineInRecursiv() {
+export async function runFullPipelineInRecursiv(options: { mode?: string | null; staleAfterMinutes?: number } = {}) {
   const { sdk, config } = getInvertedWorldDatabase()
   const started = Date.now()
-  const staleCleanup = await markStalePipelineRuns(sdk, config, "full-pipeline")
+  const mode = normalizePipelineMode(options.mode)
+  const staleCleanup = await markStalePipelineRuns(sdk, config, "full-pipeline", options.staleAfterMinutes)
   const run = await sdk.databases.query({
     project_id: config.projectId,
     database_name: config.databaseName,
@@ -1424,6 +1447,7 @@ export async function runFullPipelineInRecursiv() {
       "running",
       JSON.stringify({
         generatedBy: "recursiv-full-pipeline-v1",
+        mode,
         siteUrl: process.env.INVERTED_WORLD_SITE_URL || "https://invertedworld.on.recursiv.io",
         staleCleanup,
       }),
@@ -1432,7 +1456,7 @@ export async function runFullPipelineInRecursiv() {
   const runId = String(run.data.rows[0]?.id || "")
   const steps: PipelineStep[] = []
 
-  const stepDefinitions: Array<[string, () => Promise<unknown>]> = [
+  const allStepDefinitions: Array<[string, () => Promise<unknown>]> = [
     ["youtube-archive-sync", syncYouTubeArchiveToRecursiv],
     ["topic-pulse", syncTopicPulseToRecursiv],
     ["claim-dossiers", generateClaimDossiersInRecursiv],
@@ -1441,6 +1465,14 @@ export async function runFullPipelineInRecursiv() {
     ["publishing", publishReadyDraftsInRecursiv],
     ["front-page-edition", publishFrontPageEditionInRecursiv],
   ]
+  const scheduledStepDefinitions: Array<[string, () => Promise<unknown>]> = [
+    ["youtube-archive-sync", syncYouTubeArchiveToRecursiv],
+    ["topic-pulse", syncTopicPulseToRecursiv],
+    ["publishing", publishReadyDraftsInRecursiv],
+    ["front-page-edition", publishFrontPageEditionInRecursiv],
+  ]
+  const stepDefinitions = mode === "all" ? allStepDefinitions : scheduledStepDefinitions
+  const skippedSteps = mode === "all" ? [] : allStepDefinitions.map(([step]) => step).filter((step) => !stepDefinitions.some(([activeStep]) => activeStep === step))
 
   for (const [step, fn] of stepDefinitions) {
     await persistPipelineProgress(sdk, config, runId, started, steps, step).catch(() => undefined)
@@ -1479,6 +1511,8 @@ export async function runFullPipelineInRecursiv() {
     status,
     durationMs,
     staleCleanup,
+    mode,
+    skippedSteps,
     steps,
   }
 }

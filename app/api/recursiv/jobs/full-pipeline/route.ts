@@ -9,6 +9,10 @@ export async function POST(request: NextRequest) {
   const unauthorized = authorizeRecursivJob(request)
   if (unauthorized) return unauthorized
 
-  const result = await runFullPipelineInRecursiv()
+  const url = new URL(request.url)
+  const result = await runFullPipelineInRecursiv({
+    mode: url.searchParams.get("mode"),
+    staleAfterMinutes: Number(url.searchParams.get("staleAfterMinutes") || "") || undefined,
+  })
   return NextResponse.json({ ok: true, job: "full-pipeline", ...result })
 }
