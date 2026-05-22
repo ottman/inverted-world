@@ -919,7 +919,11 @@ export async function getRecursivClaimDossier(slug: string) {
     [slug],
   )
 
-  if (!rows?.[0]) return null
+  if (!rows?.[0]) {
+    const dossiers = await fetchRecursivClaimDossiers({ limit: 50 })
+    return dossiers?.find((dossier) => dossier.slug === slug) ?? null
+  }
+
   const [dossier] = await hydrateDossierRelatedVideos([claimDossierRowToDossier(rows[0])])
   return dossier
 }
