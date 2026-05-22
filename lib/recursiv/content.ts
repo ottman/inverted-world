@@ -88,6 +88,18 @@ type FrontPageEditionRow = RecursivRow & {
   metadata?: unknown
 }
 
+type PipelineRunRow = RecursivRow & {
+  id?: string
+  job_name?: string
+  status?: string
+  started_at?: string
+  completed_at?: string
+  duration_ms?: number | string
+  results?: unknown
+  error?: string
+  metadata?: unknown
+}
+
 export type ClaimSourceLink = {
   title: string
   url: string
@@ -139,6 +151,20 @@ export type FrontPageEdition = {
   sections: Record<string, unknown>
   metrics: Record<string, unknown>
   publishedAt: string
+  metadata: Record<string, unknown>
+}
+
+export type PipelineRunStatus = {
+  id: string
+  jobName: string
+  status: string
+  startedAt: string
+  completedAt: string
+  durationMs: number
+  stepCount: number
+  failedStepCount: number
+  steps: Array<{ step: string; ok: boolean; durationMs: number; error?: string }>
+  error: string
   metadata: Record<string, unknown>
 }
 
@@ -365,6 +391,36 @@ function frontPageEditionRowToEdition(row: FrontPageEditionRow): FrontPageEditio
     sections: jsonObject(row.sections),
     metrics: jsonObject(row.metrics),
     publishedAt: safeDate(row.published_at || row.generated_at) || new Date().toISOString().slice(0, 10),
+    metadata: jsonObject(row.metadata),
+  }
+}
+
+function pipelineRunRowToStatus(row: PipelineRunRow): PipelineRunStatus {
+  const steps = jsonArray(row.results)
+    .map((value) => {
+      const item = jsonObject(value)
+      const step = typeof item.step === "string" ? item.step : ""
+      if (!step) return null
+      return {
+        step,
+        ok: Boolean(item.ok),
+        durationMs: Number(item.durationMs || item.duration_ms || 0),
+        error: typeof item.error === "string" ? item.error : undefined,
+      }
+    })
+    .filter((item): item is PipelineRunStatus["steps"][number] => Boolean(item))
+
+  return {
+    id: row.id || "pipeline-run",
+    jobName: row.job_name || "full-pipeline",
+    status: row.status || "unknown",
+    startedAt: row.started_at || "",
+    completedAt: row.completed_at || "",
+    durationMs: Number(row.duration_ms || 0),
+    stepCount: steps.length,
+    failedStepCount: steps.filter((step) => !step.ok).length,
+    steps,
+    error: row.error || "",
     metadata: jsonObject(row.metadata),
   }
 }
@@ -619,4 +675,34 @@ export async function getLatestRecursivFrontPageEdition() {
   )
 
   return rows?.[0] ? frontPageEditionRowToEdition(rows[0]) : null
+}
+
+export async function fetchRecursivPipelineRuns(options: { limit?: number; jobName?: string } = {}) {
+  const limit = Math.max(1, Math.min(Math.trunc(options.limit || 5), 20))
+  const where = options.jobName ? "WHERE job_name = $2" : ""
+  const params = options.jobName ? [limit, options.jobName] : [limit]
+  const rows = await queryInvertedWorldDatabase<PipelineRunRow>(
+    `SELECT
+      id,
+      job_name,
+      status,
+      started_at,
+      completed_at,
+      duration_ms,
+      results,
+      error,
+      metadata
+    FROM pipeline_runs
+    ${where}
+    ORDER BY started_at DESC
+    LIMIT $1`,
+    params,
+  )
+
+  return rows?.map(pipelineRunRowToStatus) ?? null
+}
+
+export async function getLatestRecursivPipelineRun(jobName = "full-pipeline") {
+  const runs = await fetchRecursivPipelineRuns({ limit: 1, jobName })
+  return runs?.[0] ?? null
 }

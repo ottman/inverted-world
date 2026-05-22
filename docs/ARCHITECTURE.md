@@ -14,6 +14,7 @@ Current runtime lanes:
 - Article generation: `lib/recursiv/ingestion.ts` now turns published claim dossiers into Recursiv `article_drafts`, using the configured Recursiv agent when available and a deterministic sourced fallback when the agent is unavailable.
 - Front-page editions: `front_page_editions` snapshots the published lead mix from articles, dossiers, X signals, and Tales archive items so `/news` has persistent daily-return editorial state.
 - Pipeline runs: `pipeline_runs` records full-pipeline executions and step results. `/api/recursiv/jobs/full-pipeline` can run archive sync, topic pulse, dossiers, article generation, image generation, publishing, and front-page edition publication as one Recursiv-triggerable sequence.
+- Pipeline status: `/api/pipeline` exposes the latest persisted Recursiv pipeline run, and `/api/front-page` includes the latest pipeline status so the public news desk can show freshness without provider keys.
 - Video pages: `app/archive/[videoId]/page.tsx` renders one embedded video and related Tales videos.
 - Static editorial scaffolding: `data/intelligence-articles.ts`, `data/inverted-world.ts`, and docs files.
 

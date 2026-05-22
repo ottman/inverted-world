@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server"
-import { getLatestRecursivFrontPageEdition } from "@/lib/recursiv/content"
+import { getLatestRecursivFrontPageEdition, getLatestRecursivPipelineRun } from "@/lib/recursiv/content"
 
 export const dynamic = "force-dynamic"
 
 export async function GET() {
-  const edition = await getLatestRecursivFrontPageEdition()
+  const [edition, pipeline] = await Promise.all([getLatestRecursivFrontPageEdition(), getLatestRecursivPipelineRun()])
 
   return NextResponse.json({
     generatedAt: new Date().toISOString(),
     edition,
+    pipeline,
   })
 }

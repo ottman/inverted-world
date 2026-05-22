@@ -1,7 +1,7 @@
 import type React from "react"
 import { ArrowUpRight, Bot, Gauge, Radio } from "lucide-react"
 import { archiveSurface, InvertedPageShell, type BreakingItem } from "@/components/inverted-page-shell"
-import { fetchRecursivClaimDossiers, getLatestRecursivFrontPageEdition } from "@/lib/recursiv/content"
+import { fetchRecursivClaimDossiers, getLatestRecursivFrontPageEdition, getLatestRecursivPipelineRun } from "@/lib/recursiv/content"
 import { cn } from "@/lib/utils"
 
 export const dynamic = "force-dynamic"
@@ -20,9 +20,23 @@ function textField(value: unknown) {
   return typeof value === "string" ? value : ""
 }
 
+function formatPipelineRun(value?: string) {
+  if (!value) return "pending"
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+  })
+}
+
 export default async function NewsPage() {
-  const [edition, dossiers] = await Promise.all([
+  const [edition, pipeline, dossiers] = await Promise.all([
     getLatestRecursivFrontPageEdition(),
+    getLatestRecursivPipelineRun(),
     fetchRecursivClaimDossiers({ limit: 24 }).then((items) => items || []),
   ])
   const lead = dossiers[0]
@@ -50,6 +64,7 @@ export default async function NewsPage() {
               <span>{edition.editionDate}</span>
               <span>{Number(edition.metrics.articleCount || 0)} AI briefs</span>
               <span>{Number(edition.metrics.xSignalCount || 0)} X signals</span>
+              <span>{pipeline?.status || "pipeline pending"} / {formatPipelineRun(pipeline?.completedAt)}</span>
             </div>
             <h2 className="iw-serif text-4xl leading-none text-[#fff8e6] sm:text-5xl">{edition.headline}</h2>
             <p className="mt-4 max-w-3xl text-sm leading-6 text-[#f4efe2]/68">{edition.deck}</p>
