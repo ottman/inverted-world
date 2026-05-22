@@ -15,6 +15,7 @@ The command prints a redacted JSON report with:
 - latest Recursiv deployment status;
 - HTTP proof for `https://invertedworld.on.recursiv.io`;
 - Recursiv archive API proof, including `sourceMode` and archive count;
+- source-document API proof for `https://invertedworld.on.recursiv.io/api/documents`;
 - HTTP and DNS proof for `https://www.inverted.world`;
 - active Recursiv scheduled job count and missing jobs;
 - latest hosted provider-health blockers for the full AI product;
@@ -25,6 +26,7 @@ The command prints a redacted JSON report with:
 
 - `recursivHostingProven` must be `true`.
 - `recursivArchiveDataReady` must be `true`.
+- `documentsApi` must pass, proving the source shelf is available as machine-readable JSON.
 - `publicHostingReady` must be `true`.
 - Recursiv custom-domain binding must be created and proven before changing DNS or removing the Vercel domain binding.
 - `dnsCutoverReady` must be `true` before any DNS record is changed.

@@ -153,6 +153,40 @@ async function probeJson(url) {
   }
 }
 
+async function probeDocumentsApi(url) {
+  const started = Date.now()
+  try {
+    const response = await fetch(url, {
+      headers: { accept: "application/json", "user-agent": "InvertedWorldCutoverReadiness/1.0" },
+      signal: AbortSignal.timeout(20000),
+    })
+    const body = await response.json().catch(() => ({}))
+    const documents = Array.isArray(body.documents) ? body.documents : []
+    const topics = Array.isArray(body.topics) ? body.topics : []
+    const kinds = body.kinds && typeof body.kinds === "object" ? body.kinds : {}
+
+    return {
+      url,
+      status: response.status,
+      ok: response.ok,
+      count: Number(body.count || documents.length || 0),
+      totalCount: Number(body.totalCount || documents.length || 0),
+      topicCount: topics.length,
+      kindCount: Object.keys(kinds).length,
+      firstDocumentUrl: typeof documents[0]?.url === "string" ? documents[0].url : undefined,
+      durationMs: Date.now() - started,
+    }
+  } catch (error) {
+    return {
+      url,
+      status: 0,
+      ok: false,
+      message: error instanceof Error ? error.message : String(error),
+      durationMs: Date.now() - started,
+    }
+  }
+}
+
 async function probeDns(hostname) {
   const [cname, a, aaaa] = await Promise.all([
     dns.resolveCname(hostname).catch(() => []),
@@ -214,6 +248,7 @@ async function main() {
   const customDomainUrl = process.env.INVERTED_WORLD_CUSTOM_DOMAIN || DEFAULT_CUSTOM_DOMAIN
   const customHostname = new URL(customDomainUrl).hostname
   const archiveApiUrl = new URL("/api/archive?limit=1000", recursivUrl).toString()
+  const documentsApiUrl = new URL("/api/documents", recursivUrl).toString()
 
   if (!apiKey || !projectId) throw new Error("Missing Recursiv project id or API key for cutover readiness")
 
@@ -224,13 +259,14 @@ async function main() {
     maxRetries: 1,
   })
 
-  const [project, deploymentsResponse, jobsResponse, recursivHttp, archiveApi, customHttp, customDns, providerHealth, pipelineRuns] =
+  const [project, deploymentsResponse, jobsResponse, recursivHttp, archiveApi, documentsApi, customHttp, customDns, providerHealth, pipelineRuns] =
     await Promise.all([
       sdk.projects.get(projectId).then((response) => response.data),
       sdk.deployments.list({ project_id: projectId }).then((response) => response.data),
       sdk.jobs.list().then((response) => response.data),
       probeHttp(recursivUrl),
       probeJson(archiveApiUrl),
+      probeDocumentsApi(documentsApiUrl),
       probeHttp(customDomainUrl),
       probeDns(customHostname),
       fetchProviderHealth(sdk, projectId, databaseName),
@@ -278,10 +314,16 @@ async function main() {
       Number(archiveApi.totalCount || 0) >= 100 &&
       Number(archiveApi.warningCount || 0) === 0,
   )
+  const documentsApiReady = Boolean(
+    documentsApi.ok &&
+      Number(documentsApi.totalCount || 0) >= 10 &&
+      Number(documentsApi.topicCount || 0) >= 6 &&
+      Number(documentsApi.kindCount || 0) >= 4,
+  )
   const providerBlocking = providerHealth?.blockingProviders || REQUIRED_PROVIDERS
   const providerHealthFresh = providerHealth?.ageMinutes !== null && Number(providerHealth?.ageMinutes) <= 360
   const scheduledJobsReady = missingJobs.length === 0
-  const publicHostingReady = recursivHostingProven && recursivArchiveDataReady && scheduledJobsReady && providerHealthFresh
+  const publicHostingReady = recursivHostingProven && recursivArchiveDataReady && documentsApiReady && scheduledJobsReady && providerHealthFresh
   const fullAiProductReady = publicHostingReady && providerBlocking.length === 0
   const customDomainRecursivProven = Boolean(customHttp.ok && !customLooksVercel && customHttp.contentSignals?.hasCoreProductCopy)
   const dnsCutoverReady = publicHostingReady && customDomainRecursivProven
@@ -290,6 +332,7 @@ async function main() {
   const checks = {
     recursivHosting: statusText(recursivHostingProven),
     recursivArchiveData: statusText(recursivArchiveDataReady),
+    documentsApi: statusText(documentsApiReady),
     providerHealthFresh: statusText(providerHealthFresh),
     fullAiProviders: statusText(providerBlocking.length === 0),
     scheduledJobs: statusText(scheduledJobsReady),
@@ -302,6 +345,7 @@ async function main() {
   const nextActions = []
   if (!recursivHostingProven) nextActions.push("Do not touch DNS until invertedworld.on.recursiv.io returns the expected app from a completed deployment.")
   if (!recursivArchiveDataReady) nextActions.push("Do not touch DNS until /api/archive is reading Recursiv database data with a complete-enough archive and no warnings.")
+  if (!documentsApiReady) nextActions.push("Do not touch DNS until /api/documents returns the machine-readable source shelf with topic and kind coverage.")
   if (providerBlocking.length) nextActions.push(`Resolve full AI product provider blockers: ${providerBlocking.join(", ")}.`)
   if (missingJobs.length) nextActions.push(`Provision missing Recursiv jobs: ${missingJobs.join(", ")}.`)
   if (jobLastErrors.length) nextActions.push("Review stale scheduled-job last_error values and rerun/clear jobs after provider blockers are fixed.")
@@ -335,6 +379,7 @@ async function main() {
         },
         recursivUrl: recursivHttp,
         recursivArchiveApi: archiveApi,
+        documentsApi,
         customDomain: {
           http: customHttp,
           dns: customDns,
