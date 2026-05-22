@@ -204,7 +204,35 @@ function pickDocument(topicId: string, index: number) {
   return matches[index % Math.max(matches.length, 1)]
 }
 
-export const intelligenceArticles: IntelligenceArticle[] = Array.from({ length: 100 }, (_, index) => {
+const mkultraGottliebArticle: IntelligenceArticle = {
+  id: "secret-programs-the-top-secret-testimony-of-cia-s-mkultra-chief-50-years-later-national-security",
+  title:
+    "The Gottlieb Transcripts: 50 Years After the CIA's MKULTRA Chief Testified, the Battle for Missing Mind-Control Records Reignites",
+  deck:
+    "Declassified Senate transcripts and a renewed push for missing FOIA documents highlight the gap between what the government admits about MKULTRA and what remains missing.",
+  topicId: "secret-programs",
+  topic: "DECLASSIFIED",
+  publishedAt: "2026-05-22",
+  heat: 93,
+  source: "National Security Archive",
+  sourceUrl: "/news/secret-programs-the-top-secret-testimony-of-cia-s-mkultra-chief-50-years-later-national-security",
+  thumbnail: {
+    glyph: "DECL",
+    sigil: "REC",
+    palette: "from-[#050504] via-[#21180d] to-[#df2f2f]",
+  },
+  body: [
+    "Fifty years after Sidney Gottlieb, the former head of the CIA's Technical Services Division, testified before a Senate health subcommittee, the National Security Archive has spotlighted the top-secret transcripts of his 1977 testimony regarding Project MKULTRA.",
+    "The historical baseline is documented fact. Declassified records housed in the CIA's FOIA Electronic Reading Room confirm that the agency spent years conducting covert behavioral modification research. Under initiatives like Subproject 47, the CIA experimented with LSD, sensory deprivation, and psychological manipulation on unwitting American and foreign citizens.",
+    "What remains unresolved is the missing paper trail. A large portion of the original archive was ordered destroyed in 1973 by then-CIA Director Richard Helms, leaving transparency advocates, historians, and courts to fight over what survived.",
+    "That record gap is the point of the story. MKULTRA is not a rumor; it is a documented program with destroyed files, delayed admissions, and unanswered questions about scope, oversight, and accountability.",
+    "The useful read is to keep the lanes separate: the public record proves the historical program existed, while viral modern theories still need primary-source support before they should be treated as established fact.",
+  ],
+  thumbnailPrompt:
+    "Inverted World thumbnail for the Gottlieb MKULTRA transcripts: declassified records, intelligence history, amber-black editorial palette, no fake documents, no faces.",
+}
+
+const generatedIntelligenceArticles: IntelligenceArticle[] = Array.from({ length: 100 }, (_, index) => {
   const lane = lanes[index % lanes.length]
   const frame = frames[Math.floor(index / lanes.length) % frames.length]
   const hook = lane.hooks[index % lane.hooks.length]
@@ -216,7 +244,7 @@ export const intelligenceArticles: IntelligenceArticle[] = Array.from({ length: 
   const day = 18 - (index % 9)
   const publishedAt = `2026-05-${String(Math.max(day, 1)).padStart(2, "0")}`
   const heat = 99 - (index % 40)
-  const title = `${lane.topic}: ${frame}`
+  const title = `${frame}: ${hook}`
   const deck = `${hook}. ${source} is the first stop; ${video?.title || "the archive"} is the media hook.`
 
   return {
@@ -247,3 +275,5 @@ export const intelligenceArticles: IntelligenceArticle[] = Array.from({ length: 
       "cinematic mystery lighting, no faces, no photoreal claims, no fake documents, Inverted World style.",
   }
 })
+
+export const intelligenceArticles: IntelligenceArticle[] = [mkultraGottliebArticle, ...generatedIntelligenceArticles]

@@ -14,6 +14,15 @@ type PageProps = {
   }
 }
 
+const articlePrimarySources: Record<string, ClaimSourceLink> = {
+  "secret-programs-the-top-secret-testimony-of-cia-s-mkultra-chief-50-years-later-national-security": {
+    title: "The Top Secret Testimony of CIA's MKULTRA Chief, 50 Years Later",
+    url: "https://nsarchive.gwu.edu/briefing-book/intelligence/2025-09-04/top-secret-testimony-cias-mkultra-chief-50-years-later",
+    outlet: "National Security Archive",
+    sourceKind: "archive",
+  },
+}
+
 export const dynamic = "force-dynamic"
 export const revalidate = 300
 
@@ -56,6 +65,7 @@ function formatDate(value?: string) {
 function primarySource(article?: IntelligenceArticle | null, dossier?: ClaimDossier | null): ClaimSourceLink | undefined {
   const dossierSource = dossier?.sourceLinks.find((source) => isExternalUrl(source.url))
   if (dossierSource) return dossierSource
+  if (article?.id && articlePrimarySources[article.id]) return articlePrimarySources[article.id]
   if (article && isExternalUrl(article.sourceUrl)) {
     return {
       title: article.title,
