@@ -858,7 +858,10 @@ async function fetchJinaProfilePostsForTopic(topicId: string, limit: number) {
     .slice(0, limit)
 }
 
-export async function fetchViralXPostsForTopic(topicId: string, options: { limit?: number } & ProviderFallbackOptions = {}) {
+export async function fetchViralXPostsForTopic(
+  topicId: string,
+  options: { limit?: number; allowProfileReader?: boolean } & ProviderFallbackOptions = {},
+) {
   const limit = Math.max(1, Math.min(Math.trunc(options.limit || 12), 24))
   const recursivPosts = (await fetchRecursivXSignalsForTopic(topicId, { limit })) || []
   const recursivRankedPosts = mergeWithSeededPosts(topicId, recursivPosts, limit)
@@ -869,7 +872,7 @@ export async function fetchViralXPostsForTopic(topicId: string, options: { limit
     fetchBraveIndexedXPosts(topicId, limit).catch(() => []),
     fetchExaIndexedXPosts(topicId, limit).catch(() => []),
     fetchSyndicatedPriorityPosts(topicId, limit).catch(() => []),
-    fetchJinaProfilePostsForTopic(topicId, limit).catch(() => []),
+    options.allowProfileReader ? fetchJinaProfilePostsForTopic(topicId, limit).catch(() => []) : Promise.resolve([]),
   ])
   const rankedPosts = dedupePosts([...xPosts, ...indexedPosts, ...exaPosts, ...syndicatedPosts, ...profilePosts]).sort(
     (left, right) => (right.score || 0) - (left.score || 0),

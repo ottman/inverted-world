@@ -620,6 +620,7 @@ async function runTopicPulseForTopic(
   sdk: RecursivServerClient,
   config: RecursivDatabaseConfig,
   topic: (typeof topics)[number],
+  options: { limit: number; profileReader: boolean },
 ) {
   const articles = await fetchLiveArticlesForTopic(topic.id, topic.query.replaceAll('"', ""), {
     allowProviderFallbacks: true,
@@ -647,8 +648,12 @@ async function runTopicPulseForTopic(
     ],
   })
 
-  await clearXProfileReaderSignals(sdk, config.projectId, config.databaseName, topic.id)
-  const posts = await fetchViralXPostsForTopic(topic.id, { limit: 24, allowProviderFallbacks: true }).catch(() => [])
+  if (options.profileReader) await clearXProfileReaderSignals(sdk, config.projectId, config.databaseName, topic.id)
+  const posts = await fetchViralXPostsForTopic(topic.id, {
+    limit: options.limit,
+    allowProviderFallbacks: true,
+    allowProfileReader: options.profileReader,
+  }).catch(() => [])
   for (const post of posts) {
     await upsertXSignal(sdk, config.projectId, config.databaseName, post)
   }
@@ -656,20 +661,24 @@ async function runTopicPulseForTopic(
   return { topicId: topic.id, coverageSnapshots: 1, xSignals: posts.length }
 }
 
-export async function syncTopicPulseToRecursiv() {
+export async function syncTopicPulseToRecursiv(options: { limit?: number; profileReader?: boolean } = {}) {
   const { sdk, config } = getInvertedWorldDatabase()
   const concurrency = topicPulseConcurrency()
+  const limit = Math.max(1, Math.min(Math.trunc(options.limit || 24), 24))
+  const profileReader = options.profileReader === true
   const results: Array<{ topicId: string; coverageSnapshots: number; xSignals: number }> = []
 
   for (let offset = 0; offset < topics.length; offset += concurrency) {
     const batch = topics.slice(offset, offset + concurrency)
-    results.push(...(await Promise.all(batch.map((topic) => runTopicPulseForTopic(sdk, config, topic)))))
+    results.push(...(await Promise.all(batch.map((topic) => runTopicPulseForTopic(sdk, config, topic, { limit, profileReader })))))
   }
 
   return {
     coverageSnapshots: results.reduce((sum, result) => sum + result.coverageSnapshots, 0),
     xSignals: results.reduce((sum, result) => sum + result.xSignals, 0),
     concurrency,
+    limit,
+    profileReader,
     topics: results,
   }
 }

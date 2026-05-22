@@ -9,6 +9,10 @@ export async function POST(request: NextRequest) {
   const unauthorized = authorizeRecursivJob(request)
   if (unauthorized) return unauthorized
 
-  const result = await syncTopicPulseToRecursiv()
+  const url = new URL(request.url)
+  const result = await syncTopicPulseToRecursiv({
+    limit: Number(url.searchParams.get("limit") || "") || undefined,
+    profileReader: url.searchParams.get("profileReader") === "1",
+  })
   return NextResponse.json({ ok: true, job: "topic-pulse", ...result })
 }
