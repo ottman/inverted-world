@@ -422,6 +422,7 @@ function claimDossierRowToDossier(row: ClaimDossierRow): ClaimDossier {
 
 function normalizedUrlKey(value?: string) {
   if (!value) return ""
+  if (value.startsWith("/news/")) return ""
   try {
     const url = new URL(value)
     return `${url.hostname.replace(/^www\./, "")}${url.pathname}`.toLowerCase()
@@ -431,19 +432,38 @@ function normalizedUrlKey(value?: string) {
 }
 
 function normalizedTextKey(value: string) {
-  return value
+  const normalized = value
     .toLowerCase()
     .replace(/^[^:]{2,40}:\s*/, "")
     .replace(/[''"]/g, "")
     .replace(/\b(the|a|an|and|or|after|following|amid|over|into|from|with|to|of|for|on|in|as)\b/g, " ")
     .replace(/[^a-z0-9]+/g, " ")
     .trim()
+
+  return normalized
     .split(/\s+/)
+    .map((word) => (word.length > 4 ? word.replace(/s$/, "") : word))
     .slice(0, 10)
     .join(" ")
 }
 
+function dossierClusterTextKey(value: string) {
+  const normalized = normalizedTextKey(value)
+  const tokens = new Set(normalized.split(/\s+/).filter(Boolean))
+  if (tokens.has("epstein") && tokens.has("library")) return "epstein-library"
+  if (tokens.has("pursue") && tokens.has("protocol")) return "pursue-protocol"
+  if (tokens.has("swarm") && (tokens.has("drone") || tokens.has("drones"))) return "swarm-drones"
+  if (tokens.has("mkultra") && (tokens.has("gottlieb") || tokens.has("chief"))) return "mkultra-gottlieb"
+  if (tokens.has("maven") && tokens.has("mars")) return "maven-mars"
+  if ((tokens.has("bfro") || tokens.has("bigfoot")) && (tokens.has("sighting") || tokens.has("database"))) {
+    return "bfro-bigfoot"
+  }
+  return normalized
+}
+
 function dossierDedupKey(dossier: ClaimDossier) {
+  const textKey = dossierClusterTextKey(dossier.title || dossier.claim)
+  if (textKey) return `${dossier.topicId}:text:${textKey}`
   const leadSource = normalizedUrlKey(dossier.sourceLinks[0]?.url)
   if (leadSource) return `${dossier.topicId}:source:${leadSource}`
   return `${dossier.topicId}:title:${normalizedTextKey(dossier.title || dossier.claim)}`
