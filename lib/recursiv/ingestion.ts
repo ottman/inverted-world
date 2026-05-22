@@ -139,8 +139,12 @@ export async function ensureInvertedWorldSchema() {
   return { sdk, config }
 }
 
+function getInvertedWorldDatabase() {
+  return createRecursivServerClient({ timeout: 120000 })
+}
+
 export async function syncYouTubeArchiveToRecursiv() {
-  const { sdk, config } = await ensureInvertedWorldSchema()
+  const { sdk, config } = getInvertedWorldDatabase()
   const fullSync = process.env.YOUTUBE_ARCHIVE_FULL_SYNC === "1"
   const videos = fullSync ? (await fetchYouTubeDataApi()) || (await fetchYouTubeRss()) : await fetchYouTubeRss()
 
@@ -193,7 +197,7 @@ export async function syncYouTubeArchiveToRecursiv() {
 }
 
 export async function syncTopicPulseToRecursiv() {
-  const { sdk, config } = await ensureInvertedWorldSchema()
+  const { sdk, config } = getInvertedWorldDatabase()
   let coverageCount = 0
   let xCount = 0
 
@@ -277,7 +281,7 @@ async function upsertXSignal(sdk: RecursivServerClient, projectId: string, datab
 }
 
 export async function generateArticleDraftsInRecursiv() {
-  const { sdk, config } = await ensureInvertedWorldSchema()
+  const { sdk, config } = getInvertedWorldDatabase()
   const { data } = await sdk.databases.query({
     project_id: config.projectId,
     database_name: config.databaseName,
@@ -368,7 +372,7 @@ export async function generateArticleDraftsInRecursiv() {
 }
 
 export async function generateImagesForDraftsInRecursiv() {
-  const { sdk, config } = await ensureInvertedWorldSchema()
+  const { sdk, config } = getInvertedWorldDatabase()
   const { data } = await sdk.databases.query({
     project_id: config.projectId,
     database_name: config.databaseName,
@@ -418,7 +422,7 @@ export async function generateImagesForDraftsInRecursiv() {
 }
 
 export async function publishReadyDraftsInRecursiv() {
-  const { sdk, config } = await ensureInvertedWorldSchema()
+  const { sdk, config } = getInvertedWorldDatabase()
   const { data } = await sdk.databases.query({
     project_id: config.projectId,
     database_name: config.databaseName,
