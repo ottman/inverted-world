@@ -1199,7 +1199,7 @@ export async function publishFrontPageEditionInRecursiv() {
       editionDate,
       headline,
       deck,
-      leadDossier?.slug || null,
+      leadDossier?.slug || "",
       JSON.stringify(sections),
       JSON.stringify(metrics),
       JSON.stringify({ generatedBy: "recursiv-front-page-edition-v1" }),
