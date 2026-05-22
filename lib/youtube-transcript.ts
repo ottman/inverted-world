@@ -69,31 +69,29 @@ function parseJson3Transcript(data: unknown): TranscriptSegment[] {
     .events
 
   return (events || [])
-    .map((event) => {
+    .flatMap((event): TranscriptSegment[] => {
       const text = stripTranscriptText((event.segs || []).map((segment) => segment.utf8 || "").join(""))
-      if (!text) return undefined
-      return {
+      if (!text) return []
+      return [{
         start: (event.tStartMs || 0) / 1000,
         duration: event.dDurationMs ? event.dDurationMs / 1000 : undefined,
         text,
-      } satisfies TranscriptSegment
+      }]
     })
-    .filter((segment): segment is TranscriptSegment => Boolean(segment))
 }
 
 function parseXmlTranscript(xml: string): TranscriptSegment[] {
   return [...xml.matchAll(/<text\b([^>]*)>([\s\S]*?)<\/text>/gi)]
-    .map((match) => {
+    .flatMap((match): TranscriptSegment[] => {
       const attributes = readAttributes(match[1])
       const text = stripTranscriptText(match[2])
-      if (!text) return undefined
-      return {
+      if (!text) return []
+      return [{
         start: Number(attributes.get("start") || "0"),
         duration: attributes.get("dur") ? Number(attributes.get("dur")) : undefined,
         text,
-      } satisfies TranscriptSegment
+      }]
     })
-    .filter((segment): segment is TranscriptSegment => Boolean(segment))
 }
 
 async function fetchTranscriptUrl(url: URL) {

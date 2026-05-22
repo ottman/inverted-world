@@ -419,7 +419,7 @@ function frontPageEditionRowToEdition(row: FrontPageEditionRow): FrontPageEditio
 
 function pipelineRunRowToStatus(row: PipelineRunRow): PipelineRunStatus {
   const steps = jsonArray(row.results)
-    .map((value) => {
+    .map<PipelineRunStatus["steps"][number] | null>((value) => {
       const item = jsonObject(value)
       const step = typeof item.step === "string" ? item.step : ""
       if (!step) return null
@@ -430,19 +430,25 @@ function pipelineRunRowToStatus(row: PipelineRunRow): PipelineRunStatus {
         error: typeof item.error === "string" ? item.error : undefined,
       }
     })
-    .filter((item): item is PipelineRunStatus["steps"][number] => Boolean(item))
+    .filter((item): item is PipelineRunStatus["steps"][number] => item !== null)
+
+  const startedAt = row.started_at || ""
+  const startedAtMs = startedAt ? new Date(startedAt).getTime() : Number.NaN
+  const staleRunning =
+    row.status === "running" &&
+    (!Number.isFinite(startedAtMs) || Date.now() - startedAtMs > 30 * 60 * 1000)
 
   return {
     id: row.id || "pipeline-run",
     jobName: row.job_name || "full-pipeline",
-    status: row.status || "unknown",
-    startedAt: row.started_at || "",
+    status: staleRunning ? "stale_running" : row.status || "unknown",
+    startedAt,
     completedAt: row.completed_at || "",
-    durationMs: Number(row.duration_ms || 0),
+    durationMs: staleRunning && Number.isFinite(startedAtMs) ? Date.now() - startedAtMs : Number(row.duration_ms || 0),
     stepCount: steps.length,
     failedStepCount: steps.filter((step) => !step.ok).length,
     steps,
-    error: row.error || "",
+    error: staleRunning ? "Pipeline run did not complete within 30 minutes." : row.error || "",
     metadata: jsonObject(row.metadata),
   }
 }

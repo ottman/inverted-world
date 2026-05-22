@@ -89,7 +89,7 @@ The existing endpoints should evolve into this contract:
 - `/api/archive`: source of truth for YouTube archive and video IDs.
 - `/archive/[videoId]`: SEO and LLM-readable per-video dossier.
 - `/api/articles`: daily merged feed of current news plus evergreen article inventory.
-- `/api/autopost/daily`: daily issue packet for site/social/newsletter/video.
+- `/api/autopost/daily`: Recursiv-backed daily issue packet for site, X, newsletter, short-video scripting, source packs, image prompts, and guardrails.
 - `/llms.txt`: LLM-readable index of the archive and dossiers.
 - `/sitemap.xml`: crawler index for all article and video dossier URLs.
 
