@@ -11,7 +11,7 @@ export type ViralXPost = {
   authorName?: string
   username?: string
   createdAt?: string
-  source?: "x-api" | "brave-search" | "x-syndication" | "seed"
+  source?: "x-api" | "brave-search" | "exa-search" | "x-syndication" | "seed"
   score?: number
   metrics?: {
     likes?: number
@@ -24,6 +24,7 @@ export type ViralXPost = {
 
 const X_TIMEOUT_MS = 6500
 const BRAVE_TIMEOUT_MS = 6500
+const EXA_X_TIMEOUT_MS = 9000
 const X_SYNDICATION_TIMEOUT_MS = 6500
 const configuredMinViralScore = process.env.X_MIN_VIRAL_SCORE ? Number(process.env.X_MIN_VIRAL_SCORE) : undefined
 export const X_FRESHNESS_WINDOW_HOURS = 24 * 7
@@ -541,6 +542,96 @@ async function fetchBraveIndexedXPosts(topicId: string, limit: number) {
     .slice(0, limit)
 }
 
+async function fetchExaXSearchResults(query: string) {
+  const token = process.env.EXA_API_KEY || process.env.EXA_SEARCH_API_KEY
+  if (!token) return []
+
+  const response = await fetch("https://api.exa.ai/search", {
+    method: "POST",
+    next: { revalidate: 1800 },
+    signal: AbortSignal.timeout(EXA_X_TIMEOUT_MS),
+    headers: {
+      "content-type": "application/json",
+      "user-agent": "InvertedWorldXSignals/1.0",
+      "x-api-key": token,
+    },
+    body: JSON.stringify({
+      query,
+      type: "auto",
+      numResults: 10,
+      contents: {
+        highlights: true,
+      },
+    }),
+  })
+
+  if (!response.ok) return []
+
+  const data = (await response.json()) as {
+    results?: Array<{
+      id?: string
+      title?: string
+      url?: string
+      author?: string
+      publishedDate?: string
+      highlights?: string[]
+    }>
+  }
+
+  return data.results || []
+}
+
+async function fetchExaIndexedXPosts(topicId: string, limit: number) {
+  const token = process.env.EXA_API_KEY || process.env.EXA_SEARCH_API_KEY
+  if (!token) return [] satisfies ViralXPost[]
+
+  const topic = topics.find((item) => item.id === topicId)
+  if (!topic) return [] satisfies ViralXPost[]
+
+  const queryTerms = getTopicXQueries(topic)
+    .slice(0, queryPackLimit() + 1)
+    .map((query) =>
+      query
+        .replace(/[()"]/g, " ")
+        .replace(/\bOR\b/g, " ")
+        .replace(/\s+/g, " ")
+        .trim(),
+    )
+  const priorityAccounts = PRIORITY_X_ACCOUNTS.map((account) => `site:x.com/${account}`).join(" OR ")
+  const results = await Promise.all([
+    ...queryTerms.map((query) => fetchExaXSearchResults(`${query} site:x.com status thread documents breaking`)),
+    ...queryTerms.slice(0, 2).map((query) => fetchExaXSearchResults(`${query} ${priorityAccounts}`)),
+  ])
+  const seen = new Set<string>()
+
+  return results
+    .flat()
+    .map((result, index): ViralXPost | undefined => {
+      const status = extractXStatusUrl(result.url)
+      if (!status || seen.has(status.id)) return undefined
+      seen.add(status.id)
+
+      const title = cleanSearchText(result.title)
+      const highlight = cleanSearchText(result.highlights?.find(Boolean))
+      const text = title || highlight || `${topic.title} signal on X`
+      if (!matchesTopicText(topicId, `${text} ${highlight}`)) return undefined
+
+      return {
+        id: status.id,
+        url: status.url,
+        text,
+        topicId,
+        username: status.username,
+        createdAt: status.createdAt,
+        source: "exa-search",
+        score: Math.max(20, 100 - index),
+      }
+    })
+    .filter((post): post is ViralXPost => Boolean(post))
+    .filter((post) => isFreshXPost(post))
+    .slice(0, limit)
+}
+
 async function fetchSyndicatedPriorityPosts(topicId: string, limit: number) {
   const posts = await Promise.all(
     PRIORITY_X_ACCOUNTS.map(async (account) => {
@@ -635,12 +726,13 @@ export async function fetchViralXPostsForTopic(topicId: string, options: { limit
   if (recursivPosts?.length) return mergeWithSeededPosts(topicId, recursivPosts, limit)
   if (!allowProviderFallbacks(options)) return mergeWithSeededPosts(topicId, [], limit)
 
-  const [xPosts, indexedPosts, syndicatedPosts] = await Promise.all([
+  const [xPosts, indexedPosts, exaPosts, syndicatedPosts] = await Promise.all([
     fetchXApiPosts(topicId, limit).catch(() => []),
     fetchBraveIndexedXPosts(topicId, limit).catch(() => []),
+    fetchExaIndexedXPosts(topicId, limit).catch(() => []),
     fetchSyndicatedPriorityPosts(topicId, limit).catch(() => []),
   ])
-  const rankedPosts = dedupePosts([...xPosts, ...indexedPosts, ...syndicatedPosts]).sort(
+  const rankedPosts = dedupePosts([...xPosts, ...indexedPosts, ...exaPosts, ...syndicatedPosts]).sort(
     (left, right) => (right.score || 0) - (left.score || 0),
   )
 
