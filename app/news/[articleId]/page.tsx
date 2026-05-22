@@ -1,7 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
 import { ArrowLeft, ArrowUpRight, Gauge, MessageSquare, Radio } from "lucide-react"
-import { notFound } from "next/navigation"
 import { DossierChat } from "@/components/dossier-chat"
 import { archiveSurface, InvertedPageShell, type BreakingItem } from "@/components/inverted-page-shell"
 import { getRecursivClaimDossier } from "@/lib/recursiv/content"
@@ -21,9 +20,28 @@ function formatScore(value: number) {
   return String(Math.round(value))
 }
 
+function titleFromSlug(slug: string) {
+  try {
+    return decodeURIComponent(slug)
+      .replace(/[-_]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+  } catch {
+    return slug.replace(/[-_]+/g, " ").trim()
+  }
+}
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const dossier = await getRecursivClaimDossier(params.articleId)
-  if (!dossier) return { title: "Inverted World dossier" }
+  if (!dossier) {
+    return {
+      title: "Inverted World dossier",
+      robots: {
+        index: false,
+        follow: true,
+      },
+    }
+  }
 
   return {
     title: dossier.title,
@@ -50,7 +68,35 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function NewsArticlePage({ params }: PageProps) {
   const dossier = await getRecursivClaimDossier(params.articleId)
-  if (!dossier) notFound()
+  if (!dossier) {
+    return (
+      <InvertedPageShell
+        eyebrow="Research desk"
+        title="Dossier Recovery"
+        breakingItems={[]}
+        heroTitle={titleFromSlug(params.articleId) || "Dossier Recovery"}
+        heroDescription="This file is being refreshed. Continue through the current desk, archive, or source shelf."
+      >
+        <section className={cn("grid gap-4 p-5 text-sm leading-6 text-[#f4efe2]/68", archiveSurface)}>
+          <p>Use the live desk and Tales archive to continue the trail while this dossier refreshes.</p>
+          <div className="flex flex-wrap gap-2">
+            <a href="/news" className="inline-flex items-center gap-2 bg-black/30 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-black/54">
+              News desk
+              <ArrowUpRight className="h-4 w-4 text-[#df2f2f]" />
+            </a>
+            <a href="/archive" className="inline-flex items-center gap-2 bg-black/30 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-black/54">
+              Tales archive
+              <ArrowUpRight className="h-4 w-4 text-[#df2f2f]" />
+            </a>
+            <a href="/documents" className="inline-flex items-center gap-2 bg-black/30 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-black/54">
+              Source shelf
+              <ArrowUpRight className="h-4 w-4 text-[#df2f2f]" />
+            </a>
+          </div>
+        </section>
+      </InvertedPageShell>
+    )
+  }
 
   const breakingItems: BreakingItem[] = [
     ...dossier.xSignals.slice(0, 8).map((post) => ({

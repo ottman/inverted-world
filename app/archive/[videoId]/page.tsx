@@ -1,6 +1,5 @@
 import type { Metadata } from "next"
-import { ArrowLeft, Play } from "lucide-react"
-import { notFound } from "next/navigation"
+import { ArrowLeft, ArrowUpRight, Play } from "lucide-react"
 import { archiveSurface, InvertedPageShell, type BreakingItem } from "@/components/inverted-page-shell"
 import { getArchiveVideo, getRecommendedArchiveVideos } from "@/lib/deep-archive"
 import { buildVideoDossier, videoDossierJsonLd } from "@/lib/video-dossier"
@@ -70,7 +69,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const video = await getArchiveVideo(params.videoId)
   if (!video) {
     return {
-      title: "Inverted World archive",
+      title: "Tales archive video",
+      robots: {
+        index: false,
+        follow: true,
+      },
     }
   }
 
@@ -127,7 +130,51 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function ArchiveVideoPage({ params }: PageProps) {
   const video = await getArchiveVideo(params.videoId)
-  if (!video) notFound()
+  if (!video) {
+    const youtubeUrl = `https://www.youtube.com/watch?v=${encodeURIComponent(params.videoId)}`
+    return (
+      <InvertedPageShell
+        eyebrow="Tales archive"
+        title="Tales archive video"
+        breakingItems={[]}
+        heroTitle="Tales archive video"
+        heroDescription="This archive entry is being refreshed. The source video and surrounding archive remain available."
+      >
+        <div className="mb-6">
+          <a
+            href="/archive"
+            className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#f4efe2]/58 transition hover:text-[#df2f2f]"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Archive
+          </a>
+        </div>
+
+        <section className={cn("grid gap-4 p-5 text-sm leading-6 text-[#f4efe2]/68", archiveSurface)}>
+          <p>Continue with the original upload, then return to the archive for related Tales and current dossiers.</p>
+          <div className="flex flex-wrap gap-2">
+            <a
+              href={youtubeUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2 bg-[#df2f2f]/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-[#df2f2f]/18"
+            >
+              Watch on YouTube
+              <ArrowUpRight className="h-4 w-4" />
+            </a>
+            <a href="/archive" className="inline-flex items-center gap-2 bg-black/30 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-black/54">
+              Full archive
+              <ArrowUpRight className="h-4 w-4 text-[#df2f2f]" />
+            </a>
+            <a href="/news" className="inline-flex items-center gap-2 bg-black/30 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-black/54">
+              News desk
+              <ArrowUpRight className="h-4 w-4 text-[#df2f2f]" />
+            </a>
+          </div>
+        </section>
+      </InvertedPageShell>
+    )
+  }
 
   const dossier = buildVideoDossier(video)
   const canonicalUrl = `https://www.inverted.world/archive/${params.videoId}`
