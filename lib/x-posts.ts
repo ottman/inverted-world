@@ -28,7 +28,7 @@ const configuredMinViralScore = Number(process.env.X_MIN_VIRAL_SCORE || "250")
 const MIN_VIRAL_X_SCORE = Number.isFinite(configuredMinViralScore) ? configuredMinViralScore : 250
 export const X_FRESHNESS_WINDOW_HOURS = 24 * 7
 const X_EPOCH_MS = 1_288_834_974_657n
-const PRIORITY_X_ACCOUNTS = ["ShaneCashman"] as const
+const PRIORITY_X_ACCOUNTS = ["Timcast", "TimcastNews", "ShaneCashman", "InvertedTales"] as const
 const X_STATUS_URL_PATTERN =
   /https?:\/\/(?:www\.)?(?:x\.com|twitter\.com)\/(?!i\/web)([A-Za-z0-9_]{1,20})\/status(?:es)?\/(\d+)/i
 
