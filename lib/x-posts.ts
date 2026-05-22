@@ -766,9 +766,9 @@ async function fetchSyndicatedPriorityPosts(topicId: string, limit: number) {
 
 export async function fetchViralXPostsForTopic(topicId: string, options: { limit?: number } & ProviderFallbackOptions = {}) {
   const limit = Math.max(1, Math.min(Math.trunc(options.limit || 12), 24))
-  const recursivPosts = await fetchRecursivXSignalsForTopic(topicId, { limit })
-  if (recursivPosts?.length) return mergeWithSeededPosts(topicId, recursivPosts, limit)
-  if (!allowProviderFallbacks(options)) return mergeWithSeededPosts(topicId, [], limit)
+  const recursivPosts = (await fetchRecursivXSignalsForTopic(topicId, { limit })) || []
+  const recursivRankedPosts = mergeWithSeededPosts(topicId, recursivPosts, limit)
+  if (recursivRankedPosts.length >= limit || !allowProviderFallbacks(options)) return recursivRankedPosts
 
   const [xPosts, indexedPosts, exaPosts, syndicatedPosts] = await Promise.all([
     fetchXApiPosts(topicId, limit).catch(() => []),
@@ -780,5 +780,5 @@ export async function fetchViralXPostsForTopic(topicId: string, options: { limit
     (left, right) => (right.score || 0) - (left.score || 0),
   )
 
-  return mergeWithSeededPosts(topicId, rankedPosts, limit)
+  return mergeWithSeededPosts(topicId, [...recursivPosts, ...rankedPosts], limit)
 }

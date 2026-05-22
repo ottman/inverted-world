@@ -644,7 +644,7 @@ export async function syncTopicPulseToRecursiv() {
     })
     coverageCount += 1
 
-    const posts = await fetchViralXPostsForTopic(topic.id, { limit: 12, allowProviderFallbacks: true }).catch(() => [])
+    const posts = await fetchViralXPostsForTopic(topic.id, { limit: 24, allowProviderFallbacks: true }).catch(() => [])
     for (const post of posts) {
       await upsertXSignal(sdk, config.projectId, config.databaseName, post)
       xCount += 1
