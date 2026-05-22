@@ -26,9 +26,9 @@ Custom-domain cutover proof is explicit: `pnpm recursiv:cutover` checks the Recu
 
 ## Problem
 
-The site is still mostly a live-rendered frontend with fetch helpers. It is not yet a serious AI news machine because:
+The site has moved into a Recursiv-backed shape, but it is not yet a serious AI news machine because:
 
-- Recursiv tables now exist for `channel_items`, `coverage_snapshots`, `x_signals`, `article_drafts`, and `generated_assets`, but only the YouTube archive seed has been proven live so far;
+- Recursiv tables now exist for archive, news, X, dossiers, front-page editions, media items, source documents, generated assets, and pipeline runs, but production is currently using committed Recursiv snapshots while the runtime database key is rate-limited;
 - The next product layer is `claim_dossiers`, `claim_sources`, and `claim_chat_messages`: comparative coverage pages for conspiracy/anomaly claims with source split, X velocity, evidence grading, Tales archive context, viral headline variants, and AI chat history.
 - scheduled Recursiv jobs are implemented as authenticated route targets and have been provisioned against the Recursiv-hosted URL with `CRON_SECRET`;
 - `scripts/provision-recursiv-backend.mjs --with-jobs` is the desired-state manifest for the Recursiv scheduled jobs, including the bounded full-pipeline refresh and pipeline-maintenance cleanup job;
