@@ -103,7 +103,7 @@ export function XSignalPage({ topic, initialPosts }: { topic: ContentTopic; init
           </div>
         ) : (
           <div className="bg-black/36 p-4 text-sm text-[#f4efe2]/62">
-            No embeddable posts found this week. The live search is still available.
+            No ranked posts passed the filters yet. The live search is still available.
           </div>
         )}
       </section>

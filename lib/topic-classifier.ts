@@ -14,19 +14,35 @@ const TOPIC_MATCHERS: TopicMatcher[] = [
   },
   {
     topicId: "epstein-networks",
-    words: ["epstein", "maxwell", "island", "sealed", "client list", "court record", "flight log", "docket"],
+    words: [
+      "epstein",
+      "maxwell",
+      "ghislaine",
+      "zorro ranch",
+      "wexner",
+      "client list",
+      "flight log",
+      "flight logs",
+      "sealed names",
+      "co-conspirator",
+      "co-conspirators",
+      "pedophile network",
+      "powerful families",
+      "blackmail network",
+      "elite access",
+    ],
   },
   {
     topicId: "cryptids-paranormal",
-    words: ["cryptid", "bigfoot", "sasquatch", "ghost", "paranormal", "apocalyptic", "haunted", "demon", "folklore", "pterodactyl", "skinwalker"],
+    words: ["cryptid", "bigfoot", "sasquatch", "ghost", "paranormal", "apocalyptic", "haunted", "demon", "folklore", "pterodactyl", "skinwalker", "baba vanga"],
   },
   {
     topicId: "ai-technocracy",
-    words: ["ai", "data center", "data centers", "surveillance", "technocracy", "algorithm", "machine", "synthetic", "robot", "palantir", "digital id"],
+    words: ["ai", "data center", "data centers", "surveillance", "technocracy", "algorithm", "machine", "synthetic", "robot", "palantir", "digital id", "transhuman"],
   },
   {
     topicId: "space-anomalies",
-    words: ["bermuda", "nasa", "moon", "mars", "meteor", "space", "satellite", "solar", "ocean", "asteroid", "comet"],
+    words: ["bermuda", "nasa", "moon", "mars", "meteor", "space", "satellite", "solar", "ocean", "asteroid", "comet", "geomagnetic"],
   },
 ]
 

@@ -99,7 +99,7 @@ export default async function NewsArticlePage({ params }: PageProps) {
           <section className="bg-[#050504]/42 p-4">
             <h2 className="iw-serif text-3xl leading-none text-[#fff8e6]">Source Split</h2>
             <div className="mt-4 grid gap-2">
-              {dossier.sourceLinks.map((source) => (
+              {dossier.sourceLinks.length ? dossier.sourceLinks.map((source) => (
                 <a
                   key={source.url}
                   href={source.url}
@@ -119,7 +119,11 @@ export default async function NewsArticlePage({ params }: PageProps) {
                   </span>
                   <ArrowUpRight className="h-4 w-4 text-[#df2f2f]" />
                 </a>
-              ))}
+              )) : (
+                <a href="/documents" className="bg-black/28 p-3 text-sm leading-6 text-[#f4efe2]/62 transition hover:text-[#fff8e6]">
+                  Open the source document shelf.
+                </a>
+              )}
             </div>
           </section>
         </div>
@@ -135,18 +139,22 @@ export default async function NewsArticlePage({ params }: PageProps) {
           <section className="bg-[#050504]/42 p-4">
             <h2 className="iw-serif text-3xl leading-none text-[#fff8e6]">Viral Headlines</h2>
             <div className="mt-4 grid gap-2">
-              {dossier.viralHeadlines.map((headline) => (
+              {dossier.viralHeadlines.length ? dossier.viralHeadlines.map((headline) => (
                 <p key={headline} className="bg-black/28 p-3 text-sm leading-5 text-[#f4efe2]/72">
                   {headline}
                 </p>
-              ))}
+              )) : (
+                <a href="/news" className="bg-black/28 p-3 text-sm leading-6 text-[#f4efe2]/62 transition hover:text-[#fff8e6]">
+                  Open the latest dossiers.
+                </a>
+              )}
             </div>
           </section>
 
           <section className="bg-[#050504]/42 p-4">
             <h2 className="iw-serif text-3xl leading-none text-[#fff8e6]">Tales Context</h2>
             <div className="mt-4 grid gap-3">
-              {dossier.relatedVideos.map((video) => (
+              {dossier.relatedVideos.length ? dossier.relatedVideos.map((video) => (
                 <a
                   key={video.href}
                   href={video.videoId ? `/archive/${video.videoId}` : video.href}
@@ -160,7 +168,11 @@ export default async function NewsArticlePage({ params }: PageProps) {
                   </span>
                   <span className="line-clamp-3 text-sm leading-5 text-[#fff8e6]">{video.title}</span>
                 </a>
-              ))}
+              )) : (
+                <a href="/archive" className="bg-black/28 p-3 text-sm leading-6 text-[#f4efe2]/62 transition hover:text-[#fff8e6]">
+                  Open the full Tales archive.
+                </a>
+              )}
             </div>
           </section>
         </aside>

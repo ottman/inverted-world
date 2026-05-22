@@ -141,8 +141,19 @@ export default async function NewsPage() {
           </aside>
         </section>
       ) : (
-        <section className={cn("p-6 text-sm leading-6 text-[#f4efe2]/62", archiveSurface)}>
-          No published claim dossiers yet. Run the Recursiv topic pulse and claim-dossier jobs to fill this desk.
+        <section className={cn("grid gap-4 p-6 text-sm leading-6 text-[#f4efe2]/62", archiveSurface)}>
+          <p>No published claim dossiers are ready yet. Start with the archive, live X lanes, or source documents while the desk fills in.</p>
+          <div className="flex flex-wrap gap-2">
+            <a href="/archive" className="bg-black/30 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-black/54">
+              Archive
+            </a>
+            <a href="/#topic-epstein-networks" className="bg-black/30 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-black/54">
+              Power Web
+            </a>
+            <a href="/how-it-works" className="bg-black/30 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-black/54">
+              How It Works
+            </a>
+          </div>
         </section>
       )}
 

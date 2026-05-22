@@ -309,7 +309,7 @@ function EmbeddedTweetGrid({ posts, topicId }: { posts: ViralXPost[]; topicId: s
         href={`/x/${topicId}`}
         className="block bg-black p-4 text-sm leading-6 text-[#f4efe2]/62 transition hover:text-[#fff8e6]"
       >
-        No embeddable X posts found this week. Open the signal stream.
+        No ranked X posts passed the filters yet. Open the signal stream.
       </a>
     )
   }
@@ -432,9 +432,9 @@ function LiveFeed({ topicTitle, articles }: { topicTitle: string; articles: Inte
           </a>
         ))}
         {!articles.length && (
-          <div className="bg-[#050504]/24 p-3 text-sm text-[#f4efe2]/56">
-            Feed unavailable right now.
-          </div>
+          <a href="/news" className="block bg-[#050504]/24 p-3 text-sm text-[#f4efe2]/56 transition hover:text-[#fff8e6]">
+            Open the news desk for current dossiers and source clusters.
+          </a>
         )}
       </div>
     </div>
@@ -479,9 +479,9 @@ function VideoGrid({ videos }: { videos: ChannelVideo[] }) {
         )
       })}
       {!videos.length && (
-        <div className="bg-[#050504]/24 p-3 text-sm text-[#f4efe2]/56">
-          No archive videos classified here yet.
-        </div>
+        <a href="/archive" className="bg-[#050504]/24 p-3 text-sm text-[#f4efe2]/56 transition hover:text-[#fff8e6]">
+          Open the full Tales archive.
+        </a>
       )}
     </div>
   )

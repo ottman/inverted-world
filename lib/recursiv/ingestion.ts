@@ -536,6 +536,62 @@ export async function syncYouTubeArchiveToRecursiv() {
   return { synced: videos.length, sourceMode, warnings }
 }
 
+export async function reclassifyYouTubeArchiveInRecursiv() {
+  const { sdk, config } = getInvertedWorldDatabase()
+  const { data } = await sdk.databases.query({
+    project_id: config.projectId,
+    database_name: config.databaseName,
+    sql: `SELECT id, title, description, topic_id
+      FROM channel_items
+      WHERE source = 'youtube'
+      ORDER BY published_at DESC NULLS LAST, created_at DESC`,
+  })
+
+  const rows = (data.rows || []) as Array<{ id?: string; title?: string; description?: string; topic_id?: string }>
+  const before: Record<string, number> = {}
+  const after: Record<string, number> = {}
+  const changes: Array<{ id: string; topicId: string }> = []
+
+  for (const row of rows) {
+    const id = textField(row.id)
+    const current = textField(row.topic_id) || "secret-programs"
+    const next = classifyInvertedWorldTopic(textField(row.title), textField(row.description))
+    before[current] = (before[current] || 0) + 1
+    after[next] = (after[next] || 0) + 1
+    if (id && next !== current) changes.push({ id, topicId: next })
+  }
+
+  for (let offset = 0; offset < changes.length; offset += 50) {
+    const chunk = changes.slice(offset, offset + 50)
+    const values = chunk.map((_, index) => `($${index * 2 + 1}::text, $${index * 2 + 2}::text)`).join(", ")
+    await sdk.databases.query({
+      project_id: config.projectId,
+      database_name: config.databaseName,
+      sql: `UPDATE channel_items AS item
+        SET topic_id = update_values.topic_id, updated_at = now()
+        FROM (VALUES ${values}) AS update_values(id, topic_id)
+        WHERE item.id = update_values.id`,
+      params: chunk.flatMap((change) => [change.id, change.topicId]),
+    })
+  }
+
+  const legacyDeckPrefix = ["A Ground", "News-style dossier for "].join(" ")
+  const deckResult = await sdk.databases.query({
+    project_id: config.projectId,
+    database_name: config.databaseName,
+    sql: "UPDATE claim_dossiers SET deck = replace(deck, $1, $2), updated_at = now() WHERE deck ILIKE $3 RETURNING id",
+    params: [legacyDeckPrefix, "", `%${legacyDeckPrefix.trim()}%`],
+  })
+
+  return {
+    scanned: rows.length,
+    reclassified: changes.length,
+    before,
+    after,
+    cleanedDossierDecks: deckResult.data.rows?.length || 0,
+  }
+}
+
 export async function syncTopicPulseToRecursiv() {
   const { sdk, config } = getInvertedWorldDatabase()
   let coverageCount = 0
@@ -745,7 +801,7 @@ export async function generateClaimDossiersInRecursiv() {
       params: [
         slug,
         title,
-        `A Ground News-style dossier for ${topic.title}: source split, X velocity, evidence grade, and Tales archive context.`,
+        `${topic.title} dossier: source split, X velocity, evidence grade, and Tales archive context.`,
         topic.id,
         claim,
         summary,
