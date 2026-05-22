@@ -24,7 +24,6 @@ type TopicFeeds = Record<string, IntelligenceArticle[]>
 type TopicXPosts = Record<string, ViralXPost[]>
 
 const PAGE_SIZE = 120
-const TOPIC_VIDEO_LIMIT = 8
 
 function videoKey(video: ChannelVideo) {
   return video.videoId || video.href
@@ -180,7 +179,7 @@ export function ArchiveOnlyPage({
       eyebrow="LIVE Mon - Thurs at 10 p.m. EST"
       title="inverted.world"
       breakingItems={breakingItems}
-      heroTitle="Tales From The Inverted World investigates the mysteries that lie beneath the surface of everyday life."
+      heroTitle="Tales From The Inverted World"
       heroDescription=""
     >
       <section className="grid gap-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.55fr)]">
@@ -203,7 +202,7 @@ export function ArchiveOnlyPage({
               <span>{selectedTopic.title}</span>
               <Youtube className="h-5 w-5" />
             </div>
-            <h2 className="mt-4 text-2xl font-semibold leading-tight text-[#fff8e6]">{leadVideo?.title || "Live uploads"}</h2>
+            <h2 className="iw-serif mt-4 text-3xl leading-tight text-[#fff8e6]">{leadVideo?.title || "Live uploads"}</h2>
             <p className="mt-3 text-xs uppercase tracking-[0.14em] text-[#f4efe2]/48">{leadVideo?.date || "latest upload"}</p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -237,6 +236,12 @@ export function ArchiveOnlyPage({
         posts={Object.values(initialTopicXPosts ?? {})
           .map((posts) => posts[0])
           .filter((post): post is ViralXPost => Boolean(post))}
+      />
+
+      <AboutSection
+        totalVideos={initialArchive?.totalCount || videos.length}
+        sourceMode={initialArchive?.sourceMode}
+        completeHistoryAvailable={Boolean(initialArchive?.completeHistoryAvailable)}
       />
 
       <div className="mt-6 grid gap-6">
@@ -430,12 +435,9 @@ function LiveFeed({ topicTitle, articles }: { topicTitle: string; articles: Inte
 }
 
 function VideoGrid({ videos }: { videos: ChannelVideo[] }) {
-  const visibleVideos = videos.slice(0, TOPIC_VIDEO_LIMIT)
-  const hiddenCount = Math.max(videos.length - visibleVideos.length, 0)
-
   return (
     <div className="grid gap-3 sm:grid-cols-2">
-      {visibleVideos.map((video) => {
+      {videos.map((video) => {
         const href = video.videoId ? `/archive/${video.videoId}` : video.href
         const external = href.startsWith("http")
         return (
@@ -457,7 +459,7 @@ function VideoGrid({ videos }: { videos: ChannelVideo[] }) {
               </span>
             </span>
             <div className="flex min-h-[126px] flex-col justify-between p-3">
-              <h3 className="line-clamp-3 text-sm font-semibold leading-5 text-[#fff8e6]">{video.title}</h3>
+              <h3 className="iw-serif line-clamp-3 text-xl leading-[1.05] text-[#fff8e6]">{video.title}</h3>
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
                 <span className="text-xs uppercase tracking-[0.12em] text-[#f4efe2]/42">{video.date || "upload"}</span>
                 <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.1em] text-[#dff7ff] transition group-hover:text-[#df2f2f]">
@@ -469,16 +471,43 @@ function VideoGrid({ videos }: { videos: ChannelVideo[] }) {
           </a>
         )
       })}
-      {hiddenCount > 0 && (
-        <div className="bg-[#050504]/24 p-3 text-xs uppercase tracking-[0.14em] text-[#f4efe2]/52 sm:col-span-2">
-          {hiddenCount} more videos in this topic. Use the top player or More to keep digging.
-        </div>
-      )}
       {!videos.length && (
         <div className="bg-[#050504]/24 p-3 text-sm text-[#f4efe2]/56">
           No archive videos classified here yet.
         </div>
       )}
     </div>
+  )
+}
+
+function AboutSection({
+  totalVideos,
+  sourceMode,
+  completeHistoryAvailable,
+}: {
+  totalVideos: number
+  sourceMode?: DeepArchiveResponse["sourceMode"]
+  completeHistoryAvailable: boolean
+}) {
+  const archiveMode =
+    sourceMode === "youtube-data-api" && completeHistoryAvailable
+      ? `${totalVideos} indexed uploads from the Tales channel`
+      : "latest uploads now, full history when the production YouTube API key is present"
+
+  return (
+    <section id="about" className={cn("mt-6 scroll-mt-36 p-4 sm:p-5", archiveSurface)}>
+      <div className="grid gap-5 lg:grid-cols-[0.72fr_1.28fr] lg:items-start">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#df2f2f]">About</p>
+          <h2 className="iw-serif mt-2 text-4xl leading-none text-[#fff8e6] sm:text-5xl">How it works</h2>
+        </div>
+        <div className="grid gap-3 text-sm leading-6 text-[#f4efe2]/68 sm:grid-cols-2">
+          <p>{archiveMode}. The archive refreshes from YouTube every five minutes and the header checks live status every minute.</p>
+          <p>Each category runs its own news query through Google News RSS every hour, then ranks the newest coverage into the moving ticker and topic feeds.</p>
+          <p>X signal pages use the configured X or Brave keys when present, plus a public Shane Cashman fallback. The freshness window is seven days.</p>
+          <p>The next A+ layer is a scheduled AI article worker that turns those live feeds into sourced, image-backed daily briefs without storing secrets in the repo.</p>
+        </div>
+      </div>
+    </section>
   )
 }

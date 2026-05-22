@@ -28,8 +28,8 @@ export function InvertedPageShell({
   children,
   action,
   breakingItems,
-  heroTitle = "Inverted World",
-  heroDescription = "Tales From the Inverted World investigates the mysteries that lie beneath the surface of everyday life.",
+  heroTitle = "Tales From The Inverted World",
+  heroDescription = "",
 }: {
   eyebrow: string
   title: string
@@ -108,6 +108,9 @@ export function InvertedPageShell({
                   {topic.title}
                 </a>
               ))}
+              <a className="shrink-0 transition hover:text-[#df2f2f]" href="/#about">
+                About
+              </a>
             </nav>
             <div className="hidden lg:block" aria-hidden="true" />
           </div>

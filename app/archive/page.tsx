@@ -10,7 +10,7 @@ export const revalidate = 300
 
 export default async function ArchivePage() {
   const [initialArchive, topicFeeds, topicXPosts, liveStatus] = await Promise.all([
-    getDeepArchive({ limit: 500, maxLimit: 500 }),
+    getDeepArchive({ limit: 1000, maxLimit: 1000 }),
     Promise.allSettled(
       topics.map(async (topic) => ({
         topicId: topic.id,

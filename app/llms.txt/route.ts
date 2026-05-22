@@ -11,7 +11,7 @@ export async function GET() {
   const lines = [
     "# Inverted World",
     "",
-    "Tales From the Inverted World investigates the mysteries that lie beneath the surface of everyday life.",
+    "Tales From The Inverted World.",
     "",
     "This site is designed for LLM retrieval: every video has an indexable page, canonical metadata, source links, live coverage, and a transcript section when YouTube captions are public.",
     "",
