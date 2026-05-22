@@ -887,6 +887,10 @@ export async function fetchRecursivClaimDossiers(options: { limit?: number; topi
 }
 
 export async function getRecursivClaimDossier(slug: string) {
+  const dossiers = await fetchRecursivClaimDossiers({ limit: 50 })
+  const listedDossier = dossiers?.find((dossier) => dossier.slug === slug)
+  if (listedDossier) return listedDossier
+
   const rows = await queryInvertedWorldDatabase<ClaimDossierRow>(
     `SELECT
       id,
@@ -919,10 +923,7 @@ export async function getRecursivClaimDossier(slug: string) {
     [slug],
   )
 
-  if (!rows?.[0]) {
-    const dossiers = await fetchRecursivClaimDossiers({ limit: 50 })
-    return dossiers?.find((dossier) => dossier.slug === slug) ?? null
-  }
+  if (!rows?.[0]) return null
 
   const [dossier] = await hydrateDossierRelatedVideos([claimDossierRowToDossier(rows[0])])
   return dossier

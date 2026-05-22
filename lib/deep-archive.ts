@@ -206,11 +206,11 @@ export async function getDeepArchive(options: {
 
 export async function getArchiveVideo(videoId: string) {
   if (!videoId) return null
-  const recursivVideo = await getRecursivChannelVideo(videoId)
-  if (recursivVideo) return recursivVideo
-
   const archive = await getDeepArchive({ limit: 1000, maxLimit: 1000 })
-  return archive.videos.find((video) => video.videoId === videoId) ?? null
+  const archiveVideo = archive.videos.find((video) => video.videoId === videoId)
+  if (archiveVideo) return archiveVideo
+
+  return getRecursivChannelVideo(videoId)
 }
 
 export async function getRecommendedArchiveVideos(video: ChannelVideo, limit = 8) {
