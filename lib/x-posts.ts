@@ -32,6 +32,21 @@ const X_EPOCH_MS = BigInt(1_288_834_974_657)
 const X_SNOWFLAKE_SHIFT_BITS = BigInt(22)
 const PRIORITY_X_ACCOUNTS = ["Timcast", "TimcastNews", "TimcastIRL", "ShaneCashman", "InvertedTales"] as const
 const PRIORITY_X_ACCOUNT_SET = new Set(PRIORITY_X_ACCOUNTS.map((account) => account.toLowerCase()))
+const TOPIC_SOURCE_X_ACCOUNTS: Record<string, string[]> = {
+  "uap-disclosure": ["InvertedTales", "ShaneCashman", "ChrisKMellon", "uncertainvector", "Debriefmedia", "mufon"],
+  "secret-programs": ["TimcastNews", "ShaneCashman", "NSArchive", "MuckRock", "FBIRecordsVault", "FBI"],
+  "epstein-networks": ["ShaneCashman", "TimcastNews", "julie_k_brown", "MiamiHerald", "SDNYnews", "TheJusticeDept"],
+  "cryptids-paranormal": ["InvertedTales", "ShaneCashman", "mufon", "ForteanTimes"],
+  "ai-technocracy": ["TimcastNews", "ShaneCashman", "404mediaco", "TechCrunch", "EFF", "PalantirTech"],
+  "space-anomalies": ["NASA", "NASASun", "NWSSWPC", "esaoperations", "AsteroidWatch", "MarsCuriosity"],
+}
+const TOPIC_SOURCE_X_ACCOUNT_SETS = Object.fromEntries(
+  Object.entries(TOPIC_SOURCE_X_ACCOUNTS).map(([topicId, accounts]) => [
+    topicId,
+    new Set(accounts.map((account) => account.toLowerCase())),
+  ]),
+)
+const TOPIC_SOURCE_ACCOUNT_SCORE_BONUS = 175
 const DEFAULT_TOPIC_QUERY_PACK_LIMIT = 4
 const TOPIC_X_SCORE_FLOORS: Record<string, number> = {
   "uap-disclosure": 250,
@@ -60,6 +75,7 @@ const TOPIC_CORE_TERMS: Record<string, string[]> = {
     "mothman",
     "dogman",
     "skinwalker",
+    "pterodactyl",
     "ghost sighting",
     "ghost video",
     "paranormal investigation",
@@ -81,6 +97,14 @@ const TOPIC_CORE_TERMS: Record<string, string[]> = {
     "bolide",
     "interstellar object",
   ],
+}
+const TOPIC_TRUSTED_SOURCE_TERMS: Record<string, string[]> = {
+  "uap-disclosure": ["pentagon", "deptofwar", "uap files", "uap videos", "ufo files", "aaro", "mufon"],
+  "secret-programs": ["declassified records", "records", "archive", "foia", "vault", "indictment", "intelligence"],
+  "epstein-networks": ["epstein", "maxwell", "sdny", "justice department", "doj", "court", "federal"],
+  "cryptids-paranormal": ["pterodactyl", "cryptid", "bigfoot", "sasquatch", "mufon", "fortean", "high strangeness"],
+  "ai-technocracy": ["ai", "privacy", "personal data", "surveillance", "robot", "autonomous", "palantir", "deepfake", "data center"],
+  "space-anomalies": ["nasa", "mars", "moon", "psyche", "asteroid", "solar", "space weather", "venus", "artemis", "space station", "swpc"],
 }
 const TOPIC_EXCLUDED_TERMS: Record<string, string[]> = {
   "cryptids-paranormal": ["nsfw", "onlyfans", "freeuse", "panties", "booktok", "urban fantasy", "paranormal romance"],
@@ -244,6 +268,10 @@ function hasCoreTopicTerm(topicId: string, text: string) {
   return containsAnyTerm(text, TOPIC_CORE_TERMS[topicId] || [])
 }
 
+function hasTrustedSourceTerm(topicId: string, text: string) {
+  return containsAnyTerm(text, [...(TOPIC_CORE_TERMS[topicId] || []), ...(TOPIC_TRUSTED_SOURCE_TERMS[topicId] || [])])
+}
+
 function rejectsTopicText(topicId: string, text?: string) {
   const normalized = (text || "").toLowerCase()
   if (!normalized) return false
@@ -254,9 +282,15 @@ function isPriorityPost(post: ViralXPost) {
   return Boolean(post.username && PRIORITY_X_ACCOUNT_SET.has(post.username.toLowerCase()))
 }
 
+function isTrustedSourcePost(topicId: string, post: ViralXPost, normalized: string) {
+  const sourceAccounts = TOPIC_SOURCE_X_ACCOUNT_SETS[topicId]
+  return Boolean(post.username && sourceAccounts?.has(post.username.toLowerCase()) && hasTrustedSourceTerm(topicId, normalized))
+}
+
 function isQualityTopicPost(topicId: string, post: ViralXPost) {
   const normalized = post.text.toLowerCase()
   if (rejectsTopicText(topicId, normalized)) return false
+  if (isTrustedSourcePost(topicId, post, normalized)) return true
   if (hasCoreTopicTerm(topicId, normalized)) {
     if (isPriorityPost(post)) return true
     if (post.source === "x-api") return (post.score || 0) >= minCoreTopicScore(topicId)
@@ -433,6 +467,7 @@ async function fetchXApiPosts(topicId: string, limit: number) {
 
   const topicQueries = getTopicXQueries(topic).slice(0, queryPackLimit())
   const priorityAccountQuery = PRIORITY_X_ACCOUNTS.map((account) => `from:${account}`).join(" OR ")
+  const sourceAccountQuery = (TOPIC_SOURCE_X_ACCOUNTS[topicId] || []).map((account) => `from:${account}`).join(" OR ")
   const topicPostSets = await Promise.all(
     topicQueries.map((query) => fetchXApiSearch(`${query} lang:en -is:retweet -is:reply`, topicId, token)),
   )
@@ -442,9 +477,13 @@ async function fetchXApiPosts(topicId: string, limit: number) {
       return fetchXApiSearch(priorityQuery, topicId, token)
     }),
   )
+  const sourcePostSet = sourceAccountQuery
+    ? await fetchXApiSearch(`(${sourceAccountQuery}) lang:en -is:retweet -is:reply`, topicId, token)
+    : []
 
   const ranked = dedupePosts([
     ...priorityPostSets.flat().map((post) => ({ ...post, score: (post.score || 0) + 500 })),
+    ...sourcePostSet.map((post) => ({ ...post, score: (post.score || 0) + TOPIC_SOURCE_ACCOUNT_SCORE_BONUS })),
     ...topicPostSets.flat(),
   ]).sort((left, right) => (right.score || 0) - (left.score || 0))
 
