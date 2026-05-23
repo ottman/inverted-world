@@ -16,6 +16,7 @@ The command prints a redacted JSON report with:
 - HTTP proof for `https://invertedworld.on.recursiv.io`;
 - Recursiv archive API proof, including `sourceMode`, data-source classification, and archive count;
 - source-document API proof for `https://invertedworld.on.recursiv.io/api/documents`;
+- media-library detail proof for the UAP PDF route and JSON item route;
 - HTTP and DNS proof for `https://www.inverted.world`;
 - active Recursiv scheduled job count and missing jobs;
 - latest hosted provider-health blockers for the full AI product;
@@ -28,6 +29,7 @@ The command prints a redacted JSON report with:
 - If `recursivHostedUrl` passes but `recursivDeploymentCompleted` is `unknown`, HTTP proof is good but deployment proof is incomplete. Do not treat that as a DNS-ready state.
 - `recursivArchiveDataReady` must be `true`. This can be live `recursiv-database` or `recursiv-snapshot`, but it must not be `seed`, `static`, RSS, YouTube API, or direct provider fallback data.
 - `documentsApi` must pass, proving the source shelf is available as machine-readable JSON from live `recursiv-database` or `recursiv-snapshot` data.
+- `mediaItemPage` and `mediaItemApi` must pass, proving the hosted build includes shareable media pages and machine-readable item data for the official UAP PDF.
 - `publicHostingReady` must be `true`.
 - Recursiv custom-domain binding must be created and proven before changing DNS or removing the Vercel domain binding.
 - `dnsCutoverReady` must be `true` before any DNS record is changed.

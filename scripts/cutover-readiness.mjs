@@ -8,6 +8,10 @@ const DEFAULT_SITE_URL = "https://invertedworld.on.recursiv.io"
 const DEFAULT_CUSTOM_DOMAIN = "https://www.inverted.world"
 const DEFAULT_DATABASE_NAME = "inverted_world_research"
 const READINESS_TIMEOUT_MS = Number(process.env.CUTOVER_READINESS_TIMEOUT_MS || "30000")
+const MEDIA_PROOF_ID = "war-uap-release-02-senior-usic-narrative"
+const MEDIA_PROOF_TITLE = "Senior U.S. intelligence officer UAP narrative"
+const MEDIA_PROOF_SOURCE_URL =
+  "https://www.war.gov/medialink/ufo/052226/release_02/documents/ODNI-UAP-D001_USPER_Narrative_Senior_USIC.pdf"
 
 const EXPECTED_JOBS = [
   "inverted-world-youtube-archive-sync",
@@ -132,6 +136,7 @@ async function probeHttp(url) {
     const contentSignals = {
       hasInvertedWorld: /inverted\.world|Inverted World|Tales From The Inverted World/i.test(text),
       hasCoreProductCopy: /Tales From The Inverted World|Latest Stories|How It Works|Power Web|Ask This Story/i.test(text),
+      hasMediaLibraryProof: /Senior U\.S\. intelligence officer UAP narrative|Source shelf|Related Media/i.test(text),
     }
 
     return {
@@ -175,6 +180,40 @@ async function probeJson(url) {
       totalCount: Number(body.totalCount || 0),
       hasMore: Boolean(body.hasMore),
       warningCount: Array.isArray(body.warnings) ? body.warnings.length : 0,
+      durationMs: Date.now() - started,
+    }
+  } catch (error) {
+    return {
+      url,
+      status: 0,
+      ok: false,
+      message: error instanceof Error ? error.message : String(error),
+      durationMs: Date.now() - started,
+    }
+  }
+}
+
+async function probeMediaItemApi(url) {
+  const started = Date.now()
+  try {
+    const response = await fetch(url, {
+      headers: { accept: "application/json", "user-agent": "InvertedWorldCutoverReadiness/1.0" },
+      signal: AbortSignal.timeout(20000),
+    })
+    const body = await response.json().catch(() => ({}))
+    const related = Array.isArray(body.related) ? body.related : []
+    const item = body.item && typeof body.item === "object" ? body.item : {}
+
+    return {
+      url,
+      status: response.status,
+      ok: response.ok,
+      sourceMode: body.sourceMode,
+      archiveSourceMode: body.archiveSourceMode,
+      itemTitle: typeof item.title === "string" ? item.title : undefined,
+      itemHref: typeof item.href === "string" ? item.href : undefined,
+      itemUrl: typeof item.url === "string" ? item.url : undefined,
+      relatedCount: related.length,
       durationMs: Date.now() - started,
     }
   } catch (error) {
@@ -285,6 +324,8 @@ async function main() {
   const customHostname = new URL(customDomainUrl).hostname
   const archiveApiUrl = new URL("/api/archive?limit=1000", recursivUrl).toString()
   const documentsApiUrl = new URL("/api/documents", recursivUrl).toString()
+  const mediaItemPageUrl = new URL(`/media/${MEDIA_PROOF_ID}`, recursivUrl).toString()
+  const mediaItemApiUrl = new URL(`/api/media/${MEDIA_PROOF_ID}`, recursivUrl).toString()
   const readinessWarnings = []
 
   if (!apiKey || !projectId) throw new Error("Missing Recursiv project id or API key for cutover readiness")
@@ -296,8 +337,20 @@ async function main() {
     maxRetries: 0,
   })
 
-  const [project, deploymentsResponse, jobsResponse, recursivHttp, archiveApi, documentsApi, customHttp, customDns, providerHealth, pipelineRuns] =
-    await Promise.all([
+  const [
+    project,
+    deploymentsResponse,
+    jobsResponse,
+    recursivHttp,
+    archiveApi,
+    documentsApi,
+    mediaItemPage,
+    mediaItemApi,
+    customHttp,
+    customDns,
+    providerHealth,
+    pipelineRuns,
+  ] = await Promise.all([
       withTimeout(
         sdk.projects.get(projectId).then((response) => response.data),
         "Recursiv project lookup",
@@ -319,6 +372,8 @@ async function main() {
       probeHttp(recursivUrl),
       probeJson(archiveApiUrl),
       probeDocumentsApi(documentsApiUrl),
+      probeHttp(mediaItemPageUrl),
+      probeMediaItemApi(mediaItemApiUrl),
       probeHttp(customDomainUrl),
       probeDns(customHostname),
       withTimeout(fetchProviderHealth(sdk, projectId, databaseName), "provider-health database query", null, readinessWarnings),
@@ -386,11 +441,27 @@ async function main() {
       Number(documentsApi.topicCount || 0) >= 6 &&
       Number(documentsApi.kindCount || 0) >= 4,
   )
+  const mediaItemPageReady = Boolean(mediaItemPage.ok && mediaItemPage.contentSignals?.hasMediaLibraryProof)
+  const mediaItemApiReady = Boolean(
+    mediaItemApi.ok &&
+      RECURSIV_BACKED_SOURCE_MODES.has(mediaItemApi.sourceMode) &&
+      mediaItemApi.itemTitle === MEDIA_PROOF_TITLE &&
+      mediaItemApi.itemHref === `/media/${MEDIA_PROOF_ID}` &&
+      mediaItemApi.itemUrl === MEDIA_PROOF_SOURCE_URL &&
+      Number(mediaItemApi.relatedCount || 0) >= 1,
+  )
   const providerHealthAvailable = Boolean(providerHealth)
   const providerBlocking = providerHealth?.blockingProviders || REQUIRED_PROVIDERS
   const providerHealthFresh = providerHealth?.ageMinutes !== null && Number(providerHealth?.ageMinutes) <= 360
   const scheduledJobsReady = jobsLookupAvailable && missingJobs.length === 0
-  const publicHostingReady = recursivHostingProven && recursivArchiveDataReady && documentsApiReady && scheduledJobsReady && providerHealthFresh
+  const publicHostingReady =
+    recursivHostingProven &&
+    recursivArchiveDataReady &&
+    documentsApiReady &&
+    mediaItemPageReady &&
+    mediaItemApiReady &&
+    scheduledJobsReady &&
+    providerHealthFresh
   const fullAiProductReady = publicHostingReady && providerBlocking.length === 0
   const customDomainRecursivProven = Boolean(customHttp.ok && !customLooksVercel && customHttp.contentSignals?.hasCoreProductCopy)
   const dnsCutoverReady = publicHostingReady && customDomainRecursivProven
@@ -404,6 +475,8 @@ async function main() {
     recursivArchiveLiveDatabase: statusText(recursivArchiveLiveDatabaseReady),
     recursivArchiveSnapshot: statusText(recursivArchiveSnapshotReady),
     documentsApi: statusText(documentsApiReady),
+    mediaItemPage: statusText(mediaItemPageReady),
+    mediaItemApi: statusText(mediaItemApiReady),
     providerHealthFresh: providerHealthAvailable ? statusText(providerHealthFresh) : "unknown",
     fullAiProviders: providerHealthAvailable ? statusText(providerBlocking.length === 0) : "unknown",
     scheduledJobs: jobsLookupAvailable ? statusText(scheduledJobsReady) : "unknown",
@@ -425,6 +498,9 @@ async function main() {
     nextActions.push("Public archive data is Recursiv-backed through an exported snapshot while the runtime database key is unhealthy; fix the Recursiv runtime key before calling the full product live-database ready.")
   }
   if (!documentsApiReady) nextActions.push("Do not touch DNS until /api/documents returns the machine-readable source shelf with topic and kind coverage.")
+  if (!mediaItemPageReady || !mediaItemApiReady) {
+    nextActions.push(`Do not touch DNS until the Recursiv hosted media library proves /media/${MEDIA_PROOF_ID} and /api/media/${MEDIA_PROOF_ID}.`)
+  }
   if (!providerHealthAvailable) {
     nextActions.push("Provider health could not be audited from Recursiv because the API key is unavailable or rate-limited; rerun readiness after the key is healthy.")
   } else if (providerBlocking.length) {
@@ -463,6 +539,8 @@ async function main() {
           recursivArchiveDataReady,
           recursivArchiveLiveDatabaseReady,
           recursivArchiveSnapshotReady,
+          mediaItemPageReady,
+          mediaItemApiReady,
           publicHostingReady,
           fullAiProductReady,
           customDomainRecursivProven,
@@ -474,6 +552,9 @@ async function main() {
         recursivArchiveDataSource: dataSourceStatus(archiveApi.sourceMode),
         documentsApi,
         documentsDataSource: dataSourceStatus(documentsApi.sourceMode),
+        mediaItemPage,
+        mediaItemApi,
+        mediaItemDataSource: dataSourceStatus(mediaItemApi.sourceMode),
         customDomain: {
           http: customHttp,
           dns: customDns,
