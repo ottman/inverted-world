@@ -4,6 +4,8 @@ import fs from "node:fs"
 const DEFAULT_BASE_URL = "https://api.recursiv.io/api/v1"
 const LOCAL_RECURSIV_KEY = "/private/tmp/inverted-world-recursiv-key"
 const DEFAULT_DEPLOY_TIMEOUT_MS = 30000
+const DEFAULT_RATE_LIMIT_COOLDOWN_MS = 60 * 60 * 1000
+const LOCAL_RATE_LIMIT_COOLDOWN_FILE = "/private/tmp/inverted-world-recursiv-api-cooldown.json"
 
 function loadEnvFile(file) {
   if (!fs.existsSync(file)) return
@@ -56,6 +58,79 @@ function timeoutMs() {
     5000,
     Math.min(Math.trunc(Number(process.env.RECURSIV_DEPLOY_TIMEOUT_MS || DEFAULT_DEPLOY_TIMEOUT_MS)) || DEFAULT_DEPLOY_TIMEOUT_MS, 120000),
   )
+}
+
+function cooldownFile() {
+  return process.env.RECURSIV_DEPLOY_COOLDOWN_FILE || LOCAL_RATE_LIMIT_COOLDOWN_FILE
+}
+
+function cooldownBypassEnabled() {
+  return process.env.RECURSIV_DEPLOY_IGNORE_COOLDOWN === "1" || process.argv.includes("--ignore-cooldown")
+}
+
+function clearCooldownFile() {
+  const file = cooldownFile()
+  if (fs.existsSync(file)) fs.unlinkSync(file)
+}
+
+function readCooldown() {
+  const file = cooldownFile()
+  if (!fs.existsSync(file)) return null
+  try {
+    const parsed = JSON.parse(fs.readFileSync(file, "utf8"))
+    return parsed && typeof parsed === "object" ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+function writeCooldown(cooldown) {
+  fs.writeFileSync(cooldownFile(), `${JSON.stringify(cooldown, null, 2)}\n`, { mode: 0o600 })
+}
+
+function cooldownMsForError(error) {
+  const retryAfter = Number(error?.retryAfter)
+  if (Number.isFinite(retryAfter) && retryAfter > 0) return Math.min(retryAfter * 1000, DEFAULT_RATE_LIMIT_COOLDOWN_MS)
+  const message = String(error?.message || "")
+  if (/per-minute/i.test(message)) return 90 * 1000
+  return DEFAULT_RATE_LIMIT_COOLDOWN_MS
+}
+
+function recordRateLimit(error) {
+  if (error?.status !== 429) return null
+  const now = Date.now()
+  const cooldownMs = cooldownMsForError(error)
+  const cooldown = {
+    recordedAt: new Date(now).toISOString(),
+    expiresAt: new Date(now + cooldownMs).toISOString(),
+    status: error.status,
+    code: error.code || "rate_limit_exceeded",
+    message: error instanceof Error ? error.message : String(error),
+  }
+  writeCooldown(cooldown)
+  return cooldown
+}
+
+function assertNotInCooldown(action) {
+  if (cooldownBypassEnabled()) return
+  const cooldown = readCooldown()
+  if (!cooldown?.expiresAt) return
+
+  const expiresAtMs = new Date(cooldown.expiresAt).getTime()
+  if (!Number.isFinite(expiresAtMs) || expiresAtMs <= Date.now()) {
+    clearCooldownFile()
+    return
+  }
+
+  const error = new Error(`Recursiv deployment API cooldown is active until ${cooldown.expiresAt}`)
+  error.status = 429
+  error.code = "rate_limit_cooldown"
+  error.cooldown = {
+    ...cooldown,
+    action,
+    remainingSeconds: Math.ceil((expiresAtMs - Date.now()) / 1000),
+  }
+  throw error
 }
 
 function currentCommitHash() {
@@ -121,6 +196,7 @@ async function requestRecursiv(path, options) {
       const error = new Error(errorMessage)
       error.status = response.status
       error.code = typeof rawError === "object" ? rawError?.code : undefined
+      error.retryAfter = response.headers.get("retry-after")
       throw error
     }
 
@@ -141,6 +217,12 @@ async function main() {
   loadEnvFile(".env")
   loadEnvFile(".env.local")
 
+  if (process.argv.includes("--clear-cooldown")) {
+    clearCooldownFile()
+    console.log(JSON.stringify({ ok: true, action: "clear-cooldown", cooldownFile: cooldownFile() }, null, 2))
+    return
+  }
+
   const baseUrl = process.env.RECURSIV_BASE_URL || DEFAULT_BASE_URL
   const apiKey = readApiKey()
   const projectId = requireEnv("RECURSIV_PROJECT_ID")
@@ -148,6 +230,8 @@ async function main() {
   const commitHash = process.env.RECURSIV_DEPLOY_COMMIT || currentCommitHash()
   const requestTimeoutMs = timeoutMs()
   if (!apiKey?.value) throw new Error("Missing RECURSIV_SERVER_API_KEY or RECURSIV_API_KEY")
+  const action = process.argv.includes("--status") ? "status" : process.argv.includes("--update-project") ? "update-project" : "deploy"
+  assertNotInCooldown(action)
 
   const requestOptions = {
     baseUrl,
@@ -217,6 +301,7 @@ async function main() {
 }
 
 main().catch((error) => {
+  const cooldown = error?.code === "rate_limit_cooldown" ? error.cooldown : recordRateLimit(error)
   console.error(
     JSON.stringify(
       {
@@ -224,6 +309,7 @@ main().catch((error) => {
         status: error?.status,
         code: error?.code,
         message: error instanceof Error ? error.message : String(error),
+        ...(cooldown ? { cooldown } : {}),
       },
       null,
       2,
