@@ -60,27 +60,33 @@ The deploy command uses bounded direct Recursiv API calls and prints the selecte
 
 ## Current Expected State
 
-As of May 23, 2026, `invertedworld.on.recursiv.io` is proven live on Recursiv and `pnpm recursiv:cutover` reports `publicHostingReady: true`.
+As of May 23, 2026, `invertedworld.on.recursiv.io` is proven live on Recursiv. An earlier readiness run reported `publicHostingReady: true`, but the current runtime database key is temporarily rate-limited, so full cutover readiness should be rerun after the backoff clears.
 
 Current live proof:
 
 - `https://invertedworld.on.recursiv.io` returns the app.
-- `/api/archive?limit=1000` returns `sourceMode: "recursiv-database"` with 437 archive rows and no warnings.
-- `/api/documents` returns `sourceMode: "recursiv-database"` with 37 source documents across all six topics.
-- `/media/war-uap-release-02-senior-usic-narrative` returns 200.
-- `/api/media/war-uap-release-02-senior-usic-narrative` returns `sourceMode: "recursiv-database"` with the official UAP PDF item and related media.
-- `/api/pipeline?limit=1` returns `sourceMode: "recursiv-database"` and latest `full-pipeline` status `succeeded`.
+- latest Recursiv deployment `019e54f2-4bad-77a8-99fa-891cd38a59a9` completed on May 23, 2026 at `13:10:24Z`.
+- `/api/release` returns `release: "worldwire-persistence-v2"` and `worldwireJsonbPayloads: "dollar-quoted-sql-literals"`, proving the hosted build contains the compact Worldwire JSONB persistence path.
+- earlier `/api/archive?limit=1000` proof returned `sourceMode: "recursiv-database"` with 437 archive rows and no warnings; fresh archive reads may temporarily return `recursiv-snapshot` while the runtime key is backed off.
+- earlier `/api/documents` proof returned `sourceMode: "recursiv-database"` with 37 source documents across all six topics.
+- earlier `/media/war-uap-release-02-senior-usic-narrative` proof returned 200.
+- earlier `/api/media/war-uap-release-02-senior-usic-narrative` proof returned `sourceMode: "recursiv-database"` with the official UAP PDF item and related media.
+- earlier `/api/pipeline?limit=1` proof returned `sourceMode: "recursiv-database"` and latest `full-pipeline` status `succeeded`.
 - the latest scheduled `full-pipeline` run completed on May 23, 2026 at `05:08:21Z` with seven successful steps: source documents, media library, YouTube archive sync, topic pulse, worldwire, publishing, and front-page edition.
 - the successful full-pipeline run synced 37 source documents, 292 media items, 19 archive videos through the seed fallback, 93 X signals, six topic coverage snapshots, 11 worldwire snapshots, 85 worldwire items, and a published front-page edition.
 - all 13 expected Recursiv scheduled jobs are active.
 
 The custom domain still reports Vercel headers. Keep it there until the Recursiv custom-domain binding for `www.inverted.world` is created and proven. `dnsCutoverReady` is still `false` because custom-domain proof is missing, not because the Recursiv hosted app is unproven.
 
+Fresh proof on May 23, 2026 at `13:10Z` still shows `https://www.inverted.world` returning `server: Vercel` and `x-vercel-id`. DNS remains intentionally unchanged.
+
+The hosted runtime database key is currently rate-limited/backed off. `/api/pipeline?limit=1` returned `sourceMode: "unavailable"` with `lastErrorStatus: 429` and backoff until May 23, 2026 at `14:01:48Z`. Do not run wide hosted ingestion or Worldwire proof until that backoff clears or a healthy Recursiv key is installed.
+
 The known full-product blockers are provider/account-side, not DNS fixes. A fresh hosted provider-readiness check on May 23, 2026 reports `recursiv-database` as live and narrows the required blocking providers to `x-api` and `youtube-data-api`. The configured YouTube channel ID still resolves through the public channel page, but the YouTube RSS endpoint returns 404; treat RSS as non-blocking while recent upload refresh can use the public channel-page fallback and archive completeness is enforced through YouTube Data API plus persisted Recursiv rows. The app accepts `YOUTUBE_API_KEY`, `YOUTUBE_DATA_API_KEY`, `GOOGLE_YOUTUBE_API_KEY`, or `GOOGLE_API_KEY`; production should prefer `YOUTUBE_API_KEY` for clarity.
 
 ## Current Decision
 
-As of the May 23, 2026 readiness run:
+As of the successful May 23, 2026 readiness run, before the current key backoff:
 
 - `publicHostingReady: true`
 - `fullAiProductReady: false`
@@ -89,6 +95,8 @@ As of the May 23, 2026 readiness run:
 - `keepDnsOnVercel: true`
 
 Next step is not a DNS change. Create and prove the Recursiv custom-domain binding for `www.inverted.world`, then rerun `pnpm recursiv:cutover`. Only after `customDomainRecursivProven` and `dnsCutoverReady` are true should the DNS host change be planned.
+
+As of the fresh May 23, 2026 `13:10Z` checks, the immediate next step is to wait for the Recursiv runtime key backoff to clear, rerun hosted provider/readiness checks, then run the wider Worldwire proof. DNS cutover remains blocked.
 
 ## Reusable Org Custom-Domain Process
 
