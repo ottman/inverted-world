@@ -6,6 +6,7 @@ import path from "node:path"
 const NEWS_SNAPSHOT_FILE = path.resolve("data/generated/recursiv-news-snapshot.json")
 const PUBLIC_SNAPSHOT_FILE = path.resolve("data/generated/recursiv-public-snapshot.json")
 const DEFAULT_DATABASE_URL_FILE = "/private/tmp/inverted-world-database-url"
+const DEFAULT_SNAPSHOT_MAX_AGE_HOURS = 36
 
 const NEWS_EXPORTS = [
   {
@@ -404,11 +405,162 @@ function snapshotCounts(snapshot) {
   )
 }
 
+function ageMinutes(value) {
+  const timestamp = value ? new Date(value).getTime() : Number.NaN
+  if (!Number.isFinite(timestamp)) return null
+  return Math.max(0, Math.round((Date.now() - timestamp) / 60000))
+}
+
+function freshUntil(value, maxAgeHours) {
+  const timestamp = value ? new Date(value).getTime() : Number.NaN
+  if (!Number.isFinite(timestamp)) return null
+  return new Date(timestamp + maxAgeHours * 60 * 60 * 1000).toISOString()
+}
+
+function latestRun(snapshot, jobName) {
+  const runs = Array.isArray(snapshot?.pipelineRuns) ? snapshot.pipelineRuns : []
+  return runs
+    .filter((run) => run?.job_name === jobName)
+    .sort((left, right) => new Date(right.completed_at || right.started_at || 0).getTime() - new Date(left.completed_at || left.started_at || 0).getTime())[0]
+}
+
+function latestFrontPage(snapshot) {
+  const editions = Array.isArray(snapshot?.frontPageEditions) ? snapshot.frontPageEditions : []
+  return editions
+    .filter((edition) => edition?.status === "published")
+    .sort(
+      (left, right) =>
+        new Date(right.published_at || right.generated_at || right.edition_date || 0).getTime() -
+        new Date(left.published_at || left.generated_at || left.edition_date || 0).getTime(),
+    )[0]
+}
+
+function readSnapshot(file) {
+  if (!fs.existsSync(file)) {
+    return {
+      file,
+      exists: false,
+      error: "missing",
+    }
+  }
+
+  try {
+    const snapshot = JSON.parse(fs.readFileSync(file, "utf8"))
+    return {
+      file,
+      exists: true,
+      snapshot,
+    }
+  } catch (error) {
+    return {
+      file,
+      exists: true,
+      error: error instanceof Error ? error.message : String(error),
+    }
+  }
+}
+
+function databaseUrlStatus() {
+  try {
+    const databaseUrl = readDatabaseUrl()
+    return {
+      available: true,
+      source: databaseUrl.source,
+    }
+  } catch {
+    return {
+      available: false,
+      source: null,
+    }
+  }
+}
+
+function snapshotStatus() {
+  const maxAgeHours =
+    Math.trunc(Number(process.env.RECURSIV_SNAPSHOT_MAX_AGE_HOURS || process.env.CUTOVER_PIPELINE_MAX_AGE_HOURS || DEFAULT_SNAPSHOT_MAX_AGE_HOURS)) ||
+    DEFAULT_SNAPSHOT_MAX_AGE_HOURS
+  const news = readSnapshot(NEWS_SNAPSHOT_FILE)
+  const publicSnapshot = readSnapshot(PUBLIC_SNAPSHOT_FILE)
+  const latestFullPipeline = latestRun(news.snapshot, "full-pipeline")
+  const latestProviderHealth = latestRun(news.snapshot, "provider-health")
+  const frontPage = latestFrontPage(news.snapshot)
+  const latestFullPipelineCompletedAt = latestFullPipeline?.completed_at || null
+  const latestFullPipelineAgeMinutes = ageMinutes(latestFullPipelineCompletedAt)
+  const pipelineFresh = latestFullPipelineAgeMinutes !== null && latestFullPipelineAgeMinutes <= maxAgeHours * 60
+  const nextActions = []
+  const database = databaseUrlStatus()
+
+  if (!news.exists || news.error) nextActions.push("Regenerate the Recursiv news snapshot before relying on public fallback data.")
+  if (!publicSnapshot.exists || publicSnapshot.error) nextActions.push("Regenerate the Recursiv public media/document snapshot before relying on public fallback data.")
+  if (!pipelineFresh) nextActions.push(`Refresh the Recursiv news snapshot before the ${maxAgeHours} hour pipeline freshness gate can pass.`)
+  if (!database.available) {
+    nextActions.push(`No protected direct database URL was found; add it to ${DEFAULT_DATABASE_URL_FILE} or set RECURSIV_DATABASE_URL_FILE before running pnpm recursiv:snapshot.`)
+  } else if (!pipelineFresh) {
+    nextActions.push("Run pnpm recursiv:snapshot to refresh committed Recursiv fallback data from the protected direct database connection.")
+  }
+
+  return {
+    ok: Boolean(news.exists && !news.error && publicSnapshot.exists && !publicSnapshot.error && pipelineFresh),
+    generatedAt: new Date().toISOString(),
+    freshnessWindowHours: maxAgeHours,
+    databaseUrl: database,
+    news: {
+      file: NEWS_SNAPSHOT_FILE,
+      exists: news.exists,
+      source: news.snapshot?.source,
+      generatedAt: news.snapshot?.generatedAt,
+      generatedAgeMinutes: ageMinutes(news.snapshot?.generatedAt),
+      counts: news.snapshot ? snapshotCounts(news.snapshot) : {},
+      latestFullPipeline: latestFullPipeline
+        ? {
+            status: latestFullPipeline.status,
+            completedAt: latestFullPipelineCompletedAt,
+            ageMinutes: latestFullPipelineAgeMinutes,
+            fresh: pipelineFresh,
+            freshUntil: freshUntil(latestFullPipelineCompletedAt, maxAgeHours),
+            stepCount: Array.isArray(latestFullPipeline.results) ? latestFullPipeline.results.length : 0,
+          }
+        : null,
+      latestProviderHealth: latestProviderHealth
+        ? {
+            status: latestProviderHealth.status,
+            completedAt: latestProviderHealth.completed_at || null,
+            ageMinutes: ageMinutes(latestProviderHealth.completed_at),
+          }
+        : null,
+      frontPageEdition: frontPage
+        ? {
+            slug: frontPage.slug,
+            editionDate: frontPage.edition_date,
+            publishedAt: frontPage.published_at || null,
+            headline: frontPage.headline,
+          }
+        : null,
+      error: news.error,
+    },
+    public: {
+      file: PUBLIC_SNAPSHOT_FILE,
+      exists: publicSnapshot.exists,
+      source: publicSnapshot.snapshot?.source,
+      generatedAt: publicSnapshot.snapshot?.generatedAt,
+      generatedAgeMinutes: ageMinutes(publicSnapshot.snapshot?.generatedAt),
+      counts: publicSnapshot.snapshot ? snapshotCounts(publicSnapshot.snapshot) : {},
+      error: publicSnapshot.error,
+    },
+    nextActions,
+  }
+}
+
 async function main() {
   loadEnvFile(".env")
   loadEnvFile(".env.local")
 
   const flags = new Set(process.argv.slice(2))
+  if (flags.has("--status")) {
+    console.log(JSON.stringify(snapshotStatus(), null, 2))
+    return
+  }
+
   const exportNews = !flags.has("--public-only")
   const exportPublic = !flags.has("--news-only")
   const dryRun = flags.has("--dry-run")

@@ -82,10 +82,13 @@ The output file contains the same no-secret report printed to stdout.
 Refresh that exported fallback with:
 
 ```bash
+pnpm recursiv:snapshot:status
 pnpm recursiv:snapshot
 ```
 
 The command writes the news/archive/X/front-page snapshot and the media/document snapshot from Recursiv Postgres. Use `pnpm recursiv:snapshot -- --dry-run` to validate counts without rewriting files. It should be run only from a local/proof environment with a protected direct database URL; do not add that URL to the repo or to public runtime code.
+
+`pnpm recursiv:snapshot:status` is safe during API cooldowns because it reads only committed local snapshot files. It is the quick way to see when the snapshot-backed pipeline/front-page freshness gates will expire and whether a protected direct database URL is available to refresh them.
 
 Trigger or inspect the Recursiv deployment with:
 
