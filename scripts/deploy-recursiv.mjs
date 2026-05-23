@@ -5,6 +5,7 @@ const DEFAULT_BASE_URL = "https://api.recursiv.io/api/v1"
 const LOCAL_RECURSIV_KEY = "/private/tmp/inverted-world-recursiv-key"
 const DEFAULT_DEPLOY_TIMEOUT_MS = 30000
 const DEFAULT_RATE_LIMIT_COOLDOWN_MS = 60 * 60 * 1000
+const DEFAULT_DAILY_RATE_LIMIT_COOLDOWN_MS = 24 * 60 * 60 * 1000
 const LOCAL_RATE_LIMIT_COOLDOWN_FILE = "/private/tmp/inverted-world-recursiv-api-cooldown.json"
 const DEFAULT_CUSTOM_DOMAIN = "www.inverted.world"
 const DEFAULT_WAIT_TIMEOUT_MS = 10 * 60 * 1000
@@ -139,7 +140,15 @@ function cooldownMsForError(error) {
   if (Number.isFinite(retryAfter) && retryAfter > 0) return Math.min(retryAfter * 1000, DEFAULT_RATE_LIMIT_COOLDOWN_MS)
   const message = String(error?.message || "")
   if (/per-minute/i.test(message)) return 90 * 1000
+  if (/per-day/i.test(message)) return DEFAULT_DAILY_RATE_LIMIT_COOLDOWN_MS
   return DEFAULT_RATE_LIMIT_COOLDOWN_MS
+}
+
+function rateLimitScopeFromMessage(message = "") {
+  if (/per-minute/i.test(message)) return "per-minute"
+  if (/per-hour/i.test(message)) return "per-hour"
+  if (/per-day/i.test(message)) return "per-day"
+  return "unknown"
 }
 
 function recordRateLimit(error) {
@@ -152,9 +161,28 @@ function recordRateLimit(error) {
     status: error.status,
     code: error.code || "rate_limit_exceeded",
     message: error instanceof Error ? error.message : String(error),
+    scope: rateLimitScopeFromMessage(error instanceof Error ? error.message : String(error)),
   }
   writeCooldown(cooldown)
   return cooldown
+}
+
+function cooldownAdvice(cooldown) {
+  if (!cooldown?.expiresAt) return undefined
+  const expiresAtMs = new Date(cooldown.expiresAt).getTime()
+  const remainingSeconds = Number.isFinite(expiresAtMs) ? Math.max(0, Math.ceil((expiresAtMs - Date.now()) / 1000)) : undefined
+  const scope = cooldown.scope || rateLimitScopeFromMessage(cooldown.message || "")
+  const action =
+    scope === "per-day"
+      ? "Do not retry with the same Recursiv key until the daily limit is known to have reset, or switch to a healthy project/org key."
+      : "Wait for the cooldown to expire before retrying, or switch to a healthy key if this is urgent."
+
+  return {
+    scope,
+    expiresAt: cooldown.expiresAt,
+    remainingSeconds,
+    action,
+  }
 }
 
 function assertNotInCooldown(action) {
@@ -370,6 +398,7 @@ async function main() {
           customDomain,
           deploymentPayload,
           cooldown: readCooldown(),
+          cooldownAdvice: cooldownAdvice(readCooldown()),
           wait: waitEnabled()
             ? {
                 timeoutMs: waitTimeoutMs(),
