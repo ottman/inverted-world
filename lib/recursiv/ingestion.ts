@@ -663,7 +663,7 @@ export async function syncSourceDocumentsToRecursiv() {
 export async function syncMediaLibraryToRecursiv() {
   const { sdk, config } = getInvertedWorldDatabase()
   const items = await fetchMediaSeedItemsForSync()
-  const batchSize = Math.max(1, Math.min(Math.trunc(Number(process.env.MEDIA_LIBRARY_SYNC_BATCH_SIZE || "5")) || 5, 10))
+  const batchSize = Math.max(1, Math.min(Math.trunc(Number(process.env.MEDIA_LIBRARY_SYNC_BATCH_SIZE || "20")) || 20, 25))
   let synced = 0
 
   for (let offset = 0; offset < items.length; offset += batchSize) {
