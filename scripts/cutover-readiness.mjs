@@ -603,6 +603,7 @@ async function main() {
       releaseApi.dnsCutoverRequiresCustomDomainProof,
   )
   const releaseCommitMatch = commitsMatch(releaseApi.deployment?.sourceRevision, expectedReleaseCommit)
+  const releaseCommitReady = releaseCommitMatch === true
   const recursivDeploymentCompleted = Boolean(latestDeployment?.status === "completed")
   const recursivHostingProven = Boolean(recursivHostedUrlProven && recursivDeploymentCompleted)
   const recursivArchiveDataReady = Boolean(
@@ -646,6 +647,7 @@ async function main() {
   const publicHostingReady =
     recursivHostingProven &&
     releaseProofReady &&
+    releaseCommitReady &&
     recursivArchiveDataReady &&
     documentsApiReady &&
     pipelineApiReady &&
@@ -693,6 +695,8 @@ async function main() {
     nextActions.push(
       `Do not touch DNS until /api/release source revision matches the expected deployed commit ${expectedReleaseCommit}.`,
     )
+  } else if (releaseCommitMatch === null) {
+    nextActions.push("Do not touch DNS until /api/release exposes a source revision for the deployed build.")
   }
   if (recursivHostedUrlProven && !recursivDeploymentCompleted) {
     nextActions.push("HTTP proof for invertedworld.on.recursiv.io is green, but Recursiv deployment completion could not be proven; rerun cutover after the Recursiv API key is healthy.")
@@ -750,6 +754,7 @@ async function main() {
       recursivHostedUrlProven,
       recursivDeploymentCompleted,
       releaseProofReady,
+      releaseCommitReady,
       recursivArchiveDataReady,
       recursivArchiveLiveDatabaseReady,
       recursivArchiveSnapshotReady,

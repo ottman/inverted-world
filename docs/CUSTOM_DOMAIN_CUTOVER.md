@@ -48,7 +48,7 @@ The output file contains the same no-secret report printed to stdout.
 
 - `recursivHostingProven` must be `true`.
 - If `recursivHostedUrl` passes but `recursivDeploymentCompleted` is `unknown`, HTTP proof is good but deployment proof is incomplete. Do not treat that as a DNS-ready state.
-- `releaseCommit` should be `pass` when the hosted build exposes a source revision. `unknown` is acceptable only when the runtime cannot expose a git/build revision; `fail` means the hosted app is not the expected commit.
+- `releaseCommit` must be `pass`. `unknown` means the hosted app does not expose a source revision yet, and `fail` means the hosted app is not the expected commit.
 - `recursivArchiveDataReady` must be `true`. This can be live `recursiv-database` or `recursiv-snapshot`, but it must not be `seed`, `static`, RSS, YouTube API, or direct provider fallback data.
 - `documentsApi` must pass, proving the source shelf is available as machine-readable JSON from live `recursiv-database` or `recursiv-snapshot` data.
 - `pipelineApi` must pass, proving `/api/pipeline` exposes the latest full-pipeline status from live Recursiv database rows or the committed Recursiv snapshot fallback.
@@ -99,7 +99,7 @@ This still does not change DNS. The `:wait` variant polls deployment status unti
 
 ## Current Expected State
 
-As of the latest public-only proof on May 23, 2026 at `14:37Z`, `invertedworld.on.recursiv.io` is live but the hosted build has not yet caught up to the latest pushed repo commit. Treat the Recursiv slug as available, not DNS-ready.
+As of the latest public-only proof on May 23, 2026 at `14:48Z`, `invertedworld.on.recursiv.io` is live but the hosted build has not yet caught up to the latest pushed repo commit. Treat the Recursiv slug as available, not DNS-ready.
 
 Current live proof:
 
@@ -110,6 +110,7 @@ Current live proof:
 - `/media/war-uap-release-02-senior-usic-narrative` returns HTTP 200.
 - `/api/media/war-uap-release-02-senior-usic-narrative` returns `sourceMode: "recursiv-snapshot"` with the official UAP PDF item and related media.
 - `/api/release` still returns `pipelineSnapshotFallback: false` on the hosted app, so the current hosted build is older than the pushed repo.
+- `releaseCommit` is `unknown` because the hosted app does not expose `deployment.sourceRevision` yet.
 - `/api/pipeline?limit=1` returns `sourceMode: "unavailable"` with `readHealthLastErrorStatus: 429`, so the hosted pipeline status fallback is not live until the newer commit is deployed.
 
 Earlier full readiness runs proved the Recursiv database, scheduled jobs, provider-health row, and successful full-pipeline run, but those authenticated checks are not current while the Recursiv key is under a per-day deploy/status cooldown. Use them as historical context only; rerun full `pnpm recursiv:cutover` after API health returns.
@@ -122,7 +123,7 @@ The known full-product blockers are provider/account-side, not DNS fixes. A fres
 
 ## Current Decision
 
-As of the latest public-only proof on May 23, 2026 at `14:37Z`:
+As of the latest public-only proof on May 23, 2026 at `14:48Z`:
 
 - `publicHostingReady: false`
 - `fullAiProductReady: false`
