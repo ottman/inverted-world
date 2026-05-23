@@ -125,7 +125,7 @@ function readCooldown() {
   if (!fs.existsSync(file)) return null
   try {
     const parsed = JSON.parse(fs.readFileSync(file, "utf8"))
-    return parsed && typeof parsed === "object" ? parsed : null
+    return parsed && typeof parsed === "object" ? normalizeCooldown(parsed) : null
   } catch {
     return null
   }
@@ -149,6 +149,25 @@ function rateLimitScopeFromMessage(message = "") {
   if (/per-hour/i.test(message)) return "per-hour"
   if (/per-day/i.test(message)) return "per-day"
   return "unknown"
+}
+
+function normalizeCooldown(cooldown) {
+  const scope = cooldown.scope || rateLimitScopeFromMessage(cooldown.message || "")
+  if (scope !== "per-day" || !cooldown.recordedAt) return { ...cooldown, scope }
+
+  const recordedAtMs = new Date(cooldown.recordedAt).getTime()
+  const expiresAtMs = new Date(cooldown.expiresAt || 0).getTime()
+  if (!Number.isFinite(recordedAtMs)) return { ...cooldown, scope }
+
+  const dailyExpiresAt = recordedAtMs + DEFAULT_DAILY_RATE_LIMIT_COOLDOWN_MS
+  if (Number.isFinite(expiresAtMs) && expiresAtMs >= dailyExpiresAt) return { ...cooldown, scope }
+
+  return {
+    ...cooldown,
+    scope,
+    expiresAt: new Date(dailyExpiresAt).toISOString(),
+    normalizedFromExpiresAt: cooldown.expiresAt,
+  }
 }
 
 function recordRateLimit(error) {
@@ -386,6 +405,7 @@ async function main() {
   }
 
   if (process.argv.includes("--dry-run")) {
+    const cooldown = readCooldown()
     console.log(
       JSON.stringify(
         {
@@ -397,8 +417,8 @@ async function main() {
           commitHash,
           customDomain,
           deploymentPayload,
-          cooldown: readCooldown(),
-          cooldownAdvice: cooldownAdvice(readCooldown()),
+          cooldown,
+          cooldownAdvice: cooldownAdvice(cooldown),
           wait: waitEnabled()
             ? {
                 timeoutMs: waitTimeoutMs(),
