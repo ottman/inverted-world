@@ -17,6 +17,9 @@ const MEDIA_PROOF_SOURCE_URL =
 const DOSSIER_CHAT_PROOF_SLUG = "secret-programs-the-top-secret-testimony-of-cia-s-mkultra-chief-50-years-later-national-security"
 const DOSSIER_CHAT_PROOF_QUESTION = "What is actually documented here? Link me to the key sources."
 const X_SIGNAL_PROOF_TOPIC = "secret-programs"
+const X_SIGNAL_MIN_POSTS = Number(process.env.CUTOVER_X_SIGNAL_MIN_POSTS || "12")
+const X_SIGNAL_MAX_AGE_HOURS = Number(process.env.CUTOVER_X_SIGNAL_MAX_AGE_HOURS || "192")
+const PIPELINE_MAX_AGE_HOURS = Number(process.env.CUTOVER_PIPELINE_MAX_AGE_HOURS || "36")
 
 const EXPECTED_JOBS = [
   "inverted-world-youtube-archive-sync",
@@ -189,6 +192,12 @@ function commitsMatch(actual, expected) {
   return actualCommit.startsWith(expectedCommit) || expectedCommit.startsWith(actualCommit)
 }
 
+function ageMinutes(value) {
+  const timestamp = value ? new Date(value).getTime() : Number.NaN
+  if (!Number.isFinite(timestamp)) return null
+  return Math.max(0, Math.round((Date.now() - timestamp) / 60000))
+}
+
 function deploymentCommitHash(deployment) {
   return deployment?.commit_hash || deployment?.commitHash || deployment?.source_revision || deployment?.sourceRevision || ""
 }
@@ -351,6 +360,46 @@ async function probeXSignalPage(url) {
       outboundXLinks,
       postAnchors,
       tickerAnchorLinks,
+      durationMs: Date.now() - started,
+    }
+  } catch (error) {
+    return {
+      url,
+      status: 0,
+      ok: false,
+      message: error instanceof Error ? error.message : String(error),
+      durationMs: Date.now() - started,
+    }
+  }
+}
+
+async function probeXSignalApi(url) {
+  const started = Date.now()
+  try {
+    const response = await fetch(url, {
+      headers: { accept: "application/json", "user-agent": "InvertedWorldCutoverReadiness/1.0" },
+      signal: AbortSignal.timeout(20000),
+    })
+    const body = await response.json().catch(() => ({}))
+    const posts = Array.isArray(body.posts) ? body.posts : []
+    const createdTimes = posts
+      .map((post) => new Date(post?.createdAt || post?.postedAt || "").getTime())
+      .filter(Number.isFinite)
+    const latestPostAt = createdTimes.length ? new Date(Math.max(...createdTimes)).toISOString() : undefined
+    const sourceCount = new Set(posts.map((post) => post?.source).filter(Boolean)).size
+    const xLinkCount = posts.filter((post) => /^https?:\/\/(?:www\.)?(?:x\.com|twitter\.com)\//i.test(String(post?.url || ""))).length
+
+    return {
+      url,
+      status: response.status,
+      ok: response.ok,
+      topicId: typeof body.topic?.id === "string" ? body.topic.id : undefined,
+      freshnessWindowHours: Number(body.freshnessWindowHours || 0),
+      postCount: posts.length,
+      sourceCount,
+      xLinkCount,
+      latestPostAt,
+      latestPostAgeMinutes: ageMinutes(latestPostAt),
       durationMs: Date.now() - started,
     }
   } catch (error) {
@@ -563,6 +612,7 @@ async function probePipelineApi(url) {
     const body = await response.json().catch(() => ({}))
     const latest = body.latest && typeof body.latest === "object" ? body.latest : {}
     const readHealth = body.readHealth && typeof body.readHealth === "object" ? body.readHealth : {}
+    const latestCompletedAt = typeof latest.completedAt === "string" ? latest.completedAt : undefined
 
     return {
       url,
@@ -573,6 +623,8 @@ async function probePipelineApi(url) {
       latestJobName: typeof latest.jobName === "string" ? latest.jobName : undefined,
       latestStatus: typeof latest.status === "string" ? latest.status : undefined,
       latestStepCount: Number(latest.stepCount || 0),
+      latestCompletedAt,
+      latestAgeMinutes: ageMinutes(latestCompletedAt),
       readHealthStatus: typeof readHealth.status === "string" ? readHealth.status : undefined,
       readHealthLastErrorStatus: readHealth.lastErrorStatus,
       durationMs: Date.now() - started,
@@ -600,6 +652,9 @@ async function probeFrontPageApi(url) {
     const breakingItems = Array.isArray(body.breakingItems) ? body.breakingItems : []
     const pipeline = body.pipeline && typeof body.pipeline === "object" ? body.pipeline : {}
     const hrefs = breakingItems.map((item) => (typeof item?.href === "string" ? item.href : ""))
+    const editionPublishedAt = typeof edition.publishedAt === "string" ? edition.publishedAt : undefined
+    const pipelineCompletedAt = typeof pipeline.completedAt === "string" ? pipeline.completedAt : undefined
+    const freshnessTimestamp = editionPublishedAt && editionPublishedAt.includes("T") ? editionPublishedAt : pipelineCompletedAt || editionPublishedAt
 
     return {
       url,
@@ -608,6 +663,10 @@ async function probeFrontPageApi(url) {
       sourceMode: body.sourceMode,
       hasEdition: Boolean(edition && typeof edition.headline === "string" && edition.headline.trim()),
       headline: typeof edition.headline === "string" ? edition.headline : undefined,
+      editionPublishedAt,
+      pipelineCompletedAt,
+      freshnessTimestamp,
+      freshnessAgeMinutes: ageMinutes(freshnessTimestamp),
       breakingItemCount: breakingItems.length,
       hasNewsLinks: hrefs.some((href) => href.startsWith("/news/")),
       hasInternalXLinks: hrefs.some((href) => href.startsWith("/x/")),
@@ -694,6 +753,7 @@ async function main() {
   const releaseApiUrl = new URL("/api/release", recursivUrl).toString()
   const newsPageUrl = new URL("/news", recursivUrl).toString()
   const xSignalPageUrl = new URL(`/x/${X_SIGNAL_PROOF_TOPIC}`, recursivUrl).toString()
+  const xSignalApiUrl = new URL(`/api/x/${X_SIGNAL_PROOF_TOPIC}?limit=24`, recursivUrl).toString()
   const archiveApiUrl = new URL("/api/archive?limit=1000", recursivUrl).toString()
   const documentsApiUrl = new URL("/api/documents", recursivUrl).toString()
   const pipelineApiUrl = new URL("/api/pipeline?limit=1", recursivUrl).toString()
@@ -726,6 +786,7 @@ async function main() {
     recursivHttp,
     newsPage,
     xSignalPage,
+    xSignalApi,
     releaseApi,
     archiveApi,
     documentsApi,
@@ -766,6 +827,7 @@ async function main() {
       probeHttp(recursivUrl),
       probeNewsPage(newsPageUrl),
       probeXSignalPage(xSignalPageUrl),
+      probeXSignalApi(xSignalApiUrl),
       probeReleaseApi(releaseApiUrl),
       probeJson(archiveApiUrl),
       probeDocumentsApi(documentsApiUrl),
@@ -854,6 +916,15 @@ async function main() {
       Number(xSignalPage.postAnchors || 0) >= 6 &&
       Number(xSignalPage.tickerAnchorLinks || 0) >= 6,
   )
+  const xSignalApiFresh = xSignalApi.latestPostAgeMinutes !== null && Number(xSignalApi.latestPostAgeMinutes) <= X_SIGNAL_MAX_AGE_HOURS * 60
+  const xSignalApiReady = Boolean(
+    xSignalApi.ok &&
+      xSignalApi.topicId === X_SIGNAL_PROOF_TOPIC &&
+      Number(xSignalApi.postCount || 0) >= X_SIGNAL_MIN_POSTS &&
+      Number(xSignalApi.xLinkCount || 0) >= X_SIGNAL_MIN_POSTS &&
+      Number(xSignalApi.sourceCount || 0) >= 2 &&
+      xSignalApiFresh,
+  )
   const releaseRevision = releaseRevisionProof(releaseApi, latestDeployment, deploymentLookupAvailable)
   const releaseCommitMatch = commitsMatch(releaseRevision.value, expectedReleaseCommit)
   const releaseCommitReady = releaseCommitMatch === true
@@ -875,17 +946,22 @@ async function main() {
       Number(documentsApi.topicCount || 0) >= 6 &&
       Number(documentsApi.kindCount || 0) >= 4,
   )
+  const pipelineApiFresh = pipelineApi.latestAgeMinutes !== null && Number(pipelineApi.latestAgeMinutes) <= PIPELINE_MAX_AGE_HOURS * 60
   const pipelineApiReady = Boolean(
     pipelineApi.ok &&
       RECURSIV_BACKED_SOURCE_MODES.has(pipelineApi.sourceMode) &&
       Number(pipelineApi.count || 0) >= 1 &&
       pipelineApi.latestJobName === "full-pipeline" &&
-      pipelineApi.latestStatus === "succeeded",
+      pipelineApi.latestStatus === "succeeded" &&
+      pipelineApiFresh,
   )
+  const frontPageApiFresh =
+    frontPageApi.freshnessAgeMinutes !== null && Number(frontPageApi.freshnessAgeMinutes) <= PIPELINE_MAX_AGE_HOURS * 60
   const frontPageApiReady = Boolean(
     frontPageApi.ok &&
       RECURSIV_BACKED_SOURCE_MODES.has(frontPageApi.sourceMode) &&
       frontPageApi.hasEdition &&
+      frontPageApiFresh &&
       Number(frontPageApi.breakingItemCount || 0) >= 8 &&
       frontPageApi.hasNewsLinks &&
       frontPageApi.hasInternalXLinks &&
@@ -921,6 +997,7 @@ async function main() {
     recursivHostingProven &&
     newsPageReady &&
     xSignalPageReady &&
+    xSignalApiReady &&
     releaseProofReady &&
     releaseCommitReady &&
     publicProviderFallbackAuditReady &&
@@ -943,6 +1020,8 @@ async function main() {
     recursivHostedUrl: statusText(recursivHostedUrlProven),
     newsPage: statusText(newsPageReady),
     xSignalPage: statusText(xSignalPageReady),
+    xSignalApi: statusText(xSignalApiReady),
+    xSignalFreshness: statusText(xSignalApiFresh),
     recursivDeploymentCompleted: deploymentLookupAvailable ? statusText(recursivDeploymentCompleted) : "unknown",
     recursivHosting: statusText(recursivHostingProven),
     releaseProof: statusText(releaseProofReady),
@@ -953,7 +1032,9 @@ async function main() {
     recursivArchiveSnapshot: statusText(recursivArchiveSnapshotReady),
     documentsApi: statusText(documentsApiReady),
     pipelineApi: statusText(pipelineApiReady),
+    pipelineFreshness: statusText(pipelineApiFresh),
     frontPageApi: statusText(frontPageApiReady),
+    frontPageFreshness: statusText(frontPageApiFresh),
     mediaItemPage: statusText(mediaItemPageReady),
     mediaItemApi: statusText(mediaItemApiReady),
     dossierChatApi: statusText(dossierChatApiReady),
@@ -976,6 +1057,11 @@ async function main() {
   }
   if (!xSignalPageReady) {
     nextActions.push(`Do not touch DNS until /x/${X_SIGNAL_PROOF_TOPIC} renders ranked X posts with anchored post cards and outbound X links.`)
+  }
+  if (!xSignalApiReady) {
+    nextActions.push(
+      `Do not touch DNS until /api/x/${X_SIGNAL_PROOF_TOPIC} returns at least ${X_SIGNAL_MIN_POSTS} recent X posts from multiple source modes with a latest post inside ${X_SIGNAL_MAX_AGE_HOURS} hours.`,
+    )
   }
   if (!releaseProofReady) {
     nextActions.push("Do not touch DNS until /api/release returns the current Recursiv feature marker for the deployed backend.")
@@ -1001,10 +1087,14 @@ async function main() {
   }
   if (!documentsApiReady) nextActions.push("Do not touch DNS until /api/documents returns the machine-readable source shelf with topic and kind coverage.")
   if (!pipelineApiReady) {
-    nextActions.push("Do not touch DNS until /api/pipeline returns the latest full-pipeline status from Recursiv database or Recursiv snapshot data.")
+    nextActions.push(
+      `Do not touch DNS until /api/pipeline returns a succeeded full-pipeline run from Recursiv database or Recursiv snapshot data completed inside ${PIPELINE_MAX_AGE_HOURS} hours.`,
+    )
   }
   if (!frontPageApiReady) {
-    nextActions.push("Do not touch DNS until /api/front-page returns a Recursiv-backed edition with direct news, X, and archive ticker targets.")
+    nextActions.push(
+      `Do not touch DNS until /api/front-page returns a Recursiv-backed edition from inside ${PIPELINE_MAX_AGE_HOURS} hours with direct news, X, and archive ticker targets.`,
+    )
   }
   if (!mediaItemPageReady || !mediaItemApiReady) {
     nextActions.push(`Do not touch DNS until the Recursiv hosted media library proves /media/${MEDIA_PROOF_ID} and /api/media/${MEDIA_PROOF_ID}.`)
@@ -1052,6 +1142,8 @@ async function main() {
       recursivHostedUrlProven,
       newsPageReady,
       xSignalPageReady,
+      xSignalApiReady,
+      xSignalApiFresh,
       recursivDeploymentCompleted,
       releaseProofReady,
       releaseCommitReady,
@@ -1059,7 +1151,9 @@ async function main() {
       recursivArchiveDataReady,
       recursivArchiveLiveDatabaseReady,
       recursivArchiveSnapshotReady,
+      pipelineApiFresh,
       pipelineApiReady,
+      frontPageApiFresh,
       frontPageApiReady,
       mediaItemPageReady,
       mediaItemApiReady,
@@ -1076,6 +1170,7 @@ async function main() {
     recursivUrl: recursivHttp,
     newsPage,
     xSignalPage,
+    xSignalApi,
     releaseApi,
     expectedReleaseCommit,
     releaseRevision,

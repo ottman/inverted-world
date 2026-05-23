@@ -24,6 +24,7 @@ The command prints a redacted JSON report with:
 - HTTP proof for `https://invertedworld.on.recursiv.io`;
 - `/news` source-board proof, including direct external source links and internal Inverted World context links;
 - `/x/secret-programs` signal-page proof, including ranked posts, anchored post cards, and outbound X links;
+- `/api/x/secret-programs` freshness proof, requiring at least 12 recent X posts from multiple source modes and a latest post inside 192 hours;
 - release proof from `https://invertedworld.on.recursiv.io/api/release`, including the deployed feature marker;
 - source-revision proof from `/api/release` when the hosted build exposes `deployment.sourceRevision` from a commit environment variable or the commit-shaped Next build id, or from authenticated Recursiv deployment metadata when the runtime cannot expose either;
 - public provider-fallback audit proof from `pnpm audit:public-providers`;
@@ -32,8 +33,8 @@ The command prints a redacted JSON report with:
 - source-document API proof for `https://invertedworld.on.recursiv.io/api/documents`;
 - media-library detail proof for the UAP PDF route and JSON item route;
 - Ask This Story proof from `/api/dossiers/[slug]/chat`, requiring no-write sourced Markdown with source and archive links;
-- latest full-pipeline status and `sourceMode` from `/api/pipeline`;
-- front-page edition and site ticker proof from `/api/front-page`, including direct news, X, and archive targets;
+- latest full-pipeline status and `sourceMode` from `/api/pipeline`, including a completion timestamp inside 36 hours;
+- front-page edition and site ticker proof from `/api/front-page`, including direct news, X, archive targets, and an edition or pipeline timestamp inside 36 hours;
 - HTTP and DNS proof for `https://www.inverted.world`;
 - active Recursiv scheduled job count and missing jobs;
 - latest hosted provider-health blockers for the full AI product;
@@ -55,12 +56,13 @@ The output file contains the same no-secret report printed to stdout.
 - If `recursivHostedUrl` passes but `recursivDeploymentCompleted` is `unknown`, HTTP proof is good but deployment proof is incomplete. Do not treat that as a DNS-ready state.
 - `newsPage` must pass, proving `/news` renders the source-board page with direct external source links and internal Inverted World context links.
 - `xSignalPage` must pass, proving `/x/secret-programs` renders ranked X posts with anchored cards, outbound X links, and no empty lane state.
+- `xSignalApi` and `xSignalFreshness` must pass, proving `/api/x/secret-programs` has enough recent X posts from multiple persisted/source modes.
 - `releaseCommit` must be `pass`. Full readiness may prove this from `/api/release` or from authenticated Recursiv deployment metadata. `unknown` means neither source exposes a revision yet, and `fail` means the deployed revision is not the expected commit.
 - `publicProviderFallbackAudit` must be `pass`, proving public `app/` routes and pages do not call provider-capable helpers without `allowProviderFallbacks: false`.
 - `recursivArchiveDataReady` must be `true`. This can be live `recursiv-database` or `recursiv-snapshot`, but it must not be `seed`, `static`, RSS, YouTube API, or direct provider fallback data.
 - `documentsApi` must pass, proving the source shelf is available as machine-readable JSON from live `recursiv-database` or `recursiv-snapshot` data.
-- `pipelineApi` must pass, proving `/api/pipeline` exposes the latest full-pipeline status from live Recursiv database rows or the committed Recursiv snapshot fallback.
-- `frontPageApi` must pass, proving `/api/front-page` exposes a Recursiv-backed edition and direct ticker targets into stories, X signals, and archive items.
+- `pipelineApi` and `pipelineFreshness` must pass, proving `/api/pipeline` exposes a succeeded full-pipeline run from live Recursiv database rows or the committed Recursiv snapshot fallback completed inside 36 hours.
+- `frontPageApi` and `frontPageFreshness` must pass, proving `/api/front-page` exposes a Recursiv-backed edition tied to an edition or pipeline timestamp inside 36 hours and direct ticker targets into stories, X signals, and archive items.
 - `mediaItemPage` and `mediaItemApi` must pass, proving the hosted build includes shareable media pages and machine-readable item data for the official UAP PDF.
 - `dossierChatApi` must pass, proving Ask This Story can return sourced Markdown without requiring a writable agent conversation.
 - `publicHostingReady` must be `true`.
@@ -109,13 +111,14 @@ This still does not change DNS. The `:wait` variant polls deployment status unti
 
 ## Current Expected State
 
-As of the latest public-only proof on May 23, 2026 at `16:04Z`, `invertedworld.on.recursiv.io` is live but the hosted build has not yet caught up to the latest pushed repo commit. Treat the Recursiv slug as available, not DNS-ready.
+As of the latest public-only proof on May 23, 2026 at `16:19Z`, `invertedworld.on.recursiv.io` is live but the hosted build has not yet caught up to the latest pushed repo commit. Treat the Recursiv slug as available, not DNS-ready.
 
 Current live proof:
 
 - `https://invertedworld.on.recursiv.io` returns HTTP 200 with the Inverted World app.
 - `https://www.inverted.world` returns HTTP 200 with `server: Vercel` and `x-vercel-id`, so the custom domain is still on the legacy host.
 - `/x/secret-programs` returns HTTP 200 with 26 outbound X links, 19 anchored post cards, and 38 ticker anchor links.
+- `/api/x/secret-programs?limit=24` returns 19 recent Declassified X posts from two source modes, with the latest post age inside the freshness window.
 - `/api/archive?limit=1000` returns `sourceMode: "recursiv-snapshot"`, 437 archive videos, no warnings, and `hasMore: false`.
 - `/api/documents` returns `sourceMode: "recursiv-snapshot"` with 37 source documents across six topics and five media/document kinds.
 - The latest pushed build exposes `/api/front-page` with `sourceMode` and direct Recursiv-backed ticker items, but the hosted build must be redeployed before this can pass publicly.
@@ -123,7 +126,8 @@ Current live proof:
 - `/api/media/war-uap-release-02-senior-usic-narrative` returns `sourceMode: "recursiv-snapshot"` with the official UAP PDF item and related media.
 - `/api/release` still returns `pipelineSnapshotFallback: false` on the hosted app, so the current hosted build is older than the pushed repo.
 - `releaseCommit` is `unknown` because the hosted app does not expose `deployment.sourceRevision` yet.
-- `/api/pipeline?limit=1` returns `sourceMode: "unavailable"` with `readHealthLastErrorStatus: 429`, so the hosted pipeline status fallback is not live until the newer commit is deployed.
+- `/api/pipeline?limit=1` returns `sourceMode: "unavailable"` with `readHealthLastErrorStatus: 429`, so the hosted pipeline status fallback and 36-hour freshness proof are not live until the newer commit is deployed.
+- `/api/front-page` exposes the latest pipeline timestamp, but the hosted build still returns zero ticker items and no `sourceMode`, so `frontPageApi` remains blocked until redeploy.
 
 Earlier full readiness runs proved the Recursiv database, scheduled jobs, provider-health row, and successful full-pipeline run, but those authenticated checks are not current while the Recursiv key is under a per-day deploy/status cooldown. Use them as historical context only; rerun full `pnpm recursiv:cutover` after API health returns.
 
@@ -135,7 +139,7 @@ The known full-product blockers are provider/account-side, not DNS fixes. A fres
 
 ## Current Decision
 
-As of the latest public-only proof on May 23, 2026 at `16:04Z`:
+As of the latest public-only proof on May 23, 2026 at `16:19Z`:
 
 - `publicHostingReady: false`
 - `fullAiProductReady: false`
@@ -289,7 +293,7 @@ If Recursiv TLS, routing, or app health fails after DNS cutover:
 
 ## Inverted World Status
 
-As of a live check on May 23, 2026 at `16:04Z`:
+As of a live check on May 23, 2026 at `16:19Z`:
 
 - `https://www.inverted.world` returns HTTP 200 with `server: Vercel` and `x-vercel-id`, so the custom domain is still on Vercel.
 - `https://www.inverted.world` currently resolves to legacy Vercel IPs `64.29.17.1` and `216.198.79.65`.

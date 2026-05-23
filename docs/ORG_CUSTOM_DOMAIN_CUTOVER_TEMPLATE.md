@@ -38,7 +38,7 @@ pnpm recursiv:domain:preflight -- \
 
 The Recursiv slug host must return the expected app over HTTPS, and each required product route must return its expected text. If it does not, stop. Fix deployment, routing, app boot, or content before custom-domain work.
 
-Use `--path=/route::expected text` for app-specific proof points. Good routes are health endpoints, public data APIs, logged-out dashboards, content pages, or other surfaces that prove the production app is more than a placeholder homepage.
+Use `--path=/route::expected text` for app-specific proof points. Good routes are health endpoints, public data APIs, logged-out dashboards, content pages, freshness/status endpoints, or other surfaces that prove the production app is more than a placeholder homepage.
 
 ### 2. Recursiv Project Binding
 
@@ -120,6 +120,7 @@ Required result:
 - custom hostname no longer shows legacy host headers;
 - TLS certificate is valid for the custom hostname;
 - app health/data endpoints return the expected Recursiv-backed state;
+- freshness/status endpoints prove the public data is current enough for the product promise;
 - canonical URLs and sitemap point to the desired production host.
 
 ### 6. Legacy Cleanup
