@@ -5,7 +5,7 @@ import { getArchiveVideo, getRecommendedArchiveVideos } from "@/lib/deep-archive
 import { buildVideoDossier, videoDossierJsonLd } from "@/lib/video-dossier"
 import { fetchLiveArticlesForTopic } from "@/lib/live-articles"
 import { fetchViralXPostsForTopic } from "@/lib/x-posts"
-import { getYouTubeTranscript, transcriptExcerpt, type YouTubeTranscript } from "@/lib/youtube-transcript"
+import { getYouTubeTranscript, transcriptExcerpt, transcriptFromText, type YouTubeTranscript } from "@/lib/youtube-transcript"
 import { cn } from "@/lib/utils"
 import type { ChannelVideo, ContentTopic } from "@/data/inverted-world"
 
@@ -66,7 +66,7 @@ function transcriptDescription(video: ChannelVideo, transcript: YouTubeTranscrip
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const video = await getArchiveVideo(params.videoId)
+  const video = await getArchiveVideo(params.videoId, { allowProviderFallbacks: false })
   if (!video) {
     return {
       title: "Tales archive video",
@@ -79,7 +79,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const dossier = buildVideoDossier(video)
   const synopsis = buildSynopsis(video, dossier.topic).join(" ")
-  const transcript = await getYouTubeTranscript(video.videoId)
+  const transcript = video.transcript
+    ? transcriptFromText(video.videoId, video.transcript)
+    : await getYouTubeTranscript(video.videoId, { allowProviderFallbacks: false })
   const description = transcriptDescription(video, transcript, synopsis)
   const url = `/archive/${params.videoId}`
 
@@ -129,7 +131,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function ArchiveVideoPage({ params }: PageProps) {
-  const video = await getArchiveVideo(params.videoId)
+  const video = await getArchiveVideo(params.videoId, { allowProviderFallbacks: false })
   if (!video) {
     const youtubeUrl = `https://www.youtube.com/watch?v=${encodeURIComponent(params.videoId)}`
     return (
@@ -179,10 +181,14 @@ export default async function ArchiveVideoPage({ params }: PageProps) {
   const dossier = buildVideoDossier(video)
   const canonicalUrl = `https://www.inverted.world/archive/${params.videoId}`
   const [transcript, liveArticles, xPosts, recommendedVideos] = await Promise.all([
-    getYouTubeTranscript(video.videoId),
-    fetchLiveArticlesForTopic(dossier.topic.id, dossier.topic.query.replaceAll('"', "")).catch(() => []),
-    fetchViralXPostsForTopic(dossier.topic.id).catch(() => []),
-    getRecommendedArchiveVideos(video, 8).catch(() => []),
+    video.transcript
+      ? Promise.resolve(transcriptFromText(video.videoId, video.transcript))
+      : getYouTubeTranscript(video.videoId, { allowProviderFallbacks: false }),
+    fetchLiveArticlesForTopic(dossier.topic.id, dossier.topic.query.replaceAll('"', ""), {
+      allowProviderFallbacks: false,
+    }).catch(() => []),
+    fetchViralXPostsForTopic(dossier.topic.id, { allowProviderFallbacks: false }).catch(() => []),
+    getRecommendedArchiveVideos(video, 8, { allowProviderFallbacks: false }).catch(() => []),
   ])
   const breakingItems = [...xPostsToBreakingItems(xPosts), ...articleToBreakingItems(liveArticles)]
 

@@ -36,7 +36,7 @@ export default async function XTopicPage({ params }: PageProps) {
   const topic = getTopic(params.topicId)
   if (!topic) notFound()
 
-  const posts = await fetchViralXPostsForTopic(topic.id, { limit: 24 }).catch(() => [])
+  const posts = await fetchViralXPostsForTopic(topic.id, { limit: 24, allowProviderFallbacks: false }).catch(() => [])
   const breakingItems: BreakingItem[] = posts.map((post) => ({
     title: post.text,
     href: xPostInternalHref(post, topic.id),

@@ -7,7 +7,7 @@ export async function GET(request: Request) {
   const url = new URL(request.url)
   const kind = url.searchParams.get("kind")
   const topicId = url.searchParams.get("topicId")
-  const { sourceMode, items } = await fetchMediaLibrary()
+  const { sourceMode, items } = await fetchMediaLibrary({ allowProviderFallbacks: false })
   const filtered = items.filter((item) => {
     if (kind && item.kind !== kind) return false
     if (topicId && !item.topicIds.includes(topicId)) return false

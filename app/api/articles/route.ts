@@ -4,7 +4,7 @@ import { fetchLiveArticles } from "@/lib/live-articles"
 export const dynamic = "force-dynamic"
 
 export async function GET() {
-  const { articles, warnings } = await fetchLiveArticles()
+  const { articles, warnings } = await fetchLiveArticles({ allowProviderFallbacks: false })
 
   return NextResponse.json({
     generatedAt: new Date().toISOString(),

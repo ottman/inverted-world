@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 }
 
 export default async function MediaPage() {
-  const { items } = await fetchExpandedMediaLibrary({ archiveLimit: 96 })
+  const { items } = await fetchExpandedMediaLibrary({ archiveLimit: 96, allowProviderFallbacks: false })
 
   return (
     <InvertedPageShell

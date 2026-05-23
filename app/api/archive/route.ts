@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   const limit = Number(request.nextUrl.searchParams.get("limit") || "100")
   const offset = Number(request.nextUrl.searchParams.get("offset") || "0")
   try {
-    const archive = await getDeepArchive({ limit, offset, maxLimit: 1000 })
+    const archive = await getDeepArchive({ limit, offset, maxLimit: 1000, allowProviderFallbacks: false })
     return NextResponse.json(archive)
   } catch (error) {
     const seeded = featuredVideos.filter((video) => video.source === "YouTube" && video.videoId)

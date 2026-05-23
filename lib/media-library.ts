@@ -9,6 +9,7 @@ import {
 } from "@/data/inverted-world"
 import recursivPublicSnapshot from "@/data/generated/recursiv-public-snapshot.json"
 import { getDeepArchive } from "@/lib/deep-archive"
+import { allowProviderFallbacks, type ProviderFallbackOptions } from "@/lib/provider-fallbacks"
 import { queryInvertedWorldDatabase, type RecursivRow } from "@/lib/recursiv/database"
 
 export type { MediaLibraryItem } from "@/data/inverted-world"
@@ -588,7 +589,8 @@ export async function fetchMediaSeedItemsForSync() {
   return staticMediaLibraryItems(officialUapItems)
 }
 
-export async function fetchMediaLibrary(): Promise<MediaLibraryResult> {
+export async function fetchMediaLibrary(options: ProviderFallbackOptions = {}): Promise<MediaLibraryResult> {
+  const shouldFetchOfficialUap = allowProviderFallbacks(options)
   const [rows, officialUapItems] = await Promise.all([
     queryInvertedWorldDatabase<MediaLibraryRow>(
       `SELECT
@@ -612,7 +614,7 @@ export async function fetchMediaLibrary(): Promise<MediaLibraryResult> {
       WHERE status = 'active'
       ORDER BY published_at DESC NULLS LAST, updated_at DESC NULLS LAST, title`,
     ),
-    fetchOfficialUapReleaseMedia(),
+    shouldFetchOfficialUap ? fetchOfficialUapReleaseMedia() : Promise.resolve([]),
   ])
 
   if (rows?.length) {
@@ -636,11 +638,17 @@ export async function fetchMediaLibrary(): Promise<MediaLibraryResult> {
   }
 }
 
-export async function fetchExpandedMediaLibrary(options: { archiveLimit?: number } = {}): Promise<ExpandedMediaLibraryResult> {
+export async function fetchExpandedMediaLibrary(
+  options: { archiveLimit?: number } & ProviderFallbackOptions = {},
+): Promise<ExpandedMediaLibraryResult> {
   const archiveLimit = Math.max(0, Math.min(Math.trunc(options.archiveLimit || 96), 500))
   const [library, archive] = await Promise.all([
-    fetchMediaLibrary(),
-    archiveLimit > 0 ? getDeepArchive({ limit: archiveLimit, maxLimit: 1000 }).catch(() => null) : Promise.resolve(null),
+    fetchMediaLibrary(options),
+    archiveLimit > 0
+      ? getDeepArchive({ limit: archiveLimit, maxLimit: 1000, allowProviderFallbacks: options.allowProviderFallbacks }).catch(
+          () => null,
+        )
+      : Promise.resolve(null),
   ])
   const archiveItems = archive?.videos.map(archiveVideoToMediaItem) || []
 
@@ -651,9 +659,9 @@ export async function fetchExpandedMediaLibrary(options: { archiveLimit?: number
   }
 }
 
-export async function fetchMediaLibraryItem(mediaId: string, options: { relatedLimit?: number } = {}) {
+export async function fetchMediaLibraryItem(mediaId: string, options: { relatedLimit?: number } & ProviderFallbackOptions = {}) {
   const relatedLimit = Math.max(1, Math.min(Math.trunc(options.relatedLimit || 8), 16))
-  const library = await fetchExpandedMediaLibrary({ archiveLimit: 160 })
+  const library = await fetchExpandedMediaLibrary({ archiveLimit: 160, allowProviderFallbacks: options.allowProviderFallbacks })
   const item = findMediaItem(library.items, mediaId)
   if (!item) return null
 

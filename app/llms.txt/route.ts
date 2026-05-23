@@ -10,22 +10,20 @@ export const revalidate = 3600
 
 export async function GET() {
   const [archive, media] = await Promise.all([
-    getDeepArchive({ limit: 1000, maxLimit: 1000 }),
-    fetchExpandedMediaLibrary({ archiveLimit: 160 }),
+    getDeepArchive({ limit: 1000, maxLimit: 1000, allowProviderFallbacks: false }),
+    fetchExpandedMediaLibrary({ archiveLimit: 160, allowProviderFallbacks: false }),
   ])
   const lines = [
     "# Inverted World",
     "",
     "Tales From The Inverted World.",
     "",
-    "This site is designed for LLM retrieval: every video has an indexable page, canonical metadata, source links, live coverage, and a transcript section when YouTube captions are public.",
+    "This site is designed for LLM retrieval: every video has an indexable page, canonical metadata, source links, live coverage, and transcript JSON when a stored Recursiv transcript is available.",
     "",
     "## Update Cadence",
-    "- YouTube live status: checked every 60 seconds.",
-    "- Full channel archive and header video: refreshed from the YouTube Data API every 5 minutes when the API is available.",
-    "- Google News topic feeds: refreshed every hour.",
-    "- Viral X signal fetches: refreshed every 30 minutes; X API metrics are used when available.",
-    "- YouTube transcripts: refreshed daily because caption tracks are mostly stable after upload.",
+    "- Public archive, news, X, media, and transcript routes read Recursiv database rows or committed Recursiv snapshots.",
+    "- YouTube live status, channel archive, news search, X signals, media manifests, and transcripts are ingestion responsibilities, not public-render provider calls.",
+    "- Stored source snapshots are refreshed by Recursiv jobs; public pages avoid third-party provider keys.",
     "",
     "## Core URLs",
     `${baseUrl}/`,

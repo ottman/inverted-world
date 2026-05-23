@@ -49,7 +49,7 @@ function sourceHost(url: string) {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const result = await fetchMediaLibraryItem(params.mediaId)
+  const result = await fetchMediaLibraryItem(params.mediaId, { allowProviderFallbacks: false })
   if (!result) {
     return {
       title: "Media item",
@@ -88,7 +88,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function MediaItemPage({ params }: PageProps) {
-  const result = await fetchMediaLibraryItem(params.mediaId)
+  const result = await fetchMediaLibraryItem(params.mediaId, { allowProviderFallbacks: false })
   if (!result) notFound()
 
   const { item, related } = result

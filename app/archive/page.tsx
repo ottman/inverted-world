@@ -10,11 +10,11 @@ export const revalidate = 300
 
 export default async function ArchivePage() {
   const [initialArchive, initialTopicFeeds, initialTopicXPosts, liveStatus, initialMediaLibrary] = await Promise.all([
-    getDeepArchive({ limit: 1000, maxLimit: 1000 }),
+    getDeepArchive({ limit: 1000, maxLimit: 1000, allowProviderFallbacks: false }),
     fetchLiveArticlesByTopic({ allowProviderFallbacks: false, limitPerTopic: 12 }).catch(() => ({})),
     fetchViralXPostsByTopic({ allowProviderFallbacks: false, limitPerTopic: 18 }).catch(() => ({})),
-    getYouTubeLiveStatus().catch(() => null),
-    fetchMediaLibrary().catch(() => ({ items: [] })),
+    getYouTubeLiveStatus({ allowProviderFallbacks: false }).catch(() => null),
+    fetchMediaLibrary({ allowProviderFallbacks: false }).catch(() => ({ items: [] })),
   ])
 
   return (

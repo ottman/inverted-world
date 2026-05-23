@@ -19,6 +19,7 @@ type ChannelItemRow = RecursivRow & {
   source_url?: string
   title?: string
   description?: string
+  transcript?: string
   published_at?: string
   topic_id?: string
   thumbnail_url?: string
@@ -432,6 +433,7 @@ function channelRowToVideo(row: ChannelItemRow): ChannelVideo {
     embedUrl: row.embed_url || (videoId ? `https://www.youtube.com/embed/${videoId}?rel=0` : undefined),
     thumbnail: row.thumbnail_url || (videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : undefined),
     description: row.description,
+    transcript: row.transcript || undefined,
     kind: row.kind === "short" ? "short" : "episode",
   }
 }

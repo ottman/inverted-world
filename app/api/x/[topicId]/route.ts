@@ -13,7 +13,7 @@ export async function GET(request: Request, { params }: { params: { topicId: str
 
   const url = new URL(request.url)
   const limit = Number(url.searchParams.get("limit") || "18")
-  const posts = await fetchViralXPostsForTopic(topic.id, { limit })
+  const posts = await fetchViralXPostsForTopic(topic.id, { limit, allowProviderFallbacks: false })
 
   return NextResponse.json(
     {

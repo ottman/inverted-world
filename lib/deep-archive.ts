@@ -218,17 +218,17 @@ export async function getDeepArchive(options: {
   ])
 }
 
-export async function getArchiveVideo(videoId: string) {
+export async function getArchiveVideo(videoId: string, options: ProviderFallbackOptions = {}) {
   if (!videoId) return null
-  const archive = await getDeepArchive({ limit: 1000, maxLimit: 1000 })
+  const archive = await getDeepArchive({ limit: 1000, maxLimit: 1000, ...options })
   const archiveVideo = archive.videos.find((video) => video.videoId === videoId)
   if (archiveVideo) return archiveVideo
 
   return getRecursivChannelVideo(videoId)
 }
 
-export async function getRecommendedArchiveVideos(video: ChannelVideo, limit = 8) {
-  const archive = await getDeepArchive({ limit: 1000, maxLimit: 1000 })
+export async function getRecommendedArchiveVideos(video: ChannelVideo, limit = 8, options: ProviderFallbackOptions = {}) {
+  const archive = await getDeepArchive({ limit: 1000, maxLimit: 1000, ...options })
   const candidates = archive.videos.filter((item) => item.videoId && item.videoId !== video.videoId)
   const sameTopic = candidates.filter((item) => item.topicId === video.topicId)
   const nearbyTopics = candidates.filter((item) => item.topicId !== video.topicId)

@@ -1,3 +1,5 @@
+import { allowProviderFallbacks, type ProviderFallbackOptions } from "@/lib/provider-fallbacks"
+
 export type TranscriptSegment = {
   start: number
   duration?: number
@@ -8,7 +10,7 @@ export type YouTubeTranscript = {
   videoId: string
   available: boolean
   language?: string
-  source?: "manual" | "auto" | "youtube"
+  source?: "manual" | "auto" | "youtube" | "recursiv"
   segments: TranscriptSegment[]
   text: string
   fetchedAt: string
@@ -113,8 +115,28 @@ function unavailable(videoId: string, error?: string): YouTubeTranscript {
   }
 }
 
-export async function getYouTubeTranscript(videoId?: string | null): Promise<YouTubeTranscript> {
+export function transcriptFromText(videoId: string | undefined | null, text: string | undefined | null): YouTubeTranscript {
+  const cleanText = text?.replace(/\s+/g, " ").trim() || ""
+  if (!videoId || !cleanText) return unavailable(videoId || "")
+
+  return {
+    videoId,
+    available: true,
+    source: "recursiv",
+    segments: [{ start: 0, text: cleanText }],
+    text: cleanText,
+    fetchedAt: new Date().toISOString(),
+  }
+}
+
+export async function getYouTubeTranscript(
+  videoId?: string | null,
+  options: ProviderFallbackOptions = {},
+): Promise<YouTubeTranscript> {
   if (!videoId) return unavailable("")
+  if (!allowProviderFallbacks(options)) {
+    return unavailable(videoId, "Transcript provider fallback is disabled for public reads; Recursiv ingestion owns transcript capture.")
+  }
 
   try {
     const listUrl = new URL("https://www.youtube.com/api/timedtext")

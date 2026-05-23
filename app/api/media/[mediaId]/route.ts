@@ -11,7 +11,7 @@ type RouteContext = {
 }
 
 export async function GET(_request: Request, { params }: RouteContext) {
-  const result = await fetchMediaLibraryItem(params.mediaId)
+  const result = await fetchMediaLibraryItem(params.mediaId, { allowProviderFallbacks: false })
   if (!result) {
     return NextResponse.json({ error: "Media item not found" }, { status: 404 })
   }

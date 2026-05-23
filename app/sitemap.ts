@@ -15,7 +15,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }))
 
   try {
-    const archive = await getDeepArchive({ limit: 1000, maxLimit: 1000 })
+    const archive = await getDeepArchive({ limit: 1000, maxLimit: 1000, allowProviderFallbacks: false })
     const videoRoutes: MetadataRoute.Sitemap = archive.videos
       .filter((video) => video.videoId)
       .map((video) => ({
@@ -33,7 +33,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
     }))
 
-    const media = await fetchExpandedMediaLibrary({ archiveLimit: 160 })
+    const media = await fetchExpandedMediaLibrary({ archiveLimit: 160, allowProviderFallbacks: false })
     const mediaRoutes: MetadataRoute.Sitemap = media.items.map((item) => ({
       url: `${baseUrl}${mediaItemHref(item)}`,
       lastModified: item.publishedAt ? new Date(item.publishedAt) : new Date(),

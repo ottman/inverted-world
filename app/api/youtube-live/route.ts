@@ -6,7 +6,7 @@ export const runtime = "nodejs"
 export const revalidate = 60
 
 export async function GET() {
-  const status = await getYouTubeLiveStatus()
+  const status = await getYouTubeLiveStatus({ allowProviderFallbacks: false })
 
   return NextResponse.json(status, {
     headers: {
