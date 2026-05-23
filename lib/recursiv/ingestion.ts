@@ -664,8 +664,8 @@ export async function syncSourceDocumentsToRecursiv() {
 
 export async function syncMediaLibraryToRecursiv() {
   const { sdk, config } = getInvertedWorldDatabase()
-  const items = await fetchMediaSeedItemsForSync()
-  const batchSize = Math.max(1, Math.min(Math.trunc(Number(process.env.MEDIA_LIBRARY_SYNC_BATCH_SIZE || "20")) || 20, 25))
+  const items = (await fetchMediaSeedItemsForSync()).map(compactMediaItemForSync)
+  const batchSize = Math.max(1, Math.min(Math.trunc(Number(process.env.MEDIA_LIBRARY_SYNC_BATCH_SIZE || "5")) || 5, 6))
   let synced = 0
 
   for (let offset = 0; offset < items.length; offset += batchSize) {
@@ -762,6 +762,42 @@ export async function syncMediaLibraryToRecursiv() {
     batchSize,
     batches: Math.ceil(items.length / batchSize),
     sourceMode: "static-and-official-media-to-recursiv",
+  }
+}
+
+function compactMediaItemForSync(item: MediaLibraryItem): MediaLibraryItem {
+  return {
+    ...item,
+    id: shorten(item.id, 140),
+    title: shorten(item.title, 260),
+    source: shorten(item.source, 120),
+    url: shorten(item.url, 1000),
+    topicIds: item.topicIds.slice(0, 8),
+    summary: shorten(item.summary, 900),
+    embedUrl: shorten(item.embedUrl, 1000) || undefined,
+    thumbnailUrl: shorten(item.thumbnailUrl, 1000) || undefined,
+    fileType: shorten(item.fileType, 80) || undefined,
+    agency: shorten(item.agency, 120) || undefined,
+    collection: shorten(item.collection, 140) || undefined,
+    extraction: item.extraction
+      ? {
+          status: item.extraction.status,
+          brief: shorten(item.extraction.brief, 900),
+          highlights: item.extraction.highlights.map((highlight) => shorten(highlight, 220)).filter(Boolean).slice(0, 8),
+          sourceChain: item.extraction.sourceChain
+            .map((source) => ({
+              label: shorten(source.label, 80),
+              value: shorten(source.value, 180),
+              url: shorten(source.url, 1000) || undefined,
+            }))
+            .filter((source) => source.label && source.value)
+            .slice(0, 8),
+          researchQuestions: item.extraction.researchQuestions
+            .map((question) => shorten(question, 220))
+            .filter(Boolean)
+            .slice(0, 8),
+        }
+      : undefined,
   }
 }
 
