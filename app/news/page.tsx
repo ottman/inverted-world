@@ -106,6 +106,42 @@ function groupedSections(items: NewsBoardItem[]) {
     }))
 }
 
+function hostKey(value: string) {
+  try {
+    return new URL(value).hostname.replace(/^www\./, "")
+  } catch {
+    return "source"
+  }
+}
+
+function balancedItems(items: NewsBoardItem[], options: { limit: number; maxPerSection?: number; maxPerHost?: number }) {
+  const sectionCounts = new Map<string, number>()
+  const hostCounts = new Map<string, number>()
+  const balanced: NewsBoardItem[] = []
+  const maxPerSection = options.maxPerSection || 2
+  const maxPerHost = options.maxPerHost || 2
+
+  for (const item of items) {
+    const sectionCount = sectionCounts.get(item.sectionId) || 0
+    const host = hostKey(item.url)
+    const hostCount = hostCounts.get(host) || 0
+    if (sectionCount >= maxPerSection || hostCount >= maxPerHost) continue
+
+    balanced.push(item)
+    sectionCounts.set(item.sectionId, sectionCount + 1)
+    hostCounts.set(host, hostCount + 1)
+    if (balanced.length >= options.limit) return balanced
+  }
+
+  for (const item of items) {
+    if (balanced.includes(item)) continue
+    balanced.push(item)
+    if (balanced.length >= options.limit) return balanced
+  }
+
+  return balanced
+}
+
 export default async function NewsPage() {
   const [edition, dossiers, topicFeeds, worldwire] = await Promise.all([
     getLatestRecursivFrontPageEdition(),
@@ -122,11 +158,14 @@ export default async function NewsPage() {
     .map((article, index) => sourceItemFromArticle(article, index))
     .filter(isNewsBoardItem)
   const allItems = uniqueItems([...dossierItems, ...topicItems, ...worldwire]).sort((left, right) => right.score - left.score)
-  const lead = allItems[0]
-  const flashItems = allItems.slice(1, 19)
+  const lead = allItems.find((item) => item.sectionId === "front-page") || allItems.find((item) => item.sectionId !== "inverted-desk") || allItems[0]
+  const flashItems = balancedItems(
+    allItems.filter((item) => item !== lead),
+    { limit: 18, maxPerSection: 2, maxPerHost: 2 },
+  )
   const sections = groupedSections(allItems)
 
-  const breakingItems: BreakingItem[] = allItems.slice(0, 24).map((item) => ({
+  const breakingItems: BreakingItem[] = balancedItems(allItems, { limit: 24, maxPerSection: 3, maxPerHost: 2 }).map((item) => ({
     title: item.title,
     href: item.url,
     source: item.source,

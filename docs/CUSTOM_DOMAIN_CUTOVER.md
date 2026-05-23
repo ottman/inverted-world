@@ -17,6 +17,7 @@ The command prints a redacted JSON report with:
 - Recursiv archive API proof, including `sourceMode`, data-source classification, and archive count;
 - source-document API proof for `https://invertedworld.on.recursiv.io/api/documents`;
 - media-library detail proof for the UAP PDF route and JSON item route;
+- latest full-pipeline status and `sourceMode` from `/api/pipeline`;
 - HTTP and DNS proof for `https://www.inverted.world`;
 - active Recursiv scheduled job count and missing jobs;
 - latest hosted provider-health blockers for the full AI product;
@@ -67,8 +68,23 @@ Current live proof:
 - `/api/documents` returns `sourceMode: "recursiv-database"` with 37 source documents across all six topics.
 - `/media/war-uap-release-02-senior-usic-narrative` returns 200.
 - `/api/media/war-uap-release-02-senior-usic-narrative` returns `sourceMode: "recursiv-database"` with the official UAP PDF item and related media.
+- `/api/pipeline?limit=1` returns `sourceMode: "recursiv-database"` and latest `full-pipeline` status `succeeded`.
+- the latest scheduled `full-pipeline` run completed on May 23, 2026 at `05:08:21Z` with seven successful steps: source documents, media library, YouTube archive sync, topic pulse, worldwire, publishing, and front-page edition.
+- the successful full-pipeline run synced 37 source documents, 292 media items, 19 archive videos through the seed fallback, 93 X signals, six topic coverage snapshots, 11 worldwire snapshots, 85 worldwire items, and a published front-page edition.
 - all 13 expected Recursiv scheduled jobs are active.
 
 The custom domain still reports Vercel headers. Keep it there until the Recursiv custom-domain binding for `www.inverted.world` is created and proven. `dnsCutoverReady` is still `false` because custom-domain proof is missing, not because the Recursiv hosted app is unproven.
 
-The known full-product blockers are provider/account-side: X API access returns `402 CreditsDepleted`, and YouTube Data API access returns `403 quotaExceeded`. Fix those provider issues for the full AI news product, but do not treat them as DNS changes. The app accepts `YOUTUBE_API_KEY`, `YOUTUBE_DATA_API_KEY`, `GOOGLE_YOUTUBE_API_KEY`, or `GOOGLE_API_KEY`; production should prefer `YOUTUBE_API_KEY` for clarity.
+The known full-product blockers are provider/account-side, not DNS fixes. The latest hosted provider-health run is `degraded`, with blocking providers reported as `recursiv-database`, `x-api`, `youtube-rss`, and `youtube-data-api`. The successful full-pipeline run proves the scheduled public data path can complete despite YouTube RSS falling back to seed data, but the full AI product is not complete until those provider/account paths are healthy. The app accepts `YOUTUBE_API_KEY`, `YOUTUBE_DATA_API_KEY`, `GOOGLE_YOUTUBE_API_KEY`, or `GOOGLE_API_KEY`; production should prefer `YOUTUBE_API_KEY` for clarity.
+
+## Current Decision
+
+As of the May 23, 2026 readiness run:
+
+- `publicHostingReady: true`
+- `fullAiProductReady: false`
+- `customDomainRecursivProven: false`
+- `dnsCutoverReady: false`
+- `keepDnsOnVercel: true`
+
+Next step is not a DNS change. Create and prove the Recursiv custom-domain binding for `www.inverted.world`, then rerun `pnpm recursiv:cutover`. Only after `customDomainRecursivProven` and `dnsCutoverReady` are true should the DNS host change be planned.
