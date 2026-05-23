@@ -998,10 +998,28 @@ function groupWorldwireByLane(items: WorldwireItem[]) {
   return grouped
 }
 
+function compactWorldwireItem(item: WorldwireItem): WorldwireItem {
+  const url = shorten(item.url, 700)
+  const title = cleanStoryTitle(item.title, item.sectionId, "Worldwire source")
+  return {
+    id: shorten(item.id, 140) || `${item.sectionId || "world"}-${slugifyPublicTitle(title || url).slice(0, 48)}`,
+    title: shorten(title, 220),
+    url,
+    source: shorten(item.source, 120) || sourceDocumentHost(url) || item.sectionTitle || "source",
+    sectionId: shorten(item.sectionId, 64) || "world",
+    sectionTitle: shorten(item.sectionTitle, 80) || "Worldwire",
+    score: Math.round(asNumber(item.score)),
+    publishedAt: shorten(item.publishedAt, 80) || undefined,
+    excerpt: shorten(item.excerpt, 420) || undefined,
+  }
+}
+
 export async function syncWorldwireCoverageToRecursiv(options: { limitPerLane?: number } = {}) {
   const { sdk, config } = getInvertedWorldDatabase()
   const limitPerLane = Math.max(1, Math.min(Math.trunc(options.limitPerLane || 12), 24))
-  const items = await fetchWorldwireItems()
+  const items = (await fetchWorldwireItems())
+    .map(compactWorldwireItem)
+    .filter((item) => item.title && item.url && item.url.startsWith("http"))
   const grouped = groupWorldwireByLane(items)
   const lanes: Array<{ laneId: string; title: string; query: string; items: WorldwireItem[] }> = WORLDWIRE_LANES.map((lane) => ({
     laneId: lane.id,
