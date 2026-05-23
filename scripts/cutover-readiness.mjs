@@ -186,6 +186,36 @@ function commitsMatch(actual, expected) {
   return actualCommit.startsWith(expectedCommit) || expectedCommit.startsWith(actualCommit)
 }
 
+function deploymentCommitHash(deployment) {
+  return deployment?.commit_hash || deployment?.commitHash || deployment?.source_revision || deployment?.sourceRevision || ""
+}
+
+function releaseRevisionProof(releaseApi, latestDeployment, deploymentLookupAvailable) {
+  const releaseRevision = releaseApi.deployment?.sourceRevision
+  if (releaseRevision) {
+    return {
+      value: releaseRevision,
+      source: releaseApi.deployment?.sourceRevisionSource || "release-api",
+      fromReleaseApi: true,
+    }
+  }
+
+  const deploymentRevision = deploymentLookupAvailable ? deploymentCommitHash(latestDeployment) : ""
+  if (deploymentRevision) {
+    return {
+      value: deploymentRevision,
+      source: "recursiv-deployment.commit_hash",
+      fromReleaseApi: false,
+    }
+  }
+
+  return {
+    value: null,
+    source: null,
+    fromReleaseApi: false,
+  }
+}
+
 async function withTimeout(promise, label, fallback, warnings, timeoutMs = READINESS_TIMEOUT_MS) {
   let timeout
   const timedOut = Symbol(`${label} timeout`)
@@ -673,7 +703,8 @@ async function main() {
       releaseApi.pipelineSnapshotFallback &&
       releaseApi.dnsCutoverRequiresCustomDomainProof,
   )
-  const releaseCommitMatch = commitsMatch(releaseApi.deployment?.sourceRevision, expectedReleaseCommit)
+  const releaseRevision = releaseRevisionProof(releaseApi, latestDeployment, deploymentLookupAvailable)
+  const releaseCommitMatch = commitsMatch(releaseRevision.value, expectedReleaseCommit)
   const releaseCommitReady = releaseCommitMatch === true
   const publicProviderFallbackAuditReady = Boolean(publicProviderAudit.ok)
   const recursivDeploymentCompleted = Boolean(latestDeployment?.status === "completed")
@@ -781,7 +812,7 @@ async function main() {
       `Do not touch DNS until /api/release source revision matches the expected deployed commit ${expectedReleaseCommit}.`,
     )
   } else if (releaseCommitMatch === null) {
-    nextActions.push("Do not touch DNS until /api/release exposes a source revision for the deployed build.")
+    nextActions.push("Do not touch DNS until /api/release or Recursiv deployment metadata exposes a source revision for the deployed build.")
   }
   if (!publicProviderFallbackAuditReady) {
     nextActions.push("Do not touch DNS until pnpm audit:public-providers passes with no public provider fallback findings.")
@@ -866,6 +897,7 @@ async function main() {
     recursivUrl: recursivHttp,
     releaseApi,
     expectedReleaseCommit,
+    releaseRevision,
     publicProviderAudit,
     recursivArchiveApi: archiveApi,
     recursivArchiveDataSource: dataSourceStatus(archiveApi.sourceMode),
@@ -890,6 +922,7 @@ async function main() {
           statusSync: deploymentStatusSync,
           deploymentUrl: latestDeployment.deployment_url,
           coolifyDomain: latestDeployment.coolify_domain,
+          commitHash: deploymentCommitHash(latestDeployment) || undefined,
           hostnames: deploymentHostnames,
           completedAt: latestDeployment.completed_at,
           errorMessage: latestDeployment.error_message,

@@ -23,7 +23,7 @@ The command prints a redacted JSON report with:
 - latest Recursiv deployment status;
 - HTTP proof for `https://invertedworld.on.recursiv.io`;
 - release proof from `https://invertedworld.on.recursiv.io/api/release`, including the deployed feature marker;
-- source-revision proof from `/api/release` when the hosted build exposes `deployment.sourceRevision`;
+- source-revision proof from `/api/release` when the hosted build exposes `deployment.sourceRevision`, or from authenticated Recursiv deployment metadata when the runtime does not inject a commit environment variable;
 - public provider-fallback audit proof from `pnpm audit:public-providers`;
 - Recursiv deployment-domain proof that distinguishes the platform slug host from a configured custom-domain binding;
 - Recursiv archive API proof, including `sourceMode`, data-source classification, and archive count;
@@ -50,7 +50,7 @@ The output file contains the same no-secret report printed to stdout.
 
 - `recursivHostingProven` must be `true`.
 - If `recursivHostedUrl` passes but `recursivDeploymentCompleted` is `unknown`, HTTP proof is good but deployment proof is incomplete. Do not treat that as a DNS-ready state.
-- `releaseCommit` must be `pass`. `unknown` means the hosted app does not expose a source revision yet, and `fail` means the hosted app is not the expected commit.
+- `releaseCommit` must be `pass`. Full readiness may prove this from `/api/release` or from authenticated Recursiv deployment metadata. `unknown` means neither source exposes a revision yet, and `fail` means the deployed revision is not the expected commit.
 - `publicProviderFallbackAudit` must be `pass`, proving public `app/` routes and pages do not call provider-capable helpers without `allowProviderFallbacks: false`.
 - `recursivArchiveDataReady` must be `true`. This can be live `recursiv-database` or `recursiv-snapshot`, but it must not be `seed`, `static`, RSS, YouTube API, or direct provider fallback data.
 - `documentsApi` must pass, proving the source shelf is available as machine-readable JSON from live `recursiv-database` or `recursiv-snapshot` data.

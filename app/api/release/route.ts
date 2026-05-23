@@ -19,13 +19,17 @@ function readBuildId() {
   }
 }
 
-function sourceRevision(buildId: string | null) {
+function sourceRevision() {
   const pairs = [
     ["RECURSIV_DEPLOY_COMMIT", publicEnv("RECURSIV_DEPLOY_COMMIT")],
+    ["RECURSIV_DEPLOYMENT_COMMIT", publicEnv("RECURSIV_DEPLOYMENT_COMMIT")],
+    ["RECURSIV_SOURCE_REVISION", publicEnv("RECURSIV_SOURCE_REVISION")],
     ["NEXT_PUBLIC_GIT_COMMIT_SHA", publicEnv("NEXT_PUBLIC_GIT_COMMIT_SHA")],
+    ["GIT_COMMIT_SHA", publicEnv("GIT_COMMIT_SHA")],
     ["VERCEL_GIT_COMMIT_SHA", publicEnv("VERCEL_GIT_COMMIT_SHA")],
+    ["COOLIFY_GIT_COMMIT_SHA", publicEnv("COOLIFY_GIT_COMMIT_SHA")],
+    ["CF_PAGES_COMMIT_SHA", publicEnv("CF_PAGES_COMMIT_SHA")],
     ["GITHUB_SHA", publicEnv("GITHUB_SHA")],
-    ["NEXT_BUILD_ID", buildId],
   ] as const
   const match = pairs.find(([, value]) => value)
   return {
@@ -36,7 +40,7 @@ function sourceRevision(buildId: string | null) {
 
 export async function GET() {
   const buildId = readBuildId()
-  const revision = sourceRevision(buildId)
+  const revision = sourceRevision()
 
   return NextResponse.json({
     ...INVERTED_WORLD_RELEASE,
