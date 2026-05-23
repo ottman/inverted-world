@@ -153,6 +153,10 @@ function protectedLocalFilePresent(provider) {
 function providerAction(provider, localConfigured, hosted) {
   if (hosted?.status === "ok") return "ready"
   const template = PROVIDERS.find((item) => item.provider === provider)
+  const message = String(hosted?.message || "")
+  if (provider === "recursiv-database" && hosted?.status === "error" && /rate limit|429/i.test(message)) {
+    return "Wait for the Recursiv API rate-limit window, reduce proof polling, or upgrade the Recursiv key budget before rerunning deployment/readiness."
+  }
   if (hosted?.status === "error") return template?.action || "Fix the provider error in the hosted runtime."
   if (localConfigured && hosted?.status === "missing") {
     return `Copy ${presentAliases(template?.aliases || []).join(" or ")} into Recursiv/Infisical runtime.`
@@ -176,7 +180,7 @@ async function fetchHostedHealthFromDatabase(sdk, projectId, databaseName) {
 async function runHostedHealth(siteUrl) {
   const secret = process.env.CRON_SECRET || readFileIfPresent(LOCAL_CRON_SECRET)
   if (!secret) return null
-  const response = await fetch(new URL("/api/recursiv/jobs/provider-health?proof=readiness", siteUrl), {
+  const response = await fetch(new URL("/api/recursiv/jobs/provider-health?proof=readiness&persist=0", siteUrl), {
     method: "POST",
     headers: { authorization: `Bearer ${secret}` },
     signal: AbortSignal.timeout(120000),
@@ -214,16 +218,20 @@ async function main() {
   const projectId = process.env.RECURSIV_PROJECT_ID
   const databaseName = process.env.RECURSIV_DATABASE_NAME || DEFAULT_DATABASE_NAME
   const siteUrl = process.env.INVERTED_WORLD_SITE_URL || DEFAULT_SITE_URL
-  if (!apiKey || !projectId) throw new Error("Missing Recursiv project id or API key for readiness check")
+  const shouldRunHosted = process.argv.includes("--run-hosted")
+  if (!shouldRunHosted && (!apiKey || !projectId)) throw new Error("Missing Recursiv project id or API key for readiness check")
 
-  const sdk = new Recursiv({
-    apiKey,
-    baseUrl: process.env.RECURSIV_BASE_URL || DEFAULT_BASE_URL,
-    timeout: 120000,
-    maxRetries: 1,
-  })
+  const sdk =
+    apiKey && projectId
+      ? new Recursiv({
+          apiKey,
+          baseUrl: process.env.RECURSIV_BASE_URL || DEFAULT_BASE_URL,
+          timeout: 120000,
+          maxRetries: 1,
+        })
+      : null
 
-  const hostedRow = process.argv.includes("--run-hosted")
+  const hostedRow = shouldRunHosted
     ? await runHostedHealth(siteUrl)
     : await fetchHostedHealthFromDatabase(sdk, projectId, databaseName)
   const hosted = normalizeHostedRow(hostedRow)

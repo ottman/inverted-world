@@ -119,7 +119,7 @@ async function checkRecursivDatabase(): Promise<ProviderHealthResult> {
   if (!config.apiKey || !config.projectId || !config.databaseName) return missing("recursiv-database")
 
   try {
-    const { sdk } = createRecursivServerClient({ timeout: PROVIDER_HEALTH_TIMEOUT_MS })
+    const { sdk } = createRecursivServerClient({ maxRetries: 0, timeout: PROVIDER_HEALTH_TIMEOUT_MS })
     const { data } = await sdk.databases.query({
       project_id: config.projectId,
       database_name: config.databaseName,
