@@ -34,10 +34,46 @@ const X_EPOCH_MS = BigInt(1_288_834_974_657)
 const X_SNOWFLAKE_SHIFT_BITS = BigInt(22)
 const PRIORITY_X_ACCOUNTS = ["Timcast", "TimcastNews", "TimcastIRL", "ShaneCashman", "InvertedTales"] as const
 const PRIORITY_X_ACCOUNT_SET = new Set(PRIORITY_X_ACCOUNTS.map((account) => account.toLowerCase()))
+const TOPIC_PROFILE_READER_ACCOUNT_LIMITS: Record<string, number> = {
+  "secret-programs": 8,
+  "epstein-networks": 8,
+}
 const TOPIC_SOURCE_X_ACCOUNTS: Record<string, string[]> = {
   "uap-disclosure": ["InvertedTales", "ShaneCashman", "ChrisKMellon", "uncertainvector", "Debriefmedia", "mufon"],
-  "secret-programs": ["TimcastNews", "ShaneCashman", "NSArchive", "MuckRock", "FBIRecordsVault", "FBI"],
-  "epstein-networks": ["ShaneCashman", "TimcastNews", "julie_k_brown", "MiamiHerald", "SDNYnews", "TheJusticeDept"],
+  "secret-programs": [
+    "NSArchive",
+    "MuckRock",
+    "FBIRecordsVault",
+    "CIA",
+    "NSAGov",
+    "TheBlackVaultcom",
+    "TimcastNews",
+    "ShaneCashman",
+    "Snowden",
+    "wikileaks",
+    "JasonLeopold",
+    "kenklippenstein",
+    "FBI",
+    "ODNIgov",
+    "DARPA",
+  ],
+  "epstein-networks": [
+    "ShaneCashman",
+    "TimcastNews",
+    "julie_k_brown",
+    "MiamiHerald",
+    "SDNYnews",
+    "TheJusticeDept",
+    "KlasfeldReports",
+    "innercitypress",
+    "lawcrimenews",
+    "CourthouseNews",
+    "ICIJorg",
+    "OCCRP",
+    "propublica",
+    "AP",
+    "Reuters",
+  ],
   "cryptids-paranormal": ["InvertedTales", "ShaneCashman", "mufon", "ForteanTimes"],
   "ai-technocracy": ["TimcastNews", "ShaneCashman", "404mediaco", "TechCrunch", "EFF", "PalantirTech"],
   "space-anomalies": ["NASA", "NASASun", "NWSSWPC", "esaoperations", "AsteroidWatch", "MarsCuriosity"],
@@ -68,8 +104,44 @@ const TOPIC_CORE_TERM_SCORE_FLOORS: Record<string, number> = {
 }
 const TOPIC_CORE_TERMS: Record<string, string[]> = {
   "uap-disclosure": ["uap", "ufo", "aaro", "disclosure", "grusch", "crash retrieval", "non-human intelligence"],
-  "secret-programs": ["mkultra", "cia", "foia", "declassified", "classified program", "black budget", "psyop"],
-  "epstein-networks": ["epstein", "maxwell", "client list", "flight logs", "sealed documents", "court records"],
+  "secret-programs": [
+    "mkultra",
+    "cia",
+    "foia",
+    "classified",
+    "declassified",
+    "declassified documents",
+    "classified program",
+    "black budget",
+    "secret program",
+    "intelligence community",
+    "surveillance",
+    "coverup",
+    "cover-up",
+    "psyop",
+    "snowden",
+    "assange",
+    "darpa",
+    "nsa",
+    "odni",
+  ],
+  "epstein-networks": [
+    "epstein",
+    "maxwell",
+    "client list",
+    "flight logs",
+    "sealed documents",
+    "unsealed documents",
+    "court records",
+    "blackmail network",
+    "elite network",
+    "institutional corruption",
+    "dark money",
+    "donor class",
+    "lobbying",
+    "trafficking",
+    "billionaire",
+  ],
   "cryptids-paranormal": [
     "bigfoot",
     "sasquatch",
@@ -102,8 +174,39 @@ const TOPIC_CORE_TERMS: Record<string, string[]> = {
 }
 const TOPIC_TRUSTED_SOURCE_TERMS: Record<string, string[]> = {
   "uap-disclosure": ["pentagon", "deptofwar", "uap files", "uap videos", "ufo files", "aaro", "mufon"],
-  "secret-programs": ["mkultra", "cia files", "declassified records", "foia", "fbi vault", "cia reading room", "black budget"],
-  "epstein-networks": ["epstein", "maxwell", "ghislaine", "client list", "flight logs", "sealed documents", "prince andrew", "giuffre", "jpmorgan epstein"],
+  "secret-programs": [
+    "mkultra",
+    "cia files",
+    "declassified records",
+    "declassified documents",
+    "foia",
+    "fbi vault",
+    "cia reading room",
+    "black budget",
+    "public records",
+    "whistleblower",
+    "documents",
+  ],
+  "epstein-networks": [
+    "epstein",
+    "maxwell",
+    "ghislaine",
+    "client list",
+    "flight logs",
+    "sealed documents",
+    "unsealed documents",
+    "prince andrew",
+    "giuffre",
+    "jpmorgan epstein",
+    "elite access",
+    "power network",
+    "elite capture",
+    "wef",
+    "davos",
+    "bilderberg",
+    "blackrock",
+    "vanguard",
+  ],
   "cryptids-paranormal": ["pterodactyl", "cryptid", "bigfoot", "sasquatch", "mufon", "fortean", "high strangeness"],
   "ai-technocracy": ["ai", "privacy", "personal data", "surveillance", "robot", "autonomous", "palantir", "deepfake", "data center"],
   "space-anomalies": ["nasa", "mars", "moon", "psyche", "asteroid", "solar", "space weather", "venus", "artemis", "space station", "swpc"],
@@ -776,7 +879,10 @@ async function fetchSyndicatedPriorityPosts(topicId: string, limit: number) {
 
 function profileReaderAccounts(topicId: string) {
   const configuredLimit = Math.trunc(Number(process.env.X_PROFILE_READER_ACCOUNT_LIMIT || ""))
-  const accountLimit = Number.isFinite(configuredLimit) && configuredLimit > 0 ? Math.min(configuredLimit, 12) : DEFAULT_PROFILE_READER_ACCOUNT_LIMIT
+  const accountLimit =
+    Number.isFinite(configuredLimit) && configuredLimit > 0
+      ? Math.min(configuredLimit, 12)
+      : TOPIC_PROFILE_READER_ACCOUNT_LIMITS[topicId] || DEFAULT_PROFILE_READER_ACCOUNT_LIMIT
   return Array.from(new Set([...(TOPIC_SOURCE_X_ACCOUNTS[topicId] || []), ...PRIORITY_X_ACCOUNTS])).slice(0, accountLimit)
 }
 
@@ -835,23 +941,27 @@ function parseJinaProfilePosts(topicId: string, account: string, markdown: strin
 }
 
 async function fetchJinaProfilePostsForTopic(topicId: string, limit: number) {
-  const posts = await Promise.all(
-    profileReaderAccounts(topicId).map(async (account) => {
-      const response = await fetch(`https://r.jina.ai/http://https://x.com/${account}`, {
-        next: { revalidate: 1800 },
-        signal: AbortSignal.timeout(JINA_X_PROFILE_TIMEOUT_MS),
-        headers: {
-          "user-agent": "InvertedWorldXProfileReader/1.0",
-        },
+  const posts: ViralXPost[] = []
+  for (const account of profileReaderAccounts(topicId)) {
+    const accountPosts = await fetch(`https://r.jina.ai/http://https://x.com/${account}`, {
+      next: { revalidate: 1800 },
+      signal: AbortSignal.timeout(JINA_X_PROFILE_TIMEOUT_MS),
+      headers: {
+        "user-agent": "InvertedWorldXProfileReader/1.0",
+      },
+    })
+      .then(async (response) => {
+        if (!response.ok) return [] satisfies ViralXPost[]
+        const markdown = await response.text()
+        return parseJinaProfilePosts(topicId, account, markdown, limit)
       })
-      if (!response.ok) return [] satisfies ViralXPost[]
+      .catch(() => [] satisfies ViralXPost[])
 
-      const markdown = await response.text()
-      return parseJinaProfilePosts(topicId, account, markdown, limit)
-    }),
-  )
+    posts.push(...accountPosts)
+    if (dedupePosts(posts).length >= limit) break
+  }
 
-  return dedupePosts(posts.flat())
+  return dedupePosts(posts)
     .filter((post) => isFreshXPost(post))
     .filter((post) => isQualityTopicPost(topicId, post))
     .sort((left, right) => (right.score || 0) - (left.score || 0))

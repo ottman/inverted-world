@@ -12,6 +12,7 @@ const topicXQueries: Record<string, string[]> = {
     '("FBI Vault" OR "CIA files" OR "black budget" OR "classified program")',
     '(psyop OR psyops OR coverup OR "lab leak" OR "deep state")',
     '(Snowden OR Assange OR whistleblower OR "intelligence community")',
+    '(DARPA OR NSA OR ODNI OR surveillance OR "public records" OR "declassified documents")',
   ],
   "epstein-networks": [
     '("Jeffrey Epstein" OR Epstein OR Maxwell OR "Epstein files" OR "client list")',
@@ -21,6 +22,7 @@ const topicXQueries: Record<string, string[]> = {
     '(Giuffre OR "Prince Andrew" OR "JPMorgan Epstein" OR "Epstein island" OR "Zorro Ranch")',
     '("WEF" OR Davos OR Bilderberg OR BlackRock OR Vanguard OR "World Economic Forum")',
     '("Diddy" OR "Les Wexner" OR "Bill Clinton" OR "Ghislaine Maxwell" OR Mossad)',
+    '(corruption OR trafficking OR billionaire OR donor OR lobbyist OR "unsealed documents")',
   ],
   "cryptids-paranormal": [
     '(Bigfoot OR Sasquatch OR cryptid OR Mothman OR Dogman)',

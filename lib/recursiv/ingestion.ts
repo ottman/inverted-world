@@ -1011,12 +1011,13 @@ async function runTopicPulseForTopic(
     ],
   })
 
-  if (options.profileReader) await clearXProfileReaderSignals(sdk, config.projectId, config.databaseName, topic.id)
   const posts = await fetchViralXPostsForTopic(topic.id, {
     limit: options.limit,
     allowProviderFallbacks: true,
     allowProfileReader: options.profileReader,
   }).catch(() => [])
+  const hasProfileReaderRows = posts.some((post) => post.source === "x-profile-reader")
+  if (options.profileReader && hasProfileReaderRows) await clearXProfileReaderSignals(sdk, config.projectId, config.databaseName, topic.id)
   for (const post of posts) {
     await upsertXSignal(sdk, config.projectId, config.databaseName, post)
   }

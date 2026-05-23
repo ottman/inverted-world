@@ -31,18 +31,39 @@ const TOPICS = {
   "secret-programs": {
     floor: 140,
     coreFloor: 35,
+    profileLimit: 8,
     queries: [
       '(MKULTRA OR CIA OR FOIA OR declassified OR "secret program")',
       '("FBI Vault" OR "CIA files" OR "black budget" OR "classified program")',
       '(psyop OR psyops OR coverup OR "lab leak" OR "deep state")',
       '(Snowden OR Assange OR whistleblower OR "intelligence community")',
+      '(DARPA OR NSA OR ODNI OR surveillance OR "public records" OR "declassified documents")',
     ],
-    accounts: ["TimcastNews", "ShaneCashman", "NSArchive", "MuckRock", "FBIRecordsVault", "FBI"],
+    accounts: [
+      "NSArchive",
+      "MuckRock",
+      "FBIRecordsVault",
+      "CIA",
+      "NSAGov",
+      "TheBlackVaultcom",
+      "TimcastNews",
+      "ShaneCashman",
+      "Snowden",
+      "wikileaks",
+      "JasonLeopold",
+      "kenklippenstein",
+      "FBI",
+      "ODNIgov",
+      "DARPA",
+    ],
     terms: [
       "mkultra",
+      "cia",
       "cia files",
       "foia",
+      "classified",
       "declassified records",
+      "declassified documents",
       "fbi vault",
       "cia reading room",
       "black budget",
@@ -58,11 +79,17 @@ const TOPICS = {
       "psyop",
       "snowden",
       "assange",
+      "public records",
+      "documents",
+      "darpa",
+      "nsa",
+      "odni",
     ],
   },
   "epstein-networks": {
     floor: 160,
     coreFloor: 35,
+    profileLimit: 8,
     queries: [
       '("Jeffrey Epstein" OR Epstein OR Maxwell OR "Epstein files" OR "client list")',
       '("client list" OR "flight logs" OR "sealed documents" OR "court records")',
@@ -71,8 +98,25 @@ const TOPICS = {
       '("blackmail network" OR "elite network" OR "elite access" OR "institutional corruption")',
       '("donor class" OR "dark money" OR "power network" OR "elite capture" OR lobbying)',
       '("WEF" OR Davos OR Bilderberg OR BlackRock OR Vanguard OR "World Economic Forum")',
+      '(corruption OR trafficking OR billionaire OR donor OR lobbyist OR "unsealed documents")',
     ],
-    accounts: ["ShaneCashman", "TimcastNews", "julie_k_brown", "MiamiHerald", "SDNYnews", "TheJusticeDept"],
+    accounts: [
+      "ShaneCashman",
+      "TimcastNews",
+      "julie_k_brown",
+      "MiamiHerald",
+      "SDNYnews",
+      "TheJusticeDept",
+      "KlasfeldReports",
+      "innercitypress",
+      "lawcrimenews",
+      "CourthouseNews",
+      "ICIJorg",
+      "OCCRP",
+      "propublica",
+      "AP",
+      "Reuters",
+    ],
     terms: [
       "epstein",
       "maxwell",
@@ -80,6 +124,7 @@ const TOPICS = {
       "client list",
       "flight logs",
       "sealed documents",
+      "unsealed documents",
       "prince andrew",
       "giuffre",
       "jpmorgan epstein",
@@ -92,6 +137,12 @@ const TOPICS = {
       "power network",
       "elite capture",
       "lobbying",
+      "corruption",
+      "trafficking",
+      "billionaire",
+      "donor",
+      "lobbyist",
+      "court records",
       "wef",
       "davos",
       "bilderberg",
@@ -145,6 +196,7 @@ const TOPIC_EXCLUDES = {
 }
 const PRIORITY_PROFILE_ACCOUNTS = ["Timcast", "TimcastNews", "TimcastIRL", "ShaneCashman", "InvertedTales"]
 const profileMarkdownCache = new Map()
+const profileReaderWarnings = new Set()
 
 function loadEnvFile(file) {
   if (!fs.existsSync(file)) return
@@ -205,10 +257,10 @@ function maxAgeHours() {
   return Math.max(1, Math.min(Math.trunc(parsed) || 168, 24 * 30))
 }
 
-function profileReaderAccountLimit() {
+function profileReaderAccountLimit(topicId) {
   const parsed = Number(process.env.X_PROFILE_READER_ACCOUNT_LIMIT || "")
   if (Number.isFinite(parsed) && parsed > 0) return Math.min(Math.trunc(parsed), 12)
-  return DEFAULT_PROFILE_READER_ACCOUNT_LIMIT
+  return TOPICS[topicId]?.profileLimit || DEFAULT_PROFILE_READER_ACCOUNT_LIMIT
 }
 
 function recursivTimeoutMs() {
@@ -574,7 +626,7 @@ async function exaPostsForTopic(topicId, exaKey, limit) {
 
 function profileReaderAccounts(topicId) {
   const topic = TOPICS[topicId]
-  return Array.from(new Set([...(topic?.accounts || []), ...PRIORITY_PROFILE_ACCOUNTS])).slice(0, profileReaderAccountLimit())
+  return Array.from(new Set([...(topic?.accounts || []), ...PRIORITY_PROFILE_ACCOUNTS])).slice(0, profileReaderAccountLimit(topicId))
 }
 
 function parseProfilePublishedAt(markdown) {
@@ -644,7 +696,14 @@ async function fetchProfileMarkdown(account) {
           "user-agent": "InvertedWorldXProfileBackfill/1.0",
         },
       })
-        .then((response) => (response.ok ? response.text() : ""))
+        .then(async (response) => {
+          if (response.ok) return response.text()
+          const text = await response.text().catch(() => "")
+          if (response.status === 429 || text.includes("RateLimitTriggeredError")) {
+            profileReaderWarnings.add(`profile-reader rate limited while reading ${account}`)
+          }
+          return ""
+        })
         .catch(() => ""),
     )
   }
@@ -652,15 +711,14 @@ async function fetchProfileMarkdown(account) {
 }
 
 async function profilePostsForTopic(topicId, limit) {
-  const posts = await Promise.all(
-    profileReaderAccounts(topicId).map(async (account) => {
-      const markdown = await fetchProfileMarkdown(account)
-      if (!markdown) return []
-      return parseProfilePosts(topicId, account, markdown, limit)
-    }),
-  )
+  const posts = []
+  for (const account of profileReaderAccounts(topicId)) {
+    const markdown = await fetchProfileMarkdown(account)
+    if (markdown) posts.push(...parseProfilePosts(topicId, account, markdown, limit))
+    if (dedupe(posts).length >= limit) break
+  }
 
-  return dedupe(posts.flat())
+  return dedupe(posts)
     .sort((left, right) => (right.score || 0) - (left.score || 0))
     .slice(0, limit)
 }
@@ -757,16 +815,34 @@ async function upsertPostsViaDirectDatabase(databaseUrl, posts) {
   await runPsql(xSignalUpsertSql(sqlJsonLiteral(JSON.stringify(rows))), databaseUrl)
 }
 
-async function clearLocalBackfillRowsViaRecursivApi(client, projectId, databaseName) {
+async function clearLocalBackfillRowsViaRecursivApi(client, projectId, databaseName, topicIds) {
+  if (!topicIds.length) return
   await recursivQuery(client, {
     project_id: projectId,
     database_name: databaseName,
-    sql: "DELETE FROM x_signals WHERE metadata->>'ingestion' = 'local-x-backfill'",
+    sql: `WITH topics AS (
+        SELECT value AS topic_id
+        FROM jsonb_array_elements_text($1::jsonb)
+      )
+      DELETE FROM x_signals
+      WHERE metadata->>'ingestion' = 'local-x-backfill'
+        AND topic_id IN (SELECT topic_id FROM topics)`,
+    params: [JSON.stringify(topicIds)],
   })
 }
 
-async function clearLocalBackfillRowsViaDirectDatabase(databaseUrl) {
-  await runPsql("DELETE FROM x_signals WHERE metadata->>'ingestion' = 'local-x-backfill';", databaseUrl)
+async function clearLocalBackfillRowsViaDirectDatabase(databaseUrl, topicIds) {
+  if (!topicIds.length) return
+  await runPsql(
+    `WITH topics AS (
+      SELECT value AS topic_id
+      FROM jsonb_array_elements_text(${sqlJsonLiteral(JSON.stringify(topicIds))})
+    )
+    DELETE FROM x_signals
+    WHERE metadata->>'ingestion' = 'local-x-backfill'
+      AND topic_id IN (SELECT topic_id FROM topics);`,
+    databaseUrl,
+  )
 }
 
 async function main() {
@@ -840,11 +916,14 @@ async function main() {
   }
 
   const totalAccepted = Object.values(acceptedByTopic).reduce((sum, posts) => sum + posts.length, 0)
+  const replacedTopicIds = Object.entries(acceptedByTopic)
+    .filter(([, posts]) => posts.length > 0)
+    .map(([topicId]) => topicId)
   if (!dryRun && !shouldKeepExisting() && totalAccepted > 0) {
     if (writer === "direct-db") {
-      await clearLocalBackfillRowsViaDirectDatabase(databaseUrlInfo.value)
+      await clearLocalBackfillRowsViaDirectDatabase(databaseUrlInfo.value, replacedTopicIds)
     } else {
-      await clearLocalBackfillRowsViaRecursivApi(client, projectId, databaseName)
+      await clearLocalBackfillRowsViaRecursivApi(client, projectId, databaseName, replacedTopicIds)
     }
   }
 
@@ -867,6 +946,8 @@ async function main() {
         limit,
         totalAccepted,
         replacedExisting: !dryRun && !shouldKeepExisting() && totalAccepted > 0,
+        replacedTopicIds: !dryRun && !shouldKeepExisting() ? replacedTopicIds : undefined,
+        warnings: [...profileReaderWarnings],
         summary,
       },
       null,

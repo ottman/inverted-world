@@ -221,6 +221,10 @@ The media-library importer reads the WAR.GOV PURSUE CSV manifest when available,
 
 `--provider=all` combines paid X API search, Exa-indexed X discovery, and the public profile-reader fallback. Use `--provider=x`, `--provider=exa`, or `--provider=profile` to isolate a single lane during proof.
 
+The profile-reader fallback keeps the default account window small for stable lanes, but widens weak lanes such as Declassified and Power Web to eight topic-priority accounts so they are not dominated by the same few generic show accounts. Keep source accounts ordered by editorial value: primary-source/archive/legal accounts first, then show/velocity accounts.
+
+Profile-reader refreshes are failure-preserving. If a public reader rate limit blocks one topic, local backfill replaces only topics that accepted new rows, and the scheduled Recursiv topic-pulse job clears old `x-profile-reader` rows only after it has rows to reinsert for that topic.
+
 When X API credits are blocked, run the profile-reader lane first as a dry run:
 
 ```bash
