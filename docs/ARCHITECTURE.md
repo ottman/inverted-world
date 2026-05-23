@@ -9,7 +9,7 @@ Current runtime lanes:
 - Home/archive UI: `app/page.tsx` reuses `app/archive/page.tsx`.
 - Archive ingestion: `lib/deep-archive.ts` now reads Recursiv `channel_items` first, then a generated Recursiv database snapshot, then YouTube Data API, RSS, and seeded local videos.
 - Live articles: `lib/live-articles.ts` now reads published Recursiv `article_drafts` first, then falls back to Exa source discovery and Google News RSS.
-- X signals: `lib/x-posts.ts` now reads Recursiv `x_signals` first, then falls back to X API, Brave, public syndication, and seed posts.
+- X signals: `lib/x-posts.ts` now reads Recursiv `x_signals` first, then falls back to X API, Brave, Exa-indexed search, public syndication, X profile-reader extraction, and seed posts. `scripts/backfill-x-signals.mjs --provider=profile` is the local/proof path for widening stored X coverage when direct X API credits are blocked.
 - Provider fallback policy: public request paths default to Recursiv/static/seeded data and do not directly call third-party provider APIs; Recursiv job handlers explicitly opt into provider fallbacks for ingestion.
 - Claim dossier sources: `lib/source-extraction.ts` extracts short source excerpts with Firecrawl first and Jina Reader fallback so `/news/[slug]` chat is grounded in page text, not links alone.
 - Article generation: `lib/recursiv/ingestion.ts` now turns published claim dossiers into Recursiv `article_drafts`, using the configured Recursiv agent when available and a deterministic sourced fallback when the agent is unavailable.
@@ -35,7 +35,7 @@ The site has moved into a Recursiv-hosted, Recursiv-backed shape, but it is not 
 - `scripts/provision-recursiv-backend.mjs --with-jobs` is the desired-state manifest for the Recursiv scheduled jobs, including the bounded full-pipeline refresh and pipeline-maintenance cleanup job;
 - `/api/autopost/daily` now exposes the Recursiv-published daily packet for site/social/newsletter/video reuse without exposing provider keys to the browser;
 - AI article generation is implemented as a Recursiv job handler over published claim dossiers; image generation tries Recursiv media first and stores a generated SVG fallback asset when the media endpoint is unavailable; YouTube archive sync now falls back to the seeded Tales video list when RSS/Data API access is unavailable;
-- X API access is currently blocked by account credits, and YouTube Data API access is blocked by quota; these are full-product blockers, not DNS blockers;
+- X API access is currently blocked by account credits, YouTube Data API access is blocked by quota, and local Recursiv writes can hit API-key per-hour limits; these are full-product/provider blockers, not DNS blockers;
 - Vercel should not own YouTube, X, Brave, OpenRouter, or image-generation keys;
 - the archive is complete only when a backend with the YouTube key paginates the full uploads playlist.
 

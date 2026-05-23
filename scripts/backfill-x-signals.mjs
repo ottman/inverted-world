@@ -1,10 +1,17 @@
 import fs from "node:fs"
-import { Recursiv } from "@recursiv/sdk"
 
 const DEFAULT_BASE_URL = "https://api.recursiv.io/api/v1"
 const DEFAULT_DATABASE_NAME = "inverted_world_research"
 const LOCAL_PROVIDER_ENV = "/private/tmp/inverted-world-api-keys.env"
 const LOCAL_RECURSIV_KEY = "/private/tmp/inverted-world-recursiv-key"
+const X_EPOCH_MS = BigInt(1_288_834_974_657)
+const X_SNOWFLAKE_SHIFT_BITS = BigInt(22)
+const X_STATUS_URL_PATTERN =
+  /https?:\/\/(?:www\.)?(?:x\.com|twitter\.com)\/(?!i\/web)([A-Za-z0-9_]{1,20})\/status(?:es)?\/(\d+)/i
+const EXA_TIMEOUT_MS = 30000
+const PROFILE_READER_TIMEOUT_MS = 15000
+const DEFAULT_PROFILE_READER_ACCOUNT_LIMIT = 4
+const DEFAULT_RECURSIV_TIMEOUT_MS = 30000
 
 const TOPICS = {
   "uap-disclosure": {
@@ -90,6 +97,8 @@ const TOPIC_EXCLUDES = {
   "cryptids-paranormal": ["booktok", "urban fantasy", "paranormal romance"],
   "space-anomalies": ["bruno mars", "mars bar", "$fly", "pump", "to mars"],
 }
+const PRIORITY_PROFILE_ACCOUNTS = ["Timcast", "TimcastNews", "TimcastIRL", "ShaneCashman", "InvertedTales"]
+const profileMarkdownCache = new Map()
 
 function loadEnvFile(file) {
   if (!fs.existsSync(file)) return
@@ -123,6 +132,67 @@ function shouldKeepExisting() {
   return process.argv.includes("--keep-existing")
 }
 
+function shouldDryRun() {
+  return process.argv.includes("--dry-run")
+}
+
+function providerMode() {
+  const value = process.argv.find((arg) => arg.startsWith("--provider="))?.split("=")[1] || "all"
+  return ["all", "x", "exa", "profile"].includes(value) ? value : "all"
+}
+
+function selectedTopicIds() {
+  const value = process.argv.find((arg) => arg.startsWith("--topic="))?.split("=")[1]
+  if (!value) return Object.keys(TOPICS)
+  const requested = value.split(",").map((item) => item.trim()).filter(Boolean)
+  const valid = requested.filter((topicId) => TOPICS[topicId])
+  return valid.length ? valid : Object.keys(TOPICS)
+}
+
+function maxAgeHours() {
+  const parsed = Number(process.env.X_BACKFILL_MAX_AGE_HOURS || "168")
+  return Math.max(1, Math.min(Math.trunc(parsed) || 168, 24 * 30))
+}
+
+function profileReaderAccountLimit() {
+  const parsed = Number(process.env.X_PROFILE_READER_ACCOUNT_LIMIT || "")
+  if (Number.isFinite(parsed) && parsed > 0) return Math.min(Math.trunc(parsed), 12)
+  return DEFAULT_PROFILE_READER_ACCOUNT_LIMIT
+}
+
+function recursivTimeoutMs() {
+  const parsed = Number(process.env.RECURSIV_BACKFILL_TIMEOUT_MS || "")
+  if (Number.isFinite(parsed) && parsed > 0) return Math.min(Math.trunc(parsed), 120000)
+  return DEFAULT_RECURSIV_TIMEOUT_MS
+}
+
+async function recursivQuery(client, input) {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), client.timeoutMs)
+  try {
+    const response = await fetch(`${client.baseUrl}/databases/query`, {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        accept: "application/json",
+        authorization: `Bearer ${client.apiKey}`,
+        "content-type": "application/json",
+        "user-agent": "InvertedWorldXBackfill/1.0",
+      },
+      body: JSON.stringify(input),
+    })
+    const text = await response.text()
+    const data = text ? JSON.parse(text) : {}
+    if (!response.ok) {
+      const message = data?.error?.message || data?.error || response.statusText
+      throw new Error(`Recursiv query returned ${response.status}: ${message}`)
+    }
+    return data
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 function score(metrics = {}) {
   return (
     (metrics.like_count || 0) +
@@ -139,6 +209,38 @@ function containsAny(value, terms) {
 
 function normalize(value = "") {
   return value.toLowerCase()
+}
+
+function cleanSearchText(value = "") {
+  return String(value)
+    .replace(/<[^>]+>/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+function extractXStatusUrl(value = "") {
+  const match = value.match(X_STATUS_URL_PATTERN)
+  if (!match) return undefined
+  const [, username, id] = match
+  return {
+    id,
+    username,
+    url: `https://twitter.com/${username}/status/${id}`,
+    createdAt: new Date(Number((BigInt(id) >> X_SNOWFLAKE_SHIFT_BITS) + X_EPOCH_MS)).toISOString(),
+  }
+}
+
+function isFreshPost(post, hours) {
+  const timestamp = post.createdAt ? new Date(post.createdAt).getTime() : 0
+  return Boolean(timestamp && !Number.isNaN(timestamp) && Date.now() - timestamp <= hours * 60 * 60 * 1000)
+}
+
+function stableTextId(value = "") {
+  let hash = 0
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (Math.imul(31, hash) + value.charCodeAt(index)) | 0
+  }
+  return Math.abs(hash).toString(36)
 }
 
 function isAcceptedPost(topicId, post) {
@@ -197,6 +299,30 @@ async function fetchXApiSearch(query, topicId, token) {
   })
 }
 
+async function fetchExaSearch(query, exaKey) {
+  const response = await fetch("https://api.exa.ai/search", {
+    method: "POST",
+    signal: AbortSignal.timeout(EXA_TIMEOUT_MS),
+    headers: {
+      "content-type": "application/json",
+      "user-agent": "InvertedWorldXBackfill/1.0",
+      "x-api-key": exaKey,
+    },
+    body: JSON.stringify({
+      query,
+      type: "auto",
+      numResults: 10,
+      contents: {
+        highlights: true,
+      },
+    }),
+  })
+
+  if (!response.ok) return []
+  const data = await response.json().catch(() => ({}))
+  return Array.isArray(data.results) ? data.results : []
+}
+
 function dedupe(posts) {
   const seen = new Set()
   return posts.filter((post) => {
@@ -224,11 +350,185 @@ async function postsForTopic(topicId, token, limit) {
     .slice(0, limit)
 }
 
-async function upsertPost(sdk, projectId, databaseName, post) {
-  await sdk.databases.query({
+async function exaPostsForTopic(topicId, exaKey, limit) {
+  const topic = TOPICS[topicId]
+  const queryTerms = topic.queries.map((query) =>
+    query
+      .replace(/[()"]/g, " ")
+      .replace(/\bOR\b/g, " ")
+      .replace(/\s+/g, " ")
+      .trim(),
+  )
+  const accountSites = topic.accounts.map((account) => `site:x.com/${account}`).join(" OR ")
+  const resultSets = await Promise.all([
+    ...queryTerms.map((query) => fetchExaSearch(`${query} site:x.com status breaking documents thread`, exaKey)),
+    ...queryTerms.slice(0, 2).map((query) => fetchExaSearch(`${query} ${accountSites}`, exaKey)),
+  ])
+  const seen = new Set()
+  const maxHours = maxAgeHours()
+
+  return resultSets
+    .flat()
+    .map((result, index) => {
+      const status = extractXStatusUrl(result.url || "")
+      if (!status || seen.has(status.id)) return undefined
+      seen.add(status.id)
+      const highlight = cleanSearchText((Array.isArray(result.highlights) && result.highlights.find(Boolean)) || "")
+      const title = cleanSearchText(result.title || "")
+      const text = cleanSearchText(`${title} ${highlight}`) || `${topicId} X signal`
+      const username = status.username || cleanSearchText(result.author || "")
+      const trustedAccount = topic.accounts.map(normalize).includes(normalize(username))
+
+      return {
+        id: status.id,
+        url: status.url,
+        text,
+        topicId,
+        authorName: cleanSearchText(result.author || ""),
+        username,
+        createdAt: status.createdAt,
+        source: "exa-search",
+        score: Math.max(topic.coreFloor, 160 - index * 2) + (trustedAccount ? 175 : 0),
+        metrics: {},
+      }
+    })
+    .filter(Boolean)
+    .filter((post) => isFreshPost(post, maxHours))
+    .filter((post) => isAcceptedPost(topicId, post))
+    .sort((left, right) => (right.score || 0) - (left.score || 0))
+    .slice(0, limit)
+}
+
+function profileReaderAccounts(topicId) {
+  const topic = TOPICS[topicId]
+  return Array.from(new Set([...(topic?.accounts || []), ...PRIORITY_PROFILE_ACCOUNTS])).slice(0, profileReaderAccountLimit())
+}
+
+function parseProfilePublishedAt(markdown) {
+  const value = markdown.match(/^Published Time:\s*(.+)$/m)?.[1]?.trim()
+  if (!value) return new Date().toISOString()
+  const timestamp = new Date(value).getTime()
+  return Number.isNaN(timestamp) ? new Date().toISOString() : new Date(timestamp).toISOString()
+}
+
+function isProfileReaderNoise(line, account) {
+  const normalized = line.toLowerCase()
+  return (
+    !line ||
+    line === "Pinned" ||
+    line === "Replying to" ||
+    line === account ||
+    line === `@${account}` ||
+    line.startsWith("Title:") ||
+    line.startsWith("URL Source:") ||
+    line.startsWith("Published Time:") ||
+    line.startsWith("Markdown Content:") ||
+    line.startsWith("## ") ||
+    line.startsWith("![") ||
+    line.startsWith("[![") ||
+    normalized.includes("opens profile photo")
+  )
+}
+
+function parseProfilePosts(topicId, account, markdown, limit) {
+  const publishedAt = parseProfilePublishedAt(markdown)
+  const postHeadingIndex = markdown.search(/^## .+ posts$/m)
+  const postMarkdown = postHeadingIndex >= 0 ? markdown.slice(postHeadingIndex) : markdown
+  const lines = postMarkdown
+    .split(/\r?\n/)
+    .map((line) => cleanSearchText(line))
+    .filter((line) => !isProfileReaderNoise(line, account))
+    .filter((line) => line.length >= 28 && line.length <= 520)
+
+  return dedupe(lines.map((line, index) => {
+    const status = extractXStatusUrl(line)
+    return {
+      id: status?.id || `jina-${account.toLowerCase()}-${stableTextId(line)}`,
+      url: status?.url || `https://twitter.com/${account}`,
+      text: line,
+      topicId,
+      username: account,
+      createdAt: status?.createdAt || publishedAt,
+      source: "x-profile-reader",
+      score: Math.max(25, 300 - index * 4),
+      metrics: {},
+    }
+  }))
+    .filter((post) => isFreshPost(post, maxAgeHours()))
+    .filter((post) => isAcceptedPost(topicId, post))
+    .sort((left, right) => (right.score || 0) - (left.score || 0))
+    .slice(0, limit)
+}
+
+async function fetchProfileMarkdown(account) {
+  const key = account.toLowerCase()
+  if (!profileMarkdownCache.has(key)) {
+    profileMarkdownCache.set(
+      key,
+      fetch(`https://r.jina.ai/http://https://x.com/${account}`, {
+        signal: AbortSignal.timeout(PROFILE_READER_TIMEOUT_MS),
+        headers: {
+          "user-agent": "InvertedWorldXProfileBackfill/1.0",
+        },
+      })
+        .then((response) => (response.ok ? response.text() : ""))
+        .catch(() => ""),
+    )
+  }
+  return profileMarkdownCache.get(key)
+}
+
+async function profilePostsForTopic(topicId, limit) {
+  const posts = await Promise.all(
+    profileReaderAccounts(topicId).map(async (account) => {
+      const markdown = await fetchProfileMarkdown(account)
+      if (!markdown) return []
+      return parseProfilePosts(topicId, account, markdown, limit)
+    }),
+  )
+
+  return dedupe(posts.flat())
+    .sort((left, right) => (right.score || 0) - (left.score || 0))
+    .slice(0, limit)
+}
+
+async function upsertPosts(client, projectId, databaseName, posts) {
+  if (!posts.length) return
+  const backfilledAt = new Date().toISOString()
+  const rows = posts.map((post) => ({
+    topic_id: post.topicId,
+    x_id: post.id,
+    url: post.url,
+    username: post.username || "",
+    author_name: post.authorName || "",
+    body: post.text,
+    posted_at: post.createdAt || "",
+    source: post.source,
+    score: post.score || 0,
+    metrics: post.metrics || {},
+    metadata: { ingestion: "local-x-backfill", backfilledAt },
+  }))
+
+  await recursivQuery(client, {
     project_id: projectId,
     database_name: databaseName,
-    sql: `INSERT INTO x_signals (
+    sql: `WITH input AS (
+        SELECT *
+        FROM jsonb_to_recordset($1::jsonb) AS row(
+          topic_id text,
+          x_id text,
+          url text,
+          username text,
+          author_name text,
+          body text,
+          posted_at text,
+          source text,
+          score numeric,
+          metrics jsonb,
+          metadata jsonb
+        )
+      )
+      INSERT INTO x_signals (
         topic_id,
         x_id,
         url,
@@ -241,7 +541,19 @@ async function upsertPost(sdk, projectId, databaseName, post) {
         metrics,
         metadata
       )
-      VALUES ($1, $2, $3, $4, $5, $6, NULLIF($7, '')::timestamptz, $8, $9, $10::jsonb, $11::jsonb)
+      SELECT
+        topic_id,
+        x_id,
+        url,
+        username,
+        author_name,
+        body,
+        NULLIF(posted_at, '')::timestamptz,
+        source,
+        score,
+        metrics,
+        metadata
+      FROM input
       ON CONFLICT (x_id) DO UPDATE SET
         topic_id = EXCLUDED.topic_id,
         url = EXCLUDED.url,
@@ -254,24 +566,12 @@ async function upsertPost(sdk, projectId, databaseName, post) {
         metrics = EXCLUDED.metrics,
         metadata = x_signals.metadata || EXCLUDED.metadata,
         captured_at = now()`,
-    params: [
-      post.topicId,
-      post.id,
-      post.url,
-      post.username || "",
-      post.authorName || "",
-      post.text,
-      post.createdAt || "",
-      post.source,
-      post.score || 0,
-      JSON.stringify(post.metrics || {}),
-      JSON.stringify({ ingestion: "local-x-backfill", backfilledAt: new Date().toISOString() }),
-    ],
+    params: [JSON.stringify(rows)],
   })
 }
 
-async function clearLocalBackfillRows(sdk, projectId, databaseName) {
-  await sdk.databases.query({
+async function clearLocalBackfillRows(client, projectId, databaseName) {
+  await recursivQuery(client, {
     project_id: projectId,
     database_name: databaseName,
     sql: "DELETE FROM x_signals WHERE metadata->>'ingestion' = 'local-x-backfill'",
@@ -283,49 +583,84 @@ async function main() {
   loadEnvFile(".env.local")
   loadEnvFile(LOCAL_PROVIDER_ENV)
 
+  const dryRun = shouldDryRun()
   const token =
     process.env.X_BEARER_TOKEN ||
     process.env.X_API_BEARER_TOKEN ||
     process.env.TWITTER_BEARER_TOKEN ||
     process.env.TWITTER_API_BEARER_TOKEN
-  if (!token) throw new Error(`Missing X bearer token. Expected ${LOCAL_PROVIDER_ENV} or server env.`)
+  const exaKey = process.env.EXA_API_KEY || process.env.EXA_SEARCH_API_KEY
+  const provider = providerMode()
+  if (provider === "x" && !token) {
+    throw new Error(`Missing X bearer token. Expected ${LOCAL_PROVIDER_ENV} or server env.`)
+  }
+  if (provider === "exa" && !exaKey) {
+    throw new Error(`Missing EXA_API_KEY or EXA_SEARCH_API_KEY. Expected ${LOCAL_PROVIDER_ENV} or server env.`)
+  }
+  if (provider === "all" && !token && !exaKey) {
+    throw new Error(`Missing X bearer token or EXA_API_KEY. Expected ${LOCAL_PROVIDER_ENV} or server env.`)
+  }
 
-  const apiKey = readRecursivKey()
-  if (!apiKey) throw new Error("Missing Recursiv API key")
+  const apiKey = dryRun ? "" : readRecursivKey()
+  if (!dryRun && !apiKey) throw new Error("Missing Recursiv API key")
 
   const projectId = process.env.RECURSIV_PROJECT_ID
   const databaseName = process.env.RECURSIV_DATABASE_NAME || DEFAULT_DATABASE_NAME
-  if (!projectId || !databaseName) throw new Error("Missing RECURSIV_PROJECT_ID or RECURSIV_DATABASE_NAME")
+  if (!dryRun && (!projectId || !databaseName)) throw new Error("Missing RECURSIV_PROJECT_ID or RECURSIV_DATABASE_NAME")
 
   const limit = parseLimit()
-  const sdk = new Recursiv({
+  const client = dryRun ? undefined : {
     apiKey,
-    baseUrl: process.env.RECURSIV_BASE_URL || DEFAULT_BASE_URL,
-    timeout: 120000,
-    maxRetries: 2,
-  })
+    baseUrl: (process.env.RECURSIV_BASE_URL || DEFAULT_BASE_URL).replace(/\/+$/, ""),
+    timeoutMs: recursivTimeoutMs(),
+  }
 
   const summary = {}
   const acceptedByTopic = {}
-  for (const topicId of Object.keys(TOPICS)) {
-    const posts = await postsForTopic(topicId, token, limit)
+  for (const topicId of selectedTopicIds()) {
+    const [xPosts, exaPosts, profilePosts] = await Promise.all([
+      token && provider !== "exa" && provider !== "profile" ? postsForTopic(topicId, token, limit).catch(() => []) : [],
+      exaKey && provider !== "x" && provider !== "profile" ? exaPostsForTopic(topicId, exaKey, limit).catch(() => []) : [],
+      provider === "profile" ? profilePostsForTopic(topicId, limit).catch(() => []) : [],
+    ])
+    const posts = dedupe([...xPosts, ...exaPosts, ...profilePosts])
+      .sort((left, right) => (right.score || 0) - (left.score || 0))
+      .slice(0, limit)
     acceptedByTopic[topicId] = posts
     summary[topicId] = {
       upserted: posts.length,
+      sources: [...new Set(posts.map((post) => post.source).filter(Boolean))],
       accounts: [...new Set(posts.map((post) => post.username).filter(Boolean))],
+    }
+    if (provider === "profile") {
+      console.error(`[x-backfill] ${topicId}: ${posts.length} accepted from ${summary[topicId].accounts.length} accounts`)
     }
   }
 
   const totalAccepted = Object.values(acceptedByTopic).reduce((sum, posts) => sum + posts.length, 0)
-  if (!shouldKeepExisting() && totalAccepted > 0) {
-    await clearLocalBackfillRows(sdk, projectId, databaseName)
+  if (!dryRun && !shouldKeepExisting() && totalAccepted > 0) {
+    await clearLocalBackfillRows(client, projectId, databaseName)
   }
 
-  for (const posts of Object.values(acceptedByTopic)) {
-    for (const post of posts) await upsertPost(sdk, projectId, databaseName, post)
+  if (!dryRun) {
+    await upsertPosts(client, projectId, databaseName, Object.values(acceptedByTopic).flat())
   }
 
-  console.log(JSON.stringify({ ok: true, limit, totalAccepted, replacedExisting: !shouldKeepExisting() && totalAccepted > 0, summary }, null, 2))
+  console.log(
+    JSON.stringify(
+      {
+        ok: true,
+        provider,
+        dryRun,
+        limit,
+        totalAccepted,
+        replacedExisting: !dryRun && !shouldKeepExisting() && totalAccepted > 0,
+        summary,
+      },
+      null,
+      2,
+    ),
+  )
 }
 
 main().catch((error) => {
