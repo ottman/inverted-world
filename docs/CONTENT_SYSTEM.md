@@ -215,6 +215,8 @@ Run `npm run recursiv:snapshot -- --dry-run` to validate the export path and row
 
 Run `pnpm recursiv:snapshot:status` when the hosted database key is unhealthy or the deploy API is cooling down. It does not call Recursiv and does not require database credentials. It reports local snapshot row counts, the latest exported full-pipeline completion time, the 36-hour freshness window, and whether a protected direct database URL is available for a real refresh.
 
+Run `pnpm recursiv:migration:status` for a no-secret operator packet that combines deploy cooldown, snapshot freshness, latest local proof, latest live public proof, and DNS cutover decisions.
+
 The public snapshot feeds the archive, worldwire/news desk, X velocity, front-page edition, media library, and source document shelf. It is Recursiv-backed persisted data, but it is still a fallback: production is fully healthy only when hosted reads return `sourceMode: "recursiv-database"`.
 
 `/api/pipeline` also falls back to the committed Recursiv snapshot while live database reads are rate-limited, so users can still see the latest exported pipeline run and the non-secret `readHealth` backoff state at the same time.

@@ -1,0 +1,198 @@
+import { execFileSync } from "node:child_process"
+import fs from "node:fs"
+import path from "node:path"
+
+const TMP_DIR = "/private/tmp"
+const LOCAL_PROOF_PREFIX = "inverted-world-local-readiness-"
+const PUBLIC_PROOF_PREFIX = "inverted-world-public-readiness-"
+
+function readArgValue(name) {
+  const exact = `--${name}`
+  const prefix = `${exact}=`
+  for (let index = 2; index < process.argv.length; index += 1) {
+    const arg = process.argv[index]
+    if (arg === exact) return process.argv[index + 1] || ""
+    if (arg.startsWith(prefix)) return arg.slice(prefix.length)
+  }
+  return ""
+}
+
+function currentCommitHash() {
+  return execFileSync("git", ["rev-parse", "--short=12", "HEAD"], { encoding: "utf8" }).trim()
+}
+
+function runJson(command, args, options = {}) {
+  const output = execFileSync(command, args, {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    ...options,
+  })
+  const jsonStart = output.indexOf("{")
+  if (jsonStart === -1) throw new Error(`${command} ${args.join(" ")} did not print JSON`)
+  return JSON.parse(output.slice(jsonStart))
+}
+
+function latestProofFile(prefix) {
+  const explicit = readArgValue(prefix === LOCAL_PROOF_PREFIX ? "local-proof" : "public-proof")
+  if (explicit) return explicit
+  if (!fs.existsSync(TMP_DIR)) return null
+
+  const candidates = fs
+    .readdirSync(TMP_DIR)
+    .filter((file) => file.startsWith(prefix) && file.endsWith(".json"))
+    .map((file) => {
+      const fullPath = path.join(TMP_DIR, file)
+      const stat = fs.statSync(fullPath)
+      return { fullPath, mtimeMs: stat.mtimeMs }
+    })
+    .sort((left, right) => right.mtimeMs - left.mtimeMs)
+
+  return candidates[0]?.fullPath || null
+}
+
+function readProof(file) {
+  if (!file || !fs.existsSync(file)) {
+    return {
+      file,
+      exists: false,
+    }
+  }
+
+  try {
+    const proof = JSON.parse(fs.readFileSync(file, "utf8"))
+    return {
+      file,
+      exists: true,
+      generatedAt: proof.generatedAt,
+      expectedReleaseCommit: proof.expectedReleaseCommit,
+      checks: {
+        releaseCommit: proof.checks?.releaseCommit,
+        articleStoryPage: proof.checks?.articleStoryPage,
+        articlesApi: proof.checks?.articlesApi,
+        pipelineApi: proof.checks?.pipelineApi,
+        frontPageApi: proof.checks?.frontPageApi,
+        dossierChatApi: proof.checks?.dossierChatApi,
+        articleChatApi: proof.checks?.articleChatApi,
+        publicHostingReady: proof.checks?.publicHostingReady,
+        dnsChangeReady: proof.checks?.dnsChangeReady,
+        dnsCutoverReady: proof.checks?.dnsCutoverReady,
+      },
+      decision: {
+        publicHostingReady: Boolean(proof.decision?.publicHostingReady),
+        dnsChangeReady: Boolean(proof.decision?.dnsChangeReady),
+        dnsCutoverReady: Boolean(proof.decision?.dnsCutoverReady),
+        keepDnsOnVercel: proof.decision?.keepDnsOnVercel !== false,
+      },
+      customDomain: {
+        server: proof.customDomain?.http?.server,
+        a: proof.customDomain?.dns?.a || [],
+        cname: proof.customDomain?.dns?.cname || [],
+      },
+    }
+  } catch (error) {
+    return {
+      file,
+      exists: true,
+      error: error instanceof Error ? error.message : String(error),
+    }
+  }
+}
+
+function commitMatches(proof, commitHash) {
+  if (!proof?.expectedReleaseCommit) return false
+  return proof.expectedReleaseCommit.startsWith(commitHash) || commitHash.startsWith(proof.expectedReleaseCommit)
+}
+
+function nextActions({ deployWindow, snapshotStatus, localProof, publicProof, commitHash }) {
+  const actions = []
+
+  if (!deployWindow.ready) {
+    actions.push(`Do not call Recursiv deploy/custom-domain APIs with this key until ${deployWindow.nextAllowedAt}, unless a healthy key is installed.`)
+  }
+
+  if (!snapshotStatus.ok) {
+    actions.push("Refresh the committed Recursiv snapshot before relying on snapshot-backed readiness gates.")
+  }
+
+  if (!snapshotStatus.databaseUrl?.available) {
+    actions.push("No protected direct database URL is available; add it locally before running pnpm recursiv:snapshot.")
+  }
+
+  if (!localProof.exists || !commitMatches(localProof, commitHash)) {
+    actions.push("Rebuild locally and rerun local public-only cutover proof for the current commit.")
+  }
+
+  if (!publicProof.exists || !commitMatches(publicProof, commitHash)) {
+    actions.push("Run live public-only proof for the current commit target after pushing.")
+  } else if (!publicProof.decision?.publicHostingReady) {
+    actions.push("Deploy the current commit to Recursiv before expecting live public hosting gates to pass.")
+  }
+
+  if (deployWindow.ready && publicProof.exists && publicProof.decision?.publicHostingReady === false) {
+    actions.push(deployWindow.nextCommand || "Run pnpm recursiv:deploy:custom-domain:wait")
+  }
+
+  if (!publicProof.decision?.dnsChangeReady || !publicProof.decision?.dnsCutoverReady) {
+    actions.push("Keep www.inverted.world on Vercel until Recursiv custom-domain binding and custom-host proof are green.")
+  }
+
+  return [...new Set(actions)]
+}
+
+async function main() {
+  const outputPath = readArgValue("output")
+  const commitHash = currentCommitHash()
+  const deployWindow = runJson("node", ["scripts/deploy-recursiv.mjs", "--ready", "--custom-domain=www.inverted.world"])
+  const snapshotStatus = runJson("node", ["scripts/export-recursiv-snapshots.mjs", "--status"])
+  const localProof = readProof(latestProofFile(LOCAL_PROOF_PREFIX))
+  const publicProof = readProof(latestProofFile(PUBLIC_PROOF_PREFIX))
+  const status = {
+    ok: Boolean(
+      deployWindow.ok &&
+        snapshotStatus.ok &&
+        localProof.exists &&
+        commitMatches(localProof, commitHash) &&
+        publicProof.exists &&
+        commitMatches(publicProof, commitHash),
+    ),
+    generatedAt: new Date().toISOString(),
+    commitHash,
+    deployWindow: {
+      ready: Boolean(deployWindow.ready),
+      cooldownActive: Boolean(deployWindow.cooldownActive),
+      nextAllowedAt: deployWindow.nextAllowedAt,
+      nextCommand: deployWindow.nextCommand,
+      customDomain: deployWindow.customDomain,
+    },
+    snapshot: {
+      ok: Boolean(snapshotStatus.ok),
+      databaseUrlAvailable: Boolean(snapshotStatus.databaseUrl?.available),
+      latestFullPipeline: snapshotStatus.news?.latestFullPipeline,
+      counts: {
+        news: snapshotStatus.news?.counts || {},
+        public: snapshotStatus.public?.counts || {},
+      },
+    },
+    proof: {
+      local: localProof,
+      public: publicProof,
+    },
+    dns: {
+      changeReady: Boolean(publicProof.decision?.dnsChangeReady),
+      cutoverReady: Boolean(publicProof.decision?.dnsCutoverReady),
+      keepDnsOnVercel: publicProof.decision?.keepDnsOnVercel !== false,
+    },
+    nextActions: nextActions({ deployWindow, snapshotStatus, localProof, publicProof, commitHash }),
+  }
+
+  const serialized = `${JSON.stringify(status, null, 2)}\n`
+  if (outputPath) {
+    fs.writeFileSync(outputPath, serialized)
+  }
+  process.stdout.write(serialized)
+}
+
+main().catch((error) => {
+  console.error(error instanceof Error ? error.message : String(error))
+  process.exit(1)
+})

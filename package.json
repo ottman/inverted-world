@@ -16,6 +16,7 @@
     "recursiv:readiness": "node scripts/provider-readiness.mjs",
     "recursiv:snapshot": "node scripts/export-recursiv-snapshots.mjs",
     "recursiv:snapshot:status": "node scripts/export-recursiv-snapshots.mjs --status",
+    "recursiv:migration:status": "node scripts/recursiv-migration-status.mjs",
     "recursiv:cutover": "node scripts/cutover-readiness.mjs",
     "recursiv:cutover:public": "node scripts/cutover-readiness.mjs --public-only",
     "recursiv:domain:preflight": "node scripts/custom-domain-preflight.mjs",
