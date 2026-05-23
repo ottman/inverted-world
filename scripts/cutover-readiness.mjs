@@ -34,6 +34,7 @@ const ARCHIVE_MAX_DOMINANT_TOPIC_SHARE = Number(process.env.CUTOVER_ARCHIVE_MAX_
 const ARTICLE_MIN_COUNT = Number(process.env.CUTOVER_ARTICLE_MIN_COUNT || "12")
 const ARTICLE_MIN_THUMBNAILS = Number(process.env.CUTOVER_ARTICLE_MIN_THUMBNAILS || "8")
 const ARTICLE_MIN_TOPICS = Number(process.env.CUTOVER_ARTICLE_MIN_TOPICS || "4")
+const ARTICLE_MIN_EXTERNAL_SOURCES = Number(process.env.CUTOVER_ARTICLE_MIN_EXTERNAL_SOURCES || "8")
 const ARTICLE_LANE_TITLES = ["Skywatch", "Declassified", "Power Web", "High Strangeness", "Machine State", "Off-World Signals"]
 
 const EXPECTED_JOBS = [
@@ -563,6 +564,7 @@ async function probeArticlesApi(url) {
         minArticles: ARTICLE_MIN_COUNT,
         minThumbnails: ARTICLE_MIN_THUMBNAILS,
         minTopics: ARTICLE_MIN_TOPICS,
+        minExternalSources: ARTICLE_MIN_EXTERNAL_SOURCES,
       },
       durationMs: Date.now() - started,
     }
@@ -1089,6 +1091,7 @@ async function main() {
       Number(articlesApi.articleCount || articlesApi.count || 0) >= ARTICLE_MIN_COUNT &&
       Number(articlesApi.topicCount || 0) >= ARTICLE_MIN_TOPICS &&
       Number(articlesApi.thumbnailCount || 0) >= ARTICLE_MIN_THUMBNAILS &&
+      Number(articlesApi.externalSourceCount || 0) >= ARTICLE_MIN_EXTERNAL_SOURCES &&
       Number(articlesApi.repeatedLanePrefixCount || 0) === 0 &&
       Number(articlesApi.warningCount || 0) === 0,
   )
@@ -1250,7 +1253,7 @@ async function main() {
   }
   if (!articlesApiReady) {
     nextActions.push(
-      `Do not touch DNS until /api/articles returns at least ${ARTICLE_MIN_COUNT} Recursiv-backed published articles across ${ARTICLE_MIN_TOPICS} topics with generated thumbnails and clean titles.`,
+      `Do not touch DNS until /api/articles returns at least ${ARTICLE_MIN_COUNT} Recursiv-backed published articles across ${ARTICLE_MIN_TOPICS} topics with generated thumbnails, ${ARTICLE_MIN_EXTERNAL_SOURCES} direct external source links, and clean titles.`,
     )
   }
   if (!documentsApiReady) nextActions.push("Do not touch DNS until /api/documents returns the machine-readable source shelf with topic and kind coverage.")

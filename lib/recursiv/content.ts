@@ -455,6 +455,100 @@ function articleImageUrl(row: ArticleDraftRow, title: string, topicId: string) {
   return assetUrl
 }
 
+function metadataSourceLinks(metadata: Record<string, unknown>) {
+  return jsonArray(metadata.sourceLinks)
+    .map(sourceLinkFromJson)
+    .filter((item): item is ClaimSourceLink => Boolean(item))
+}
+
+function firstExternalSourceLink(links: ClaimSourceLink[]) {
+  return links.find((source) => isExternalUrl(source.url) && !isGoogleNewsUrl(source.url))
+}
+
+function sourceDocumentRows() {
+  return Array.isArray(recursivPublicSnapshot.sourceDocuments)
+    ? (recursivPublicSnapshot.sourceDocuments as SourceDocumentRow[])
+    : []
+}
+
+function fallbackSourceDocument(topicId: string, sourceName?: string): ClaimSourceLink | undefined {
+  const sourceText = String(sourceName || "").toLowerCase()
+  const sourceHost = sourceText.replace(/^www\./, "")
+  const rows = sourceDocumentRows().filter((row) => {
+    const topicIds = jsonArray(row.topic_ids).map(String)
+    if (!topicIds.includes(topicId)) return false
+    if (!sourceHost) return true
+    const rowHost = String(row.host || sourceDocumentHost(row.url || "")).toLowerCase()
+    const rowSource = String(row.source || "").toLowerCase()
+    return rowHost.includes(sourceHost) || sourceHost.includes(rowHost) || rowSource.includes(sourceHost) || sourceHost.includes(rowSource)
+  })
+  const row = rows.find((item) => isExternalUrl(item.url)) || rows[0]
+  if (!row?.url || !isExternalUrl(row.url)) return undefined
+
+  return {
+    title: row.title || `${sourceName || topicDisplayTitle(topicId)} source file`,
+    url: row.url,
+    outlet: row.source || sourceName,
+    sourceKind: row.kind,
+  }
+}
+
+function snapshotExternalSourceForCluster(title: string, topicId: string): ClaimSourceLink | undefined {
+  const targetCluster = dossierClusterTextKey(title)
+  if (!targetCluster) return undefined
+
+  for (const row of snapshotArticleRows()) {
+    if ((row.topic_id || "secret-programs") !== topicId) continue
+    const rowTitle = cleanPublicTitle(row.title, topicId, "")
+    if (dossierClusterTextKey(rowTitle) !== targetCluster) continue
+    const source = firstExternalSourceLink(metadataSourceLinks(jsonObject(row.metadata)))
+    if (source) return source
+    if (isExternalUrl(row.source_url || "")) {
+      return {
+        title: rowTitle || title,
+        url: row.source_url || "",
+        outlet: row.source_name,
+        sourceKind: "news",
+      }
+    }
+  }
+
+  for (const row of snapshotClaimDossierRows()) {
+    if ((row.topic_id || "secret-programs") !== topicId) continue
+    const rowTitle = cleanDossierTitle(row.title || row.claim, topicId)
+    if (dossierClusterTextKey(rowTitle) !== targetCluster) continue
+    const source = firstExternalSourceLink(jsonArray(row.source_links).map(sourceLinkFromJson).filter((item): item is ClaimSourceLink => Boolean(item)))
+    if (source) return source
+  }
+
+  return undefined
+}
+
+function primaryArticleSource(row: ArticleDraftRow, title: string, topicId: string, metadata: Record<string, unknown>) {
+  const rawSourceUrl = row.source_url || (typeof metadata.sourceUrl === "string" ? metadata.sourceUrl : undefined)
+  if (isExternalUrl(rawSourceUrl || "") && !isGoogleNewsUrl(rawSourceUrl || "")) {
+    return {
+      title,
+      url: rawSourceUrl || "",
+      outlet: row.source_name || (typeof metadata.sourceName === "string" ? metadata.sourceName : undefined),
+      sourceKind: "news",
+    } satisfies ClaimSourceLink
+  }
+
+  return (
+    firstExternalSourceLink(metadataSourceLinks(metadata)) ||
+    snapshotExternalSourceForCluster(title, topicId) ||
+    fallbackSourceDocument(topicId, row.source_name || (typeof metadata.sourceName === "string" ? metadata.sourceName : undefined))
+  )
+}
+
+function cleanArticleBodyLinks(paragraphs: string[], source?: ClaimSourceLink) {
+  if (!source?.url || !isExternalUrl(source.url)) return paragraphs
+  return paragraphs.map((paragraph) =>
+    paragraph.replace(/\bat\s+\/news\/[a-z0-9-]+/gi, `at ${source.url}`).replace(/\[\/news\/[a-z0-9-]+\]/gi, source.url),
+  )
+}
+
 function channelTopicId(row: ChannelItemRow) {
   const persistedTopicId = row.topic_id || "secret-programs"
   const classification = classifyInvertedWorldTopicMatch(row.title || "", row.description || "")
@@ -493,9 +587,9 @@ function articleRowToArticle(row: ArticleDraftRow): IntelligenceArticle {
   const thumbnail = jsonObject(metadata.thumbnail)
   const sourceName = row.source_name || (typeof metadata.sourceName === "string" ? metadata.sourceName : undefined)
   const title = cleanPublicTitle(row.title, topicId, "Untitled Inverted World report")
-  const rawSourceUrl = row.source_url || (typeof metadata.sourceUrl === "string" ? metadata.sourceUrl : undefined)
   const storyUrl = publicNewsUrl(row.slug, title, topicId)
-  const sourceUrl = !rawSourceUrl || rawSourceUrl.startsWith("/news/") ? storyUrl : rawSourceUrl
+  const primarySource = primaryArticleSource(row, title, topicId, metadata)
+  const sourceUrl = primarySource?.url || storyUrl
 
   return {
     id: publicDossierSlug(row.slug || row.id, title, topicId),
@@ -508,7 +602,7 @@ function articleRowToArticle(row: ArticleDraftRow): IntelligenceArticle {
     topic: topicTitle(topicId),
     publishedAt: safeDate(row.published_at) || new Date().toISOString().slice(0, 10),
     heat: Number(row.heat || metadata.heat || 80),
-    source: sourceName || "Inverted World Research Desk",
+    source: primarySource?.outlet || sourceName || "Inverted World Research Desk",
     sourceUrl: sourceUrl || "/archive",
     thumbnail: {
       ...defaultThumbnail(topicId),
@@ -516,7 +610,7 @@ function articleRowToArticle(row: ArticleDraftRow): IntelligenceArticle {
       imageUrl: articleImageUrl(row, title, topicId),
     },
     body: body.length
-      ? body
+      ? cleanArticleBodyLinks(body, primarySource)
       : ["Start with the attached source links, then compare the related Tales archive clips and the live X signal before treating the story as settled."],
     thumbnailPrompt:
       cleanPublicText(
@@ -793,10 +887,10 @@ function findMatchingDossier(dossiers: ClaimDossier[], requestedSlug: string) {
 }
 
 function articleDedupKey(article: IntelligenceArticle) {
-  const sourceKey = normalizedUrlKey(article.sourceUrl)
-  if (sourceKey) return `${article.topicId}:source:${sourceKey}`
   const idKey = normalizedSlugKey(article.id)
   if (idKey) return `${article.topicId}:id:${idKey}`
+  const sourceKey = normalizedUrlKey(article.sourceUrl)
+  if (sourceKey) return `${article.topicId}:source:${sourceKey}`
   return `${article.topicId}:title:${normalizedTextKey(article.title)}`
 }
 
@@ -807,6 +901,29 @@ function dedupeArticles(articles: IntelligenceArticle[]) {
     if (!key || seen.has(key)) return false
     seen.add(key)
     return true
+  })
+}
+
+function articleBodyLooksTemplated(article: IntelligenceArticle) {
+  const text = article.body.join("\n")
+  return /(^|\n)(Signal|Documented record|Source split|X velocity|Tales context|Viral frame):/i.test(text)
+}
+
+function articleQualityScore(article: IntelligenceArticle) {
+  let score = Number(article.heat || 0)
+  if (isExternalUrl(article.sourceUrl) && !isGoogleNewsUrl(article.sourceUrl)) score += 45
+  if (article.body.length >= 5) score += 20
+  if (article.body.some((paragraph) => paragraph.length > 220)) score += 12
+  if (articleBodyLooksTemplated(article)) score -= 35
+  if (/Latest sourced reporting/i.test(article.deck)) score -= 10
+  return score
+}
+
+function preparePublishedArticles(articles: IntelligenceArticle[]) {
+  return dedupeArticles(articles).sort((left, right) => {
+    const qualityDelta = articleQualityScore(right) - articleQualityScore(left)
+    if (qualityDelta) return qualityDelta
+    return new Date(right.publishedAt).getTime() - new Date(left.publishedAt).getTime()
   })
 }
 
@@ -1292,7 +1409,7 @@ export async function fetchRecursivPublishedArticlesWithSource(options: { limit?
   if (rows) {
     return {
       sourceMode: "recursiv-database",
-      articles: dedupeArticles(rows.map(articleRowToArticle)).slice(0, limit),
+      articles: preparePublishedArticles(rows.map(articleRowToArticle)).slice(0, limit),
     }
   }
 
@@ -1300,7 +1417,7 @@ export async function fetchRecursivPublishedArticlesWithSource(options: { limit?
   return snapshotRows.length
     ? {
         sourceMode: "recursiv-snapshot",
-        articles: dedupeArticles(snapshotRows.map(articleRowToArticle)).slice(0, limit),
+        articles: preparePublishedArticles(snapshotRows.map(articleRowToArticle)).slice(0, limit),
       }
     : null
 }
@@ -1332,7 +1449,7 @@ export async function fetchRecursivPublishedArticlesForTopic(topicId: string, op
   )
 
   const sourceRows = rows?.length ? rows : snapshotArticleRows().filter((row) => row.topic_id === topicId)
-  return sourceRows.length ? dedupeArticles(sourceRows.map(articleRowToArticle)).slice(0, limit) : rows ? [] : null
+  return sourceRows.length ? preparePublishedArticles(sourceRows.map(articleRowToArticle)).slice(0, limit) : rows ? [] : null
 }
 
 export async function fetchRecursivPublishedArticlesByTopic(options: { limitPerTopic?: number; topicIds?: string[] } = {}) {
@@ -1397,7 +1514,7 @@ export async function fetchRecursivPublishedArticlesByTopic(options: { limitPerT
   }
 
   return Object.fromEntries(
-    Object.entries(grouped).map(([topicId, articles]) => [topicId, dedupeArticles(articles).slice(0, limitPerTopic)]),
+    Object.entries(grouped).map(([topicId, articles]) => [topicId, preparePublishedArticles(articles).slice(0, limitPerTopic)]),
   )
 }
 
