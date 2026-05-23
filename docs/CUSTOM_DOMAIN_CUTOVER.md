@@ -23,6 +23,7 @@ The command prints a redacted JSON report with:
 - latest Recursiv deployment status;
 - HTTP proof for `https://invertedworld.on.recursiv.io`;
 - `/news` source-board proof, including direct external source links and internal Inverted World context links;
+- representative `/news/[articleId]` story-page proof, including on-page sources, Tales archive context, and Ask This Story;
 - `/x/secret-programs` signal-page proof, including ranked posts, anchored post cards, and outbound X links;
 - `/api/x/secret-programs` freshness proof, requiring at least 12 recent X posts from multiple source modes and a latest post inside 192 hours;
 - release proof from `https://invertedworld.on.recursiv.io/api/release`, including the deployed feature marker;
@@ -56,6 +57,7 @@ The output file contains the same no-secret report printed to stdout.
 - `recursivHostingProven` must be `true`.
 - If `recursivHostedUrl` passes but `recursivDeploymentCompleted` is `unknown`, HTTP proof is good but deployment proof is incomplete. Do not treat that as a DNS-ready state.
 - `newsPage` must pass, proving `/news` renders the source-board page with direct external source links and internal Inverted World context links.
+- `articleStoryPage` must pass, proving a representative article detail page renders external source links, Tales archive context, and Ask This Story instead of a generic keep-reading dead end.
 - `xSignalPage` must pass, proving `/x/secret-programs` renders ranked X posts with anchored cards, outbound X links, and no empty lane state.
 - `xSignalApi` and `xSignalFreshness` must pass, proving `/api/x/secret-programs` has enough recent X posts from multiple persisted/source modes.
 - `releaseCommit` must be `pass`. Full readiness may prove this from `/api/release` or from authenticated Recursiv deployment metadata. `unknown` means neither source exposes a revision yet, and `fail` means the deployed revision is not the expected commit.
@@ -135,7 +137,7 @@ Current live proof:
 
 Earlier full readiness runs proved the Recursiv database, scheduled jobs, provider-health row, and successful full-pipeline run, but those authenticated checks are not current while the Recursiv key is under a per-day deploy/status cooldown. Use them as historical context only; rerun full `pnpm recursiv:cutover` after API health returns.
 
-The current local build includes the expected `/api/release` marker, `/api/pipeline` snapshot fallback, sourced Markdown Ask This Story routes for dossiers and article-only stories, and Recursiv-backed article API. The next required platform step is to deploy the latest repo commit to Recursiv, create the custom-domain binding for `www.inverted.world`, and rerun full cutover proof.
+The current local build includes the expected `/api/release` marker, `/api/pipeline` snapshot fallback, article pages with visible source and Tales context, sourced Markdown Ask This Story routes for dossiers and article-only stories, and Recursiv-backed article API. The next required platform step is to deploy the latest repo commit to Recursiv, create the custom-domain binding for `www.inverted.world`, and rerun full cutover proof.
 
 The direct custom-domain binding attempt on May 23, 2026 at `13:44Z` used `pnpm recursiv:deploy:custom-domain` and returned `429 rate_limit_exceeded` with the API message `per-day`. The deploy helper normalizes that to a daily guard from the recorded time. Do not retry the binding path with the same key until a healthy Recursiv key is installed or the actual daily limit is known to have reset.
 

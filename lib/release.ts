@@ -7,6 +7,7 @@ export const INVERTED_WORLD_RELEASE = {
     publicDataFallback: "recursiv-snapshot",
     pipelineSnapshotFallback: true,
     articleChatFallback: true,
+    articleSourceContext: true,
     dnsCutoverRequiresCustomDomainProof: true,
   },
 } as const

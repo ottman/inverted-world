@@ -40,7 +40,7 @@ The Recursiv slug host must return the expected app over HTTPS, and each require
 
 Use `--path=/route::expected text` for app-specific proof points. Good routes are health endpoints, public data APIs, logged-out dashboards, content pages, freshness/status endpoints, archive/category coverage endpoints, or other surfaces that prove the production app is more than a placeholder homepage.
 
-For content products, include at least one machine-readable breadth gate before DNS. Examples: a news API with minimum item count, source mode, direct source links, no boilerplate/template bodies, and a working story-chat endpoint; an archive API with category coverage; a media-library item route; or a freshness endpoint tied to the latest publishing job.
+For content products, include at least one machine-readable breadth gate before DNS. Examples: a news API with minimum item count, source mode, direct source links, no boilerplate/template bodies, article detail pages with visible sources/context, and a working story-chat endpoint; an archive API with category coverage; a media-library item route; or a freshness endpoint tied to the latest publishing job.
 
 ### 2. Recursiv Project Binding
 

@@ -352,6 +352,44 @@ async function probeNewsPage(url) {
   }
 }
 
+async function probeArticleStoryPage(url) {
+  const started = Date.now()
+  try {
+    const response = await fetch(url, {
+      headers: { "user-agent": "InvertedWorldCutoverReadiness/1.0" },
+      redirect: "manual",
+      signal: AbortSignal.timeout(20000),
+    })
+    const contentType = response.headers.get("content-type") || ""
+    const html = contentType.includes("text/html") ? await response.text() : ""
+    const externalSourceLinks = (html.match(/href="https?:\/\/(?!www\.inverted\.world|invertedworld\.on\.recursiv\.io)[^"]+"/g) || []).length
+    const archiveLinks = (html.match(/href="\/archive\/[^"]+"/g) || []).length
+
+    return {
+      url,
+      status: response.status,
+      ok: response.ok,
+      title: html.match(/<title>(.*?)<\/title>/i)?.[1]?.trim(),
+      hasSources: /<h2[^>]*>Sources<\/h2>|Sources/i.test(html),
+      hasTalesContext: /Tales Context/i.test(html),
+      hasAskThisStory: /Ask This Story/i.test(html),
+      hasArticleChatEndpoint: /\/api\/articles\/[^"]+\/chat/.test(html),
+      hasKeepReadingFallback: /Keep Reading/i.test(html),
+      externalSourceLinks,
+      archiveLinks,
+      durationMs: Date.now() - started,
+    }
+  } catch (error) {
+    return {
+      url,
+      status: 0,
+      ok: false,
+      message: error instanceof Error ? error.message : String(error),
+      durationMs: Date.now() - started,
+    }
+  }
+}
+
 async function probeXSignalPage(url) {
   const started = Date.now()
   try {
@@ -898,6 +936,7 @@ async function main() {
   const recursivHostname = new URL(recursivUrl).hostname
   const releaseApiUrl = new URL("/api/release", recursivUrl).toString()
   const newsPageUrl = new URL("/news", recursivUrl).toString()
+  const articleStoryPageUrl = new URL(`/news/${ARTICLE_CHAT_PROOF_SLUG}`, recursivUrl).toString()
   const xSignalPageUrl = new URL(`/x/${X_SIGNAL_PROOF_TOPIC}`, recursivUrl).toString()
   const xSignalApiUrl = new URL(`/api/x/${X_SIGNAL_PROOF_TOPIC}?limit=24`, recursivUrl).toString()
   const archiveApiUrl = new URL("/api/archive?limit=1000", recursivUrl).toString()
@@ -933,6 +972,7 @@ async function main() {
     jobsResponse,
     recursivHttp,
     newsPage,
+    articleStoryPage,
     xSignalPage,
     xSignalApi,
     releaseApi,
@@ -976,6 +1016,7 @@ async function main() {
           ),
       probeHttp(recursivUrl),
       probeNewsPage(newsPageUrl),
+      probeArticleStoryPage(articleStoryPageUrl),
       probeXSignalPage(xSignalPageUrl),
       probeXSignalApi(xSignalApiUrl),
       probeReleaseApi(releaseApiUrl),
@@ -1057,6 +1098,16 @@ async function main() {
       !newsPage.hasEmptyState &&
       Number(newsPage.externalSourceLinks || 0) >= 20 &&
       Number(newsPage.contextLinks || 0) >= 3,
+  )
+  const articleStoryPageReady = Boolean(
+    articleStoryPage.ok &&
+      articleStoryPage.hasSources &&
+      articleStoryPage.hasTalesContext &&
+      articleStoryPage.hasAskThisStory &&
+      articleStoryPage.hasArticleChatEndpoint &&
+      !articleStoryPage.hasKeepReadingFallback &&
+      Number(articleStoryPage.externalSourceLinks || 0) >= 3 &&
+      Number(articleStoryPage.archiveLinks || 0) >= 1,
   )
   const xSignalPageReady = Boolean(
     xSignalPage.ok &&
@@ -1176,6 +1227,7 @@ async function main() {
   const publicHostingReady =
     recursivHostingProven &&
     newsPageReady &&
+    articleStoryPageReady &&
     xSignalPageReady &&
     xSignalApiReady &&
     releaseProofReady &&
@@ -1201,6 +1253,7 @@ async function main() {
   const checks = {
     recursivHostedUrl: statusText(recursivHostedUrlProven),
     newsPage: statusText(newsPageReady),
+    articleStoryPage: statusText(articleStoryPageReady),
     xSignalPage: statusText(xSignalPageReady),
     xSignalApi: statusText(xSignalApiReady),
     xSignalFreshness: statusText(xSignalApiFresh),
@@ -1239,6 +1292,9 @@ async function main() {
   if (!recursivHostedUrlProven) nextActions.push("Do not touch DNS until invertedworld.on.recursiv.io returns the expected app.")
   if (!newsPageReady) {
     nextActions.push("Do not touch DNS until /news renders the source-board page with direct external source links and internal Inverted World context links.")
+  }
+  if (!articleStoryPageReady) {
+    nextActions.push("Do not touch DNS until representative article pages render source links, Tales archive context, and Ask This Story without falling back to a generic keep-reading panel.")
   }
   if (!xSignalPageReady) {
     nextActions.push(`Do not touch DNS until /x/${X_SIGNAL_PROOF_TOPIC} renders ranked X posts with anchored post cards and outbound X links.`)
@@ -1341,6 +1397,7 @@ async function main() {
       recursivHostingProven,
       recursivHostedUrlProven,
       newsPageReady,
+      articleStoryPageReady,
       xSignalPageReady,
       xSignalApiReady,
       xSignalApiFresh,
@@ -1372,6 +1429,7 @@ async function main() {
     },
     recursivUrl: recursivHttp,
     newsPage,
+    articleStoryPage,
     xSignalPage,
     xSignalApi,
     releaseApi,

@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowUpRight, BookOpen, FileText, Gauge, MessageSquare, Radi
 import { DossierChat } from "@/components/dossier-chat"
 import { archiveSurface, InvertedPageShell, type BreakingItem } from "@/components/inverted-page-shell"
 import type { IntelligenceArticle } from "@/data/intelligence-articles"
+import { featuredVideos, researchDocuments, type ChannelVideo } from "@/data/inverted-world"
 import { getArticleById } from "@/lib/live-articles"
 import { getRecursivClaimDossier, type ClaimDossier, type ClaimSourceLink } from "@/lib/recursiv/content"
 import { xPostInternalHref } from "@/lib/x-links"
@@ -76,6 +77,41 @@ function primarySource(article?: IntelligenceArticle | null, dossier?: ClaimDoss
     }
   }
   return undefined
+}
+
+function dedupeSources(sources: ClaimSourceLink[]) {
+  const seen = new Set<string>()
+  return sources.filter((source) => {
+    const key = source.url || source.title
+    if (!key || seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
+function storySources(article?: IntelligenceArticle | null, dossier?: ClaimDossier | null) {
+  if (dossier?.sourceLinks.length) return dossier.sourceLinks
+  const source = primarySource(article, dossier)
+  const documentSources: ClaimSourceLink[] = article
+    ? researchDocuments
+        .filter((document) => document.topicIds.includes(article.topicId) && isExternalUrl(document.url))
+        .slice(0, 5)
+        .map((document) => ({
+          title: document.title,
+          url: document.url,
+          outlet: document.source,
+          sourceKind: document.kind,
+          biasLane: "source shelf",
+        }))
+    : []
+
+  return dedupeSources([...(source ? [source] : []), ...documentSources]).slice(0, 6)
+}
+
+function storyVideos(article?: IntelligenceArticle | null, dossier?: ClaimDossier | null): ChannelVideo[] {
+  if (dossier?.relatedVideos.length) return dossier.relatedVideos
+  if (!article) return []
+  return featuredVideos.filter((video) => video.topicId === article.topicId).slice(0, 4)
 }
 
 function storyParagraphs(article?: IntelligenceArticle | null, dossier?: ClaimDossier | null) {
@@ -183,6 +219,8 @@ export default async function NewsArticlePage({ params }: PageProps) {
   const publishedAt = formatDate(article?.publishedAt || dossier?.publishedAt)
   const articleFirst = Boolean(article)
   const chatEndpoint = dossier ? `/api/dossiers/${dossier.slug}/chat` : article ? `/api/articles/${article.id}/chat` : ""
+  const sourceLinks = storySources(article, dossier)
+  const relatedVideos = storyVideos(article, dossier)
 
   const breakingItems: BreakingItem[] = dossier ? [
     ...dossier.xSignals.slice(0, 8).map((post) => ({
@@ -248,11 +286,10 @@ export default async function NewsArticlePage({ params }: PageProps) {
             </div>
           ) : null}
 
-          {dossier ? (
-            <section className="bg-[#050504]/42 p-4">
-              <h2 className="iw-serif text-3xl leading-none text-[#fff8e6]">Sources</h2>
+          <section className="bg-[#050504]/42 p-4">
+            <h2 className="iw-serif text-3xl leading-none text-[#fff8e6]">Sources</h2>
             <div className="mt-4 grid gap-2">
-              {dossier.sourceLinks.length ? dossier.sourceLinks.map((source) => (
+              {sourceLinks.length ? sourceLinks.map((source) => (
                 <a
                   key={source.url}
                   href={source.url}
@@ -278,8 +315,7 @@ export default async function NewsArticlePage({ params }: PageProps) {
                 </a>
               )}
             </div>
-            </section>
-          ) : null}
+          </section>
         </div>
 
         <aside className="grid gap-4">
@@ -290,45 +326,56 @@ export default async function NewsArticlePage({ params }: PageProps) {
             </div>
           ) : null}
 
-          {dossier ? (
+          {dossier || article ? (
             <>
               <div className="grid grid-cols-2 gap-2">
-                {articleFirst ? (
-                  <>
-                    <Metric icon={<FileText className="h-4 w-4" />} label="Sources" value={String(dossier.sourceCount)} />
-                    <Metric icon={<Radio className="h-4 w-4" />} label="X Posts" value={String(dossier.xSignalCount)} />
-                    <Metric icon={<BookOpen className="h-4 w-4" />} label="Archive" value={String(dossier.relatedVideoCount)} />
-                    <Metric icon={<MessageSquare className="h-4 w-4" />} label="AI Guide" value="Ready" />
-                  </>
+                {dossier ? (
+                  articleFirst ? (
+                    <>
+                      <Metric icon={<FileText className="h-4 w-4" />} label="Sources" value={String(dossier.sourceCount)} />
+                      <Metric icon={<Radio className="h-4 w-4" />} label="X Posts" value={String(dossier.xSignalCount)} />
+                      <Metric icon={<BookOpen className="h-4 w-4" />} label="Archive" value={String(dossier.relatedVideoCount)} />
+                      <Metric icon={<MessageSquare className="h-4 w-4" />} label="AI Guide" value="Ready" />
+                    </>
+                  ) : (
+                    <>
+                      <Metric icon={<Gauge className="h-4 w-4" />} label="Evidence" value={`${dossier.confidenceScore}/100`} />
+                      <Metric icon={<Radio className="h-4 w-4" />} label="X Velocity" value={formatScore(dossier.xVelocityScore)} />
+                      <Metric icon={<MessageSquare className="h-4 w-4" />} label="Sources" value={String(dossier.sourceCount)} />
+                      <Metric icon={<MessageSquare className="h-4 w-4" />} label="X Posts" value={String(dossier.xSignalCount)} />
+                    </>
+                  )
                 ) : (
                   <>
-                    <Metric icon={<Gauge className="h-4 w-4" />} label="Evidence" value={`${dossier.confidenceScore}/100`} />
-                    <Metric icon={<Radio className="h-4 w-4" />} label="X Velocity" value={formatScore(dossier.xVelocityScore)} />
-                    <Metric icon={<MessageSquare className="h-4 w-4" />} label="Sources" value={String(dossier.sourceCount)} />
-                    <Metric icon={<MessageSquare className="h-4 w-4" />} label="X Posts" value={String(dossier.xSignalCount)} />
+                    <Metric icon={<FileText className="h-4 w-4" />} label="Sources" value={String(sourceLinks.length)} />
+                    <Metric icon={<BookOpen className="h-4 w-4" />} label="Archive" value={String(relatedVideos.length)} />
+                    <Metric icon={<MessageSquare className="h-4 w-4" />} label="AI Guide" value="Ready" />
+                    <Metric icon={<Gauge className="h-4 w-4" />} label="Mode" value="Story" />
                   </>
                 )}
               </div>
 
-              <section className="bg-[#050504]/42 p-4">
-                <h2 className="iw-serif text-3xl leading-none text-[#fff8e6]">What To Watch</h2>
-                <div className="mt-4 grid gap-2">
-                  {dossier.viralHeadlines.length ? dossier.viralHeadlines.slice(0, 4).map((headline) => (
-                    <p key={headline} className="bg-black/28 p-3 text-sm leading-5 text-[#f4efe2]/72">
-                      {headline}
-                    </p>
-                  )) : (
-                    <a href="/news" className="bg-black/28 p-3 text-sm leading-6 text-[#f4efe2]/62 transition hover:text-[#fff8e6]">
-                      Open the latest stories.
-                    </a>
-                  )}
-                </div>
-              </section>
+              {dossier ? (
+                <section className="bg-[#050504]/42 p-4">
+                  <h2 className="iw-serif text-3xl leading-none text-[#fff8e6]">What To Watch</h2>
+                  <div className="mt-4 grid gap-2">
+                    {dossier.viralHeadlines.length ? dossier.viralHeadlines.slice(0, 4).map((headline) => (
+                      <p key={headline} className="bg-black/28 p-3 text-sm leading-5 text-[#f4efe2]/72">
+                        {headline}
+                      </p>
+                    )) : (
+                      <a href="/news" className="bg-black/28 p-3 text-sm leading-6 text-[#f4efe2]/62 transition hover:text-[#fff8e6]">
+                        Open the latest stories.
+                      </a>
+                    )}
+                  </div>
+                </section>
+              ) : null}
 
               <section className="bg-[#050504]/42 p-4">
                 <h2 className="iw-serif text-3xl leading-none text-[#fff8e6]">Tales Context</h2>
                 <div className="mt-4 grid gap-3">
-                  {dossier.relatedVideos.length ? dossier.relatedVideos.map((video) => (
+                  {relatedVideos.length ? relatedVideos.map((video) => (
                     <a
                       key={video.href}
                       href={video.videoId ? `/archive/${video.videoId}` : video.href}
