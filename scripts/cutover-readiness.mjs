@@ -274,6 +274,7 @@ async function probeReleaseApi(url) {
         body.features && typeof body.features.worldwireJsonbPayloads === "string"
           ? body.features.worldwireJsonbPayloads
           : undefined,
+      pipelineSnapshotFallback: Boolean(body.features?.pipelineSnapshotFallback),
       dnsCutoverRequiresCustomDomainProof: Boolean(body.features?.dnsCutoverRequiresCustomDomainProof),
       durationMs: Date.now() - started,
     }
@@ -494,6 +495,7 @@ async function main() {
       releaseApi.name === "inverted-world" &&
       releaseApi.release === "worldwire-persistence-v2" &&
       releaseApi.worldwireJsonbPayloads === "dollar-quoted-sql-literals" &&
+      releaseApi.pipelineSnapshotFallback &&
       releaseApi.dnsCutoverRequiresCustomDomainProof,
   )
   const recursivDeploymentCompleted = Boolean(latestDeployment?.status === "completed")

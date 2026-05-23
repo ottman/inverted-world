@@ -5,7 +5,7 @@ export const INVERTED_WORLD_RELEASE = {
     recursivHosted: true,
     worldwireJsonbPayloads: "dollar-quoted-sql-literals",
     publicDataFallback: "recursiv-snapshot",
+    pipelineSnapshotFallback: true,
     dnsCutoverRequiresCustomDomainProof: true,
   },
 } as const
-

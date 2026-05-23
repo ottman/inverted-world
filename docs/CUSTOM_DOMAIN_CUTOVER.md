@@ -84,7 +84,7 @@ Current live proof:
 
 - `https://invertedworld.on.recursiv.io` returns the app.
 - latest Recursiv deployment `019e550c-02c6-703c-8ca9-00eca7fee957` completed on May 23, 2026 at `13:38:29Z`.
-- `/api/release` returns `release: "worldwire-persistence-v2"` and `worldwireJsonbPayloads: "dollar-quoted-sql-literals"`, proving the hosted build contains the compact Worldwire JSONB persistence path.
+- `/api/release` returns `release: "worldwire-persistence-v2"`, `worldwireJsonbPayloads: "dollar-quoted-sql-literals"`, and `pipelineSnapshotFallback: true`, proving the hosted build contains the compact Worldwire JSONB persistence path and public pipeline snapshot fallback.
 - current `/api/archive?limit=1000` proof returns `sourceMode: "recursiv-snapshot"` with 437 unique archive videos, no warnings, and `hasMore: false`; live database reads are temporarily rate-limited.
 - earlier `/api/archive?limit=1000` proof returned `sourceMode: "recursiv-database"` with 437 archive rows and no warnings.
 - earlier `/api/documents` proof returned `sourceMode: "recursiv-database"` with 37 source documents across all six topics.
