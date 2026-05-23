@@ -2,7 +2,7 @@
 
 ## Current Production Shape
 
-`www.inverted.world` currently resolves to a Vercel-hosted Next.js app. The target production host is Recursiv first at `invertedworld.on.recursiv.io`, then the custom `www.inverted.world` domain after live Recursiv proof.
+`invertedworld.on.recursiv.io` is now the proven Recursiv-hosted app. `www.inverted.world` still resolves to the legacy Vercel-hosted Next.js app and should stay there until the Recursiv custom-domain binding is created and proven.
 
 Current runtime lanes:
 
@@ -18,22 +18,24 @@ Current runtime lanes:
 - Pipeline status: `/api/pipeline` exposes the latest persisted Recursiv pipeline run, and `/api/front-page` includes the latest pipeline status so the public news desk can show freshness without provider keys.
 - Dossier chat: `/api/dossiers/[slug]/chat` stores Recursiv-agent Q/A in `claim_chat_messages`; the dossier chat UI hydrates recent messages from Recursiv so conversations persist beyond the current browser session.
 - Video pages: `app/archive/[videoId]/page.tsx` renders one embedded video and related Tales videos.
+- Media library: `/media`, `/media/[mediaId]`, `/api/media`, and `/api/media/[mediaId]` render and expose Recursiv-backed videos, official release documents, images, archive hubs, source-chain briefs, and research questions.
 - Static editorial scaffolding: `data/intelligence-articles.ts`, `data/inverted-world.ts`, and docs files.
 
 The `@recursiv/sdk` package is now used for server-side Recursiv database reads, provisioning scripts, deployment scripts, and scheduled job endpoints.
 
-Custom-domain cutover proof is explicit: `pnpm recursiv:cutover` checks the Recursiv hosted URL, Recursiv archive API data mode, the current `www.inverted.world` HTTP/DNS state, active scheduled jobs, latest deployment, and hosted provider blockers before any DNS change. It separates public hosting readiness from full AI product readiness so provider account failures do not get mistaken for DNS problems.
+Custom-domain cutover proof is explicit: `pnpm recursiv:cutover` checks the Recursiv hosted URL, Recursiv archive API data mode, documents API, media item page/API, the current `www.inverted.world` HTTP/DNS state, active scheduled jobs, latest deployment, and hosted provider blockers before any DNS change. It separates public hosting readiness from full AI product readiness so provider account failures do not get mistaken for DNS problems.
 
 ## Problem
 
-The site has moved into a Recursiv-backed shape, but it is not yet a serious AI news machine because:
+The site has moved into a Recursiv-hosted, Recursiv-backed shape, but it is not yet a serious AI news machine because:
 
-- Recursiv tables now exist for archive, news, X, dossiers, front-page editions, media items, source documents, generated assets, and pipeline runs, but production is currently using committed Recursiv snapshots while the runtime database key is rate-limited;
+- Recursiv public hosting is proven and public archive, document, and media reads are live `recursiv-database` reads, but the custom domain has not been cut over;
 - The next product layer is `claim_dossiers`, `claim_sources`, and `claim_chat_messages`: comparative coverage pages for conspiracy/anomaly claims with source split, X velocity, evidence grading, Tales archive context, viral headline variants, and AI chat history.
 - scheduled Recursiv jobs are implemented as authenticated route targets and have been provisioned against the Recursiv-hosted URL with `CRON_SECRET`;
 - `scripts/provision-recursiv-backend.mjs --with-jobs` is the desired-state manifest for the Recursiv scheduled jobs, including the bounded full-pipeline refresh and pipeline-maintenance cleanup job;
 - `/api/autopost/daily` now exposes the Recursiv-published daily packet for site/social/newsletter/video reuse without exposing provider keys to the browser;
 - AI article generation is implemented as a Recursiv job handler over published claim dossiers; image generation tries Recursiv media first and stores a generated SVG fallback asset when the media endpoint is unavailable; YouTube archive sync now falls back to the seeded Tales video list when RSS/Data API access is unavailable;
+- X API access is currently blocked by account credits, and YouTube Data API access is blocked by quota; these are full-product blockers, not DNS blockers;
 - Vercel should not own YouTube, X, Brave, OpenRouter, or image-generation keys;
 - the archive is complete only when a backend with the YouTube key paginates the full uploads playlist.
 
@@ -73,6 +75,8 @@ Recommended backend flow:
    - `/api/dossiers`
    - `/api/dossiers/[slug]/chat`
    - `/api/front-page`
+   - `/api/media`
+   - `/api/documents`
 5. Vercel gets no third-party provider keys. Remove Vercel hosting/domain binding only after Recursiv hosting is proven live.
 
 ## A+ Product Bar

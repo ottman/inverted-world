@@ -58,6 +58,17 @@ The deploy command uses bounded direct Recursiv API calls and prints the selecte
 
 ## Current Expected State
 
-The custom domain may still report Vercel headers while Recursiv is being proven on `invertedworld.on.recursiv.io`. That is acceptable until the cutover gates pass.
+As of May 23, 2026, `invertedworld.on.recursiv.io` is proven live on Recursiv and `pnpm recursiv:cutover` reports `publicHostingReady: true`.
 
-As of May 22, 2026, `invertedworld.on.recursiv.io` is proven live and the public archive/news APIs read Recursiv-backed exported snapshot data when the runtime Recursiv API key is rate-limited. The known full-product blockers are provider/account-side: the runtime Recursiv database key is rate-limited, X API access has returned `402`, and YouTube Data API access has returned `403`. Fix those provider issues for the full AI news product, but do not treat them as DNS changes. The app accepts `YOUTUBE_API_KEY`, `YOUTUBE_DATA_API_KEY`, `GOOGLE_YOUTUBE_API_KEY`, or `GOOGLE_API_KEY`; production should prefer `YOUTUBE_API_KEY` for clarity.
+Current live proof:
+
+- `https://invertedworld.on.recursiv.io` returns the app.
+- `/api/archive?limit=1000` returns `sourceMode: "recursiv-database"` with 437 archive rows and no warnings.
+- `/api/documents` returns `sourceMode: "recursiv-database"` with 37 source documents across all six topics.
+- `/media/war-uap-release-02-senior-usic-narrative` returns 200.
+- `/api/media/war-uap-release-02-senior-usic-narrative` returns `sourceMode: "recursiv-database"` with the official UAP PDF item and related media.
+- all 12 expected Recursiv scheduled jobs are active.
+
+The custom domain still reports Vercel headers. Keep it there until the Recursiv custom-domain binding for `www.inverted.world` is created and proven. `dnsCutoverReady` is still `false` because custom-domain proof is missing, not because the Recursiv hosted app is unproven.
+
+The known full-product blockers are provider/account-side: X API access returns `402 CreditsDepleted`, and YouTube Data API access returns `403 quotaExceeded`. Fix those provider issues for the full AI news product, but do not treat them as DNS changes. The app accepts `YOUTUBE_API_KEY`, `YOUTUBE_DATA_API_KEY`, `GOOGLE_YOUTUBE_API_KEY`, or `GOOGLE_API_KEY`; production should prefer `YOUTUBE_API_KEY` for clarity.

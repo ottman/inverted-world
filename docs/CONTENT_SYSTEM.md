@@ -39,6 +39,10 @@ Server-side Recursiv calls use `RECURSIV_SERVER_API_KEY`. Local proof may use a 
 - `/news`: claim-dossier desk backed by published Recursiv `claim_dossiers`.
 - `/news/[slug]`: source split, evidence grade, X velocity, Tales archive context, viral headlines, and AI chat for one dossier.
 - `/documents`: browsable source database backed by `/api/documents`.
+- `/media`: watch/read media library for Tales clips, official UAP releases, primary-source PDFs, images, archive hubs, source briefs, and research questions.
+- `/media/[mediaId]`: shareable media detail pages with inline video/PDF/image rendering and related media.
+- `/api/media`: machine-readable media library.
+- `/api/media/[mediaId]`: machine-readable media item, source-chain brief, and related media.
 - `/api/dossiers`: JSON feed of published claim dossiers.
 - `/api/dossiers/[slug]/chat`: Recursiv-agent chat over one dossier context.
 - `/api/recursiv/jobs/*`: authenticated scheduled job targets for archive sync, topic pulse, article generation, claim dossier generation, image generation, publishing, front-page editions, bounded pipeline refresh, and pipeline maintenance.
