@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { Archive, ArrowUpRight, Download, FileText, Film, ImageIcon, ListChecks, Play } from "lucide-react"
+import { Archive, ArrowUpRight, Download, FileText, Film, ImageIcon, ListChecks, Play, Volume2 } from "lucide-react"
 import { MediaViewer } from "@/components/media-viewer"
 import { topics, type MediaLibraryItem } from "@/data/inverted-world"
 import { archiveSurface } from "@/components/inverted-page-shell"
@@ -15,6 +15,7 @@ const filterLabels: Array<{ id: MediaFilter; label: string }> = [
   { id: "video", label: "Video" },
   { id: "document", label: "Documents" },
   { id: "image", label: "Images" },
+  { id: "audio", label: "Audio" },
   { id: "archive", label: "Archives" },
 ]
 
@@ -23,6 +24,7 @@ function mediaIcon(kind: MediaLibraryItem["kind"]) {
   if (kind === "video") return <Film className={className} />
   if (kind === "document") return <FileText className={className} />
   if (kind === "image") return <ImageIcon className={className} />
+  if (kind === "audio") return <Volume2 className={className} />
   return <Archive className={className} />
 }
 
@@ -154,7 +156,7 @@ export function MediaLibraryPage({
                 Open source
                 <ArrowUpRight className="h-4 w-4" />
               </a>
-              {activeItem.viewer === "pdf" || activeItem.viewer === "video" || activeItem.viewer === "image" ? (
+              {activeItem.viewer === "pdf" || activeItem.viewer === "video" || activeItem.viewer === "image" || activeItem.viewer === "audio" ? (
                 <a
                   href={activeItem.url}
                   target="_blank"
@@ -191,6 +193,7 @@ export function MediaLibraryPage({
             <span>{stats.video || 0} video</span>
             <span>{stats.document || 0} docs</span>
             <span>{stats.image || 0} images</span>
+            <span>{stats.audio || 0} audio</span>
           </div>
         </div>
 

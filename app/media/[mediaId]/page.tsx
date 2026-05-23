@@ -31,6 +31,7 @@ function formatDate(value?: string) {
 function viewerFrameClass(item: MediaLibraryItem) {
   if (item.viewer === "pdf") return "relative h-[74vh] min-h-[540px] overflow-hidden bg-[#050504]/76"
   if (item.viewer === "image") return "relative min-h-[520px] overflow-hidden bg-[#050504]/76"
+  if (item.viewer === "audio") return "relative min-h-[320px] overflow-hidden bg-[#050504]/76"
   return "relative aspect-video overflow-hidden bg-[#050504]/76"
 }
 
@@ -92,7 +93,7 @@ export default async function MediaItemPage({ params }: PageProps) {
 
   const { item, related } = result
   const sourceLabel = sourceHost(item.url)
-  const isDownloadable = item.viewer === "pdf" || item.viewer === "video" || item.viewer === "image"
+  const isDownloadable = item.viewer === "pdf" || item.viewer === "video" || item.viewer === "image" || item.viewer === "audio"
   const archiveHref = item.viewer === "youtube" ? `/archive/${encodeURIComponent(item.id)}` : ""
 
   return (

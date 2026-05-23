@@ -1,10 +1,11 @@
-import { Archive, FileText, Film, ImageIcon } from "lucide-react"
+import { Archive, FileText, Film, ImageIcon, Volume2 } from "lucide-react"
 import type { MediaLibraryItem } from "@/data/inverted-world"
 
 function mediaIcon(kind: MediaLibraryItem["kind"], className = "h-5 w-5") {
   if (kind === "video") return <Film className={className} />
   if (kind === "document") return <FileText className={className} />
   if (kind === "image") return <ImageIcon className={className} />
+  if (kind === "audio") return <Volume2 className={className} />
   return <Archive className={className} />
 }
 
@@ -70,6 +71,26 @@ export function MediaViewer({
         controls
         playsInline
       />
+    )
+  }
+
+  if (item.viewer === "audio") {
+    return (
+      <div
+        key={item.id}
+        className={`${className} grid place-items-center bg-[radial-gradient(circle_at_center,rgba(223,47,47,0.18),rgba(5,5,4,0.96))] p-6`}
+      >
+        <div className="grid w-full max-w-2xl gap-5 text-center">
+          <div className="mx-auto grid h-16 w-16 place-items-center bg-[#df2f2f]/14 text-[#fff8e6]">
+            <Volume2 className="h-7 w-7" />
+          </div>
+          <div>
+            <p className="iw-serif text-4xl leading-none text-[#fff8e6]">{item.title}</p>
+            <p className="mt-3 text-sm leading-6 text-[#f4efe2]/62">{item.summary}</p>
+          </div>
+          <audio className="w-full" src={item.url} controls preload="metadata" />
+        </div>
+      </div>
     )
   }
 

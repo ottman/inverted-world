@@ -39,7 +39,7 @@ Server-side Recursiv calls use `RECURSIV_SERVER_API_KEY`. Local proof may use a 
 - `/news`: claim-dossier desk backed by published Recursiv `claim_dossiers`.
 - `/news/[slug]`: source split, evidence grade, X velocity, Tales archive context, viral headlines, and AI chat for one dossier.
 - `/documents`: browsable source database backed by `/api/documents`.
-- `/media`: watch/read media library for Tales clips, official UAP releases, primary-source PDFs, images, archive hubs, source briefs, and research questions.
+- `/media`: watch/read media library for Tales clips, official UAP releases, primary-source PDFs, videos, audio, images, archive hubs, source briefs, and research questions.
 - `/media/[mediaId]`: shareable media detail pages with inline video/PDF/image rendering and related media.
 - `/api/media`: machine-readable media library.
 - `/api/media/[mediaId]`: machine-readable media item, source-chain brief, and related media.
@@ -204,6 +204,8 @@ npm run recursiv:snapshot
 Run `npm run recursiv:snapshot -- --dry-run` to validate the export path and row counts without rewriting the committed snapshots.
 
 The public snapshot feeds the archive, news desk, X velocity, front-page edition, media library, and source document shelf. It is Recursiv-backed persisted data, but it is still a fallback: production is fully healthy only when hosted reads return `sourceMode: "recursiv-database"`.
+
+The media-library importer reads the WAR.GOV PURSUE CSV manifest when available, splits each official row into direct PDF/video/audio/image media entries, preserves record-page anchors, and writes source briefs into Recursiv `media_items.metadata.extraction`. Curated static records stay in the library as a fallback when the government CSV is temporarily blocked or unavailable.
 
 `recursiv:backfill:x` is a local/proof ingestion path for widening stored X coverage without exposing provider keys to public requests. It reads the protected local provider env file when present, filters X results through topic terms and trusted source accounts, and upserts only normalized rows into Recursiv `x_signals`. By default it only replaces previous local-backfill rows after the new fetch has accepted rows; pass `--keep-existing` to append/refresh without clearing previous local-backfill rows.
 

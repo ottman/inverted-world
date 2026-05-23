@@ -158,14 +158,36 @@ function absoluteWarUrl(value: string) {
   return `https://www.war.gov/${value.replace(/^\/+/, "")}`
 }
 
+function splitPipeValues(value: string) {
+  return value
+    .split("|")
+    .map((part) => part.trim())
+    .filter(Boolean)
+}
+
 function firstPipeValue(value: string) {
-  return value.split("|").map((part) => part.trim()).find(Boolean) || ""
+  return splitPipeValues(value)[0] || ""
+}
+
+function fieldValues(row: Record<string, string>, keys: string[]) {
+  const seen = new Set<string>()
+  const values: string[] = []
+  for (const key of keys) {
+    for (const value of splitPipeValues(field(row, [key]))) {
+      if (!seen.has(value)) {
+        seen.add(value)
+        values.push(value)
+      }
+    }
+  }
+  return values
 }
 
 function viewerForUrl(url: string, fallback: MediaLibraryItem["viewer"] = "link"): MediaLibraryItem["viewer"] {
   const normalized = url.toLowerCase().split("?")[0]
   if (normalized.endsWith(".pdf")) return "pdf"
   if (/\.(mp4|mov|m4v|webm)$/i.test(normalized)) return "video"
+  if (/\.(mp3|wav|m4a|aac|flac|oga|ogg)$/i.test(normalized)) return "audio"
   if (/\.(png|jpe?g|gif|webp)$/i.test(normalized)) return "image"
   return fallback
 }
@@ -174,7 +196,83 @@ function kindForViewer(viewer: MediaLibraryItem["viewer"]): MediaLibraryItem["ki
   if (viewer === "youtube" || viewer === "video") return "video"
   if (viewer === "pdf") return "document"
   if (viewer === "image") return "image"
+  if (viewer === "audio") return "audio"
   return "archive"
+}
+
+function normalizedFileType(value: string) {
+  const clean = value.trim().toLowerCase()
+  if (!clean) return ""
+  if (/^(pdf|vid|img|aud)$/.test(clean)) return `.${clean}`
+  if (/^\.(pdf|mp4|mov|m4v|webm|mp3|wav|m4a|aac|flac|oga|ogg|png|jpe?g|gif|webp|vid|img|aud)$/.test(clean)) {
+    return clean
+  }
+  return clean
+}
+
+function fileTypeForUrl(url: string) {
+  const cleanUrl = url.toLowerCase().split("?")[0]
+  const match = cleanUrl.match(/\.[a-z0-9]+$/i)
+  return match?.[0] || ""
+}
+
+function viewerForOfficialRecord(row: Record<string, string>, url: string, fallback: MediaLibraryItem["viewer"] = "link") {
+  const fileType = normalizedFileType(field(row, ["filetype", "documenttype", "type"]))
+  const documentType = field(row, ["documenttype", "doctype", "kind"]).trim().toLowerCase()
+  const firstTypeLetter = documentType[0] || ""
+
+  if (fileType === ".pdf" || firstTypeLetter === "p") return "pdf"
+  if (fileType === ".vid" || firstTypeLetter === "v") return "video"
+  if (fileType === ".aud" || firstTypeLetter === "a") return "audio"
+  if (fileType === ".img" || firstTypeLetter === "i") return "image"
+  return viewerForUrl(url, fallback)
+}
+
+function displayFileType(row: Record<string, string>, url: string, viewer: MediaLibraryItem["viewer"]) {
+  const explicit = field(row, ["filetype", "documenttype", "type"])
+  const normalized = normalizedFileType(explicit)
+  if (normalized) return normalized.toUpperCase()
+
+  const extension = fileTypeForUrl(url)
+  if (extension) return extension.replace(".", "").toUpperCase()
+  if (viewer === "pdf") return "PDF"
+  if (viewer === "video") return "Video"
+  if (viewer === "audio") return "Audio"
+  if (viewer === "image") return "Image"
+  return "Record"
+}
+
+function officialRecordHash(title: string) {
+  return title
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^A-Za-z0-9\-_]/g, "")
+    .replace(/-+/g, "-")
+}
+
+function releaseQueryValue(value?: string) {
+  if (!value) return ""
+  const label = releaseLabel(value)
+  if (/release\s*02/i.test(label)) return "Release 02"
+  if (/release\s*01|5\/8\/26|05\/08\/26|2026-05-08/i.test(label)) return "Release 01"
+  return ""
+}
+
+function officialRecordUrl(row: Record<string, string>, viewer: MediaLibraryItem["viewer"]) {
+  const title = field(row, ["title", "name", "assetfilename", "filename", "description"])
+  const release = releaseQueryValue(field(row, ["releasedate", "release"]))
+  const type = normalizedFileType(field(row, ["filetype", "documenttype", "type"]))
+  const params = new URLSearchParams()
+  if (release) params.set("releaseDate", release)
+  if (type) params.set("type", type)
+  else if (viewer === "pdf") params.set("type", ".pdf")
+  else if (viewer === "video") params.set("type", ".vid")
+  else if (viewer === "audio") params.set("type", ".aud")
+  else if (viewer === "image") params.set("type", ".img")
+
+  const query = params.toString()
+  const hash = officialRecordHash(title)
+  return `https://www.war.gov/UFO/${query ? `?${query}` : ""}${hash ? `#${hash}` : ""}`
 }
 
 function releaseLabel(value?: string) {
@@ -187,6 +285,7 @@ function officialUapExtraction(row: Record<string, string>, item: MediaLibraryIt
   const incidentLocation = field(row, ["incidentlocation", "location"])
   const release = releaseLabel(field(row, ["releasedate", "release"]))
   const agency = item.agency || item.source
+  const recordUrl = officialRecordUrl(row, item.viewer)
   const facts = [
     incidentDate ? `Incident date: ${incidentDate}.` : "",
     incidentLocation ? `Incident location: ${incidentLocation}.` : "",
@@ -208,9 +307,10 @@ function officialUapExtraction(row: Record<string, string>, item: MediaLibraryIt
       {
         label: "Release",
         value: release,
+        url: recordUrl,
       },
       {
-        label: "Record",
+        label: item.viewer === "link" ? "Record" : "Source file",
         value: item.title,
         url: item.url,
       },
@@ -361,7 +461,87 @@ function field(row: Record<string, string>, keys: string[]) {
   return ""
 }
 
-export async function fetchOfficialUapReleaseMedia(limit = 24): Promise<MediaLibraryItem[]> {
+function officialUapAssetUrls(row: Record<string, string>, viewer: MediaLibraryItem["viewer"]) {
+  if (viewer === "video") {
+    return fieldValues(row, ["videourl", "video", "downloadurl", "mediaurl", "asseturl", "fileurl", "url"])
+  }
+  if (viewer === "audio") {
+    return fieldValues(row, ["audiourl", "audio", "downloadurl", "mediaurl", "asseturl", "fileurl", "url"])
+  }
+  if (viewer === "image") {
+    return fieldValues(row, ["imageurl", "thumbnailurl", "posterurl", "image", "downloadurl", "mediaurl", "asseturl", "fileurl", "url"])
+  }
+  if (viewer === "pdf") {
+    return fieldValues(row, ["documenturl", "pdfurl", "downloadurl", "mediaurl", "asseturl", "fileurl", "url"])
+  }
+  return fieldValues(row, ["downloadurl", "documenturl", "videourl", "audiourl", "imageurl", "mediaurl", "asseturl", "fileurl", "url"])
+}
+
+function officialUapMediaItemsFromRow(row: Record<string, string>): MediaLibraryItem[] {
+  const title = field(row, ["title", "name", "assetfilename", "filename", "description"]) || "PURSUE UAP record"
+  const recordViewer = viewerForOfficialRecord(row, "", "link")
+  const primaryUrls = officialUapAssetUrls(row, recordViewer)
+  const urls = primaryUrls.length ? primaryUrls : [officialRecordUrl(row, recordViewer)]
+  const thumbnailUrl =
+    recordViewer === "image"
+      ? undefined
+      : absoluteWarUrl(firstPipeValue(field(row, ["imageurl", "thumbnailurl", "posterurl"]))) || undefined
+  const agency = field(row, ["agency", "source"]) || "Department of War"
+  const publishedAt = field(row, ["releasedate", "date", "publicationdate"]) || undefined
+  const recordUrl = officialRecordUrl(row, recordViewer)
+
+  return urls
+    .map((rawUrl, index) => {
+      const url = absoluteWarUrl(rawUrl)
+      if (!url || !/^https?:\/\//i.test(url)) return null
+      const intendedViewer = primaryUrls.length ? viewerForOfficialRecord(row, url, recordViewer) : recordViewer
+      const viewer = primaryUrls.length ? intendedViewer : "link"
+      const kind = kindForViewer(intendedViewer)
+      const total = urls.length
+      const titleSuffix = total > 1 ? ` (${index + 1} of ${total})` : ""
+      const itemTitle = `${title}${titleSuffix}`
+      const topicIds = ["uap-disclosure", "secret-programs", kind === "video" || kind === "image" ? "space-anomalies" : ""].filter(
+        (topicId): topicId is string => Boolean(topicId),
+      )
+      const item: MediaLibraryItem = {
+        id: slugify(`war-uap-${title}-${viewer}-${index + 1}-${url}`),
+        title: itemTitle,
+        source: agency,
+        url,
+        kind,
+        viewer,
+        topicIds,
+        summary:
+          field(row, ["description", "summary", "caption"]) ||
+          `Official PURSUE ${kind} record pulled from the Department of War UAP release index.`,
+        publishedAt,
+        thumbnailUrl,
+        fileType: displayFileType(row, url, intendedViewer),
+        agency,
+        collection: releaseLabel(field(row, ["release", "releasedate"])),
+      }
+      const extraction = officialUapExtraction(row, item)
+      item.extraction = {
+        ...extraction,
+        sourceChain: [
+          ...extraction.sourceChain,
+          ...(recordUrl !== item.url
+            ? [
+                {
+                  label: "Record page",
+                  value: "WAR.GOV detail",
+                  url: recordUrl,
+                },
+              ]
+            : []),
+        ],
+      }
+      return item
+    })
+    .filter((item): item is MediaLibraryItem => item !== null)
+}
+
+export async function fetchOfficialUapReleaseMedia(limit = 160): Promise<MediaLibraryItem[]> {
   try {
     const responses = await Promise.all(
       WAR_UAP_CSV_URLS.map((url) =>
@@ -376,37 +556,10 @@ export async function fetchOfficialUapReleaseMedia(limit = 24): Promise<MediaLib
     )
     const response = responses.find((item): item is Response => Boolean(item?.ok))
     if (!response) return []
-    const rows = parseCsv(await response.text())
-    return rows
-      .map((row) => {
-        const url = absoluteWarUrl(
-          firstPipeValue(field(row, ["url", "downloadurl", "documenturl", "videourl", "imageurl", "mediaurl", "asseturl"])),
-        )
-        if (!url || !/^https?:\/\//i.test(url)) return null
-        const title = field(row, ["title", "name", "assetfilename", "filename", "description"]) || hostName(url)
-        const viewer = viewerForUrl(url, /youtu\.?be|video/i.test(url) ? "video" : "link")
-        const publishedAt = field(row, ["releasedate", "date", "publicationdate"]) || undefined
-        const item: MediaLibraryItem = {
-          id: slugify(`war-uap-${title}-${url}`),
-          title,
-          source: field(row, ["agency", "source"]) || "Department of War",
-          url,
-          kind: kindForViewer(viewer),
-          viewer,
-          topicIds: ["uap-disclosure", "secret-programs"],
-          summary:
-            field(row, ["description", "summary", "caption"]) ||
-            "Official UAP release media pulled from the public Department of War release index.",
-          publishedAt,
-          thumbnailUrl: absoluteWarUrl(firstPipeValue(field(row, ["imageurl", "thumbnailurl", "posterurl"]))) || undefined,
-          fileType: field(row, ["filetype", "documenttype", "type"]) || undefined,
-          agency: field(row, ["agency"]) || "Department of War",
-          collection: releaseLabel(field(row, ["release", "releasedate"])),
-        }
-        item.extraction = officialUapExtraction(row, item)
-        return item
-      })
-      .filter((item): item is MediaLibraryItem => item !== null)
+    const text = await response.text()
+    if (/^\s*</.test(text)) return []
+    const rows = parseCsv(text)
+    return dedupeMediaItems(rows.flatMap(officialUapMediaItemsFromRow))
       .slice(0, limit)
   } catch {
     return []

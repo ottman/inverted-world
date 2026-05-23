@@ -33,8 +33,8 @@ export type MediaLibraryItem = {
   title: string
   source: string
   url: string
-  kind: "video" | "document" | "image" | "archive"
-  viewer: "youtube" | "pdf" | "video" | "image" | "link"
+  kind: "video" | "document" | "image" | "audio" | "archive"
+  viewer: "youtube" | "pdf" | "video" | "image" | "audio" | "link"
   topicIds: string[]
   summary: string
   publishedAt?: string
