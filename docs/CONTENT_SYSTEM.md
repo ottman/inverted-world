@@ -36,7 +36,7 @@ Server-side Recursiv calls use `RECURSIV_SERVER_API_KEY`. Local proof may use a 
 ## Live Routes
 
 - `/archive`: embedded channel archive. Reads Recursiv `channel_items` first, then falls back to YouTube RSS/API.
-- `/news`: Drudge-style source board backed by Recursiv `coverage_snapshots` with `source = 'worldwire'`, published `article_drafts`, and published `claim_dossiers`. The public page links directly to source URLs and does not call Exa, Brave, or RSS providers during render.
+- `/news`: Drudge-style source board backed by Recursiv `coverage_snapshots` with `source = 'worldwire'`, published `article_drafts`, and published `claim_dossiers`. The worldwire lanes cover a regular front page plus world, war, U.S. politics, power/files, money, tech/AI, science/space, health/earth, crime/culture, and strange-records coverage. The public page links directly to source URLs and does not call Exa, Brave, or RSS providers during render.
 - `/news/[slug]`: source split, evidence grade, X velocity, Tales archive context, viral headlines, and AI chat for one dossier.
 - `/documents`: browsable source database backed by `/api/documents`.
 - `/media`: watch/read media library for Tales clips, official UAP releases, primary-source PDFs, videos, audio, images, archive hubs, source briefs, and research questions.

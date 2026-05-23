@@ -18,59 +18,110 @@ export type WorldwireItem = {
 
 export const WORLDWIRE_LANES: WorldwireLane[] = [
   {
+    id: "front-page",
+    title: "Front Page",
+    query: "breaking news live updates global crisis scandal investigation emergency",
+  },
+  {
     id: "world",
     title: "World",
-    query: "breaking world news crisis scandal leak emergency geopolitics",
+    query: "world news coup protest scandal leak emergency election geopolitics",
   },
   {
     id: "war",
     title: "War",
-    query: "war military attack border missiles intelligence defense escalation",
+    query: "war military attack border missiles drone intelligence defense escalation",
   },
   {
     id: "america",
     title: "America",
-    query: "US politics courts congress election corruption investigation breaking",
+    query: "US politics courts congress election corruption investigation live",
+  },
+  {
+    id: "power-files",
+    title: "Power / Files",
+    query: "classified documents whistleblower court filing intelligence agency FOIA leak",
   },
   {
     id: "money",
     title: "Money",
-    query: "markets economy banks debt inflation crypto collapse fraud breaking",
+    query: "markets economy banks debt inflation crypto collapse fraud trade",
   },
   {
     id: "tech-ai",
     title: "Tech / AI",
-    query: "artificial intelligence surveillance cyberattack robots chips censorship",
+    query: "artificial intelligence surveillance cyberattack robots chips censorship internet",
   },
   {
     id: "science-space",
     title: "Science / Space",
-    query: "NASA space anomaly asteroid volcano earthquake disease lab discovery",
+    query: "NASA space anomaly asteroid discovery physics telescope launch",
+  },
+  {
+    id: "health-earth",
+    title: "Health / Earth",
+    query: "disease outbreak lab medicine volcano earthquake climate disaster weather",
   },
   {
     id: "crime-culture",
     title: "Crime / Culture",
-    query: "crime media scandal culture celebrity police censorship trial",
+    query: "crime scandal culture celebrity police censorship trial media",
+  },
+  {
+    id: "strange",
+    title: "Strange",
+    query: "UFO UAP unexplained anomaly mystery archaeology paranormal government records",
   },
 ]
 
 const HOT_WORDS = [
+  "abuse",
   "alien",
   "anomaly",
   "attack",
+  "bankrupt",
   "blackout",
   "classified",
+  "court",
+  "coup",
+  "crash",
+  "criminal",
   "collapse",
+  "corruption",
   "crisis",
+  "dead",
+  "declassified",
+  "disaster",
+  "drone",
   "emergency",
+  "evacuate",
   "explosion",
+  "fraud",
+  "hack",
+  "hostage",
+  "intelligence",
+  "investigation",
   "leak",
+  "lawsuit",
+  "missile",
   "mystery",
+  "outbreak",
+  "raid",
+  "records",
+  "resigns",
   "secret",
+  "shooting",
+  "shock",
+  "spy",
+  "strike",
   "surveillance",
+  "trial",
+  "uap",
+  "ufo",
   "unprecedented",
   "warning",
   "war",
+  "whistleblower",
 ]
 
 export function normalizeWorldwireText(value: string) {
@@ -113,6 +164,57 @@ export function hostName(url: string) {
   }
 }
 
+export function sourceLabel(source?: string, url?: string) {
+  const host = hostName(url || "")
+  const cleaned = normalizeWorldwireText(source || "")
+  const looksLikeByline = /^by\b/i.test(cleaned) || cleaned.split(/\s+/).length > 5 || cleaned.length > 42
+  return looksLikeByline ? host || cleaned || "source" : cleaned || host || "source"
+}
+
+const SOURCE_AUTHORITY_BONUSES: Array<[string, number]> = [
+  ["apnews.com", 18],
+  ["reuters.com", 18],
+  ["bbc.com", 16],
+  ["bbc.co.uk", 16],
+  ["wsj.com", 16],
+  ["ft.com", 16],
+  ["bloomberg.com", 16],
+  ["nytimes.com", 14],
+  ["washingtonpost.com", 14],
+  ["theguardian.com", 12],
+  ["politico.com", 12],
+  ["axios.com", 10],
+  ["aljazeera.com", 10],
+  ["npr.org", 10],
+  ["abcnews.go.com", 10],
+  ["cbsnews.com", 10],
+  ["nbcnews.com", 10],
+  ["cnn.com", 8],
+  ["foxnews.com", 8],
+  ["defensenews.com", 12],
+  ["war.gov", 20],
+  ["nasa.gov", 18],
+  ["noaa.gov", 18],
+  ["justice.gov", 18],
+  ["fbi.gov", 18],
+  ["cia.gov", 18],
+  ["dni.gov", 18],
+  ["cdc.gov", 16],
+  ["who.int", 16],
+  ["sec.gov", 16],
+  ["federalregister.gov", 16],
+  ["courtlistener.com", 14],
+  ["documentcloud.org", 14],
+  ["muckrock.com", 12],
+  ["nsarchive.gwu.edu", 12],
+]
+
+function scoreSourceAuthority(source?: string, url?: string) {
+  const host = hostName(url || "")
+  const haystack = `${host} ${source || ""}`.toLowerCase()
+  return SOURCE_AUTHORITY_BONUSES.reduce((score, [needle, bonus]) => (haystack.includes(needle) ? Math.max(score, bonus) : score), 0)
+}
+
 export function isExternalUrl(value?: string) {
   return Boolean(value && /^https?:\/\//i.test(value))
 }
@@ -121,11 +223,12 @@ export function isGoogleNewsUrl(value: string) {
   return hostName(value) === "news.google.com"
 }
 
-export function scoreWorldwireTitle(title: string, baseScore: number, index: number) {
+export function scoreWorldwireTitle(title: string, baseScore: number, index: number, context: { source?: string; url?: string } = {}) {
   const lower = title.toLowerCase()
   const heat = HOT_WORDS.reduce((total, word) => total + (lower.includes(word) ? 11 : 0), 0)
   const punctuation = /[?!]/.test(title) ? 6 : 0
-  return baseScore + heat + punctuation - index * 3
+  const live = /\b(breaking|live|latest|just in|watch|updates?)\b/i.test(title) ? 8 : 0
+  return baseScore + heat + punctuation + live + scoreSourceAuthority(context.source, context.url) - index * 3
 }
 
 export function uniqueWorldwireItems(items: WorldwireItem[]) {

@@ -8,6 +8,7 @@ import {
   readWorldwireXmlSource,
   readWorldwireXmlTag,
   scoreWorldwireTitle,
+  sourceLabel,
   stripWorldwireTags,
   uniqueWorldwireItems,
   type WorldwireItem,
@@ -30,7 +31,7 @@ async function fetchExaLane(lane: WorldwireLane): Promise<WorldwireItem[]> {
     body: JSON.stringify({
       query: `${lane.query} latest high consequence source reporting`,
       type: "auto",
-      numResults: 10,
+      numResults: 8,
       contents: {
         highlights: true,
       },
@@ -54,14 +55,15 @@ async function fetchExaLane(lane: WorldwireLane): Promise<WorldwireItem[]> {
     .map((result, index) => {
       const url = result.url || ""
       const title = normalizeWorldwireText(result.title || "Untitled source")
+      const source = sourceLabel(result.author, url)
       return {
         id: `exa-${lane.id}-${result.id || index}`,
         title,
         url,
-        source: result.author || hostName(url) || lane.title,
+        source,
         sectionId: lane.id,
         sectionTitle: lane.title,
-        score: scoreWorldwireTitle(title, 118, index),
+        score: scoreWorldwireTitle(title, 118, index, { source, url }),
         publishedAt: result.publishedDate,
         excerpt: result.highlights?.find(Boolean),
       }
@@ -74,7 +76,7 @@ async function fetchBraveLane(lane: WorldwireLane): Promise<WorldwireItem[]> {
 
   const url = new URL("https://api.search.brave.com/res/v1/web/search")
   url.searchParams.set("q", `${lane.query} latest`)
-  url.searchParams.set("count", "10")
+  url.searchParams.set("count", "8")
   url.searchParams.set("freshness", "pd")
   url.searchParams.set("safesearch", "moderate")
 
@@ -109,14 +111,15 @@ async function fetchBraveLane(lane: WorldwireLane): Promise<WorldwireItem[]> {
     .map((result, index) => {
       const url = result.url || ""
       const title = normalizeWorldwireText(stripWorldwireTags(result.title || "Untitled source"))
+      const source = sourceLabel(result.profile?.name, url)
       return {
         id: `brave-${lane.id}-${index}`,
         title,
         url,
-        source: result.profile?.name || hostName(url) || lane.title,
+        source,
         sectionId: lane.id,
         sectionTitle: lane.title,
-        score: scoreWorldwireTitle(title, 108, index),
+        score: scoreWorldwireTitle(title, 108, index, { source, url }),
         publishedAt: result.age,
         excerpt: result.description ? normalizeWorldwireText(stripWorldwireTags(result.description)) : undefined,
       }
@@ -141,20 +144,21 @@ async function fetchGoogleLane(lane: WorldwireLane): Promise<WorldwireItem[]> {
 
   const xml = await response.text()
   return [...xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)]
-    .slice(0, 10)
+    .slice(0, 8)
     .map((match, index) => {
       const item = match[1]
       const title = readWorldwireXmlTag(item, "title")
       const link = decodeWorldwireEntities(readWorldwireXmlTag(item, "link"))
       const source = readWorldwireXmlSource(item)
+      const directUrl = source.url && !isGoogleNewsUrl(source.url) ? source.url : link
       return {
         id: `google-${lane.id}-${index}`,
         title,
-        url: link || source.url || "https://news.google.com/",
-        source: source.name || hostName(link) || lane.title,
+        url: directUrl || source.url || "https://news.google.com/",
+        source: sourceLabel(source.name, directUrl || link),
         sectionId: lane.id,
         sectionTitle: lane.title,
-        score: scoreWorldwireTitle(title, 92, index),
+        score: scoreWorldwireTitle(title, 92, index, { source: source.name, url: directUrl }),
         publishedAt: readWorldwireXmlTag(item, "pubDate"),
         excerpt: readWorldwireXmlTag(item, "description"),
       }
