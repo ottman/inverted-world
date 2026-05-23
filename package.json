@@ -16,6 +16,8 @@
     "recursiv:snapshot": "node scripts/export-recursiv-snapshots.mjs",
     "recursiv:cutover": "node scripts/cutover-readiness.mjs",
     "recursiv:deploy:status": "node scripts/deploy-recursiv.mjs --status",
+    "recursiv:deploy:dry-run": "node scripts/deploy-recursiv.mjs --dry-run",
+    "recursiv:deploy:custom-domain": "node scripts/deploy-recursiv.mjs --custom-domain=www.inverted.world",
     "recursiv:deploy": "node scripts/deploy-recursiv.mjs"
   },
   "dependencies": {

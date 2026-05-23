@@ -6,6 +6,7 @@ const LOCAL_RECURSIV_KEY = "/private/tmp/inverted-world-recursiv-key"
 const DEFAULT_DEPLOY_TIMEOUT_MS = 30000
 const DEFAULT_RATE_LIMIT_COOLDOWN_MS = 60 * 60 * 1000
 const LOCAL_RATE_LIMIT_COOLDOWN_FILE = "/private/tmp/inverted-world-recursiv-api-cooldown.json"
+const DEFAULT_CUSTOM_DOMAIN = "www.inverted.world"
 
 function loadEnvFile(file) {
   if (!fs.existsSync(file)) return
@@ -66,6 +67,33 @@ function cooldownFile() {
 
 function cooldownBypassEnabled() {
   return process.env.RECURSIV_DEPLOY_IGNORE_COOLDOWN === "1" || process.argv.includes("--ignore-cooldown")
+}
+
+function argValue(name) {
+  const exact = process.argv.find((arg) => arg.startsWith(`${name}=`))
+  if (exact) return exact.slice(name.length + 1)
+  const index = process.argv.indexOf(name)
+  if (index !== -1 && process.argv[index + 1] && !process.argv[index + 1].startsWith("--")) return process.argv[index + 1]
+  return undefined
+}
+
+function normalizeCustomDomain(value) {
+  const hostname = String(value || "").trim().toLowerCase()
+  if (!hostname) return undefined
+  if (hostname.includes("://") || hostname.includes("/") || hostname.includes(":")) {
+    throw new Error("Custom domain must be a hostname like www.inverted.world, not a URL.")
+  }
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(hostname)) throw new Error("Custom domain cannot be an IP address.")
+  if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/.test(hostname)) {
+    throw new Error("Custom domain must be a valid hostname.")
+  }
+  return hostname
+}
+
+function requestedCustomDomain() {
+  const hasCustomDomainFlag = process.argv.includes("--custom-domain") || process.argv.some((arg) => arg.startsWith("--custom-domain="))
+  if (!hasCustomDomainFlag && !process.env.RECURSIV_DEPLOY_CUSTOM_DOMAIN) return undefined
+  return normalizeCustomDomain(argValue("--custom-domain") || process.env.RECURSIV_DEPLOY_CUSTOM_DOMAIN || DEFAULT_CUSTOM_DOMAIN)
 }
 
 function clearCooldownFile() {
@@ -224,13 +252,45 @@ async function main() {
   }
 
   const baseUrl = process.env.RECURSIV_BASE_URL || DEFAULT_BASE_URL
-  const apiKey = readApiKey()
   const projectId = requireEnv("RECURSIV_PROJECT_ID")
   const branch = process.env.RECURSIV_DEPLOY_BRANCH || "main"
   const commitHash = process.env.RECURSIV_DEPLOY_COMMIT || currentCommitHash()
   const requestTimeoutMs = timeoutMs()
-  if (!apiKey?.value) throw new Error("Missing RECURSIV_SERVER_API_KEY or RECURSIV_API_KEY")
   const action = process.argv.includes("--status") ? "status" : process.argv.includes("--update-project") ? "update-project" : "deploy"
+  const customDomain = action === "deploy" ? requestedCustomDomain() : undefined
+  const deploymentPayload = {
+    project_id: projectId,
+    branch,
+    commit_hash: commitHash,
+    commit_message: customDomain
+      ? `Bind ${customDomain} to inverted-world ${branch}${commitHash ? ` ${commitHash}` : ""}`
+      : `Deploy inverted-world ${branch}${commitHash ? ` ${commitHash}` : ""}`,
+    ...(customDomain ? { custom_domain: customDomain } : {}),
+  }
+
+  if (process.argv.includes("--dry-run")) {
+    console.log(
+      JSON.stringify(
+        {
+          ok: true,
+          action: "dry-run",
+          wouldRun: action,
+          endpoint: action === "deploy" ? "/deployments" : action,
+          branch,
+          commitHash,
+          customDomain,
+          deploymentPayload,
+          cooldown: readCooldown(),
+        },
+        null,
+        2,
+      ),
+    )
+    return
+  }
+
+  const apiKey = readApiKey()
+  if (!apiKey?.value) throw new Error("Missing RECURSIV_SERVER_API_KEY or RECURSIV_API_KEY")
   assertNotInCooldown(action)
 
   const requestOptions = {
@@ -276,12 +336,7 @@ async function main() {
   const response = await requestRecursiv("/deployments", {
     ...requestOptions,
     method: "POST",
-    body: {
-      project_id: projectId,
-      branch,
-      commit_hash: commitHash,
-      commit_message: `Deploy inverted-world ${branch}${commitHash ? ` ${commitHash}` : ""}`,
-    },
+    body: deploymentPayload,
   })
 
   console.log(
@@ -292,6 +347,7 @@ async function main() {
         keySource: apiKey.source,
         branch,
         commitHash,
+        customDomain,
         deployment: deploymentSummary(response.data),
       },
       null,

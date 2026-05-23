@@ -59,6 +59,21 @@ pnpm recursiv:deploy:status
 
 The deploy command uses bounded direct Recursiv API calls and prints the selected local key source, not the key. If it returns `401`, rotate or select the correct local Recursiv key. If it returns `429`, wait for the rate limit to reset or use a healthy project/org key before retrying. A pushed commit is not enough for DNS cutover; the hosted URL must return the new route and the deployment status must be proven.
 
+Preview the deployment payload without calling Recursiv:
+
+```bash
+pnpm recursiv:deploy:dry-run
+pnpm recursiv:deploy:dry-run -- --custom-domain=www.inverted.world
+```
+
+Create the pre-DNS custom-domain binding after public hosting and Recursiv API health are green:
+
+```bash
+pnpm recursiv:deploy:custom-domain
+```
+
+This still does not change DNS. It should make the latest Recursiv deployment metadata include both `invertedworld.on.recursiv.io` and `www.inverted.world`; rerun `pnpm recursiv:cutover` and require `customDomainBindingConfigured: true` plus `dnsChangeReady: true` before planning the DNS record edit.
+
 `fullAiProductReady` is stricter than public hosting readiness. Required hosted providers should still be green before calling the whole AI news product production-complete, especially `recursiv-database`, `x-api`, and `youtube-data-api`, but provider account failures are not DNS fixes. YouTube RSS is an opportunistic public fallback; it should not block cutover when the public channel-page fallback and persisted Recursiv archive are live but the RSS endpoint returns 404.
 
 ## Current Expected State
@@ -147,13 +162,10 @@ Until that binding exists and returns a verifiable target, DNS cutover is blocke
 For projects using the Recursiv deploy API, the desired production bind step is:
 
 ```bash
-curl -X POST "https://api.recursiv.io/api/v1/projects/$PROJECT_ID/deploy" \
-  -H "Authorization: Bearer $RECURSIV_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"type":"production","branch":"main","custom_domain":"www.customer.com"}'
+pnpm recursiv:deploy -- --custom-domain=www.customer.com
 ```
 
-Do not paste the API key into logs or docs. After the deploy completes, the latest deployment metadata should include both `<slug>.on.recursiv.io` and `www.customer.com`; that is the pre-DNS custom-domain binding proof.
+Do not paste the API key into logs or docs. The deploy helper reads the protected local key file or environment and prints only the key source. After the deploy completes, the latest deployment metadata should include both `<slug>.on.recursiv.io` and `www.customer.com`; that is the pre-DNS custom-domain binding proof.
 
 ### 4. DNS Preflight
 
