@@ -6,6 +6,7 @@
     "build": "next build",
     "dev": "next dev",
     "lint": "eslint --ext .js,.jsx,.ts,.tsx .",
+    "audit:public-providers": "node scripts/audit-public-provider-fallbacks.mjs",
     "start": "next start",
     "sync:content": "node scripts/sync-inverted-world.mjs",
     "recursiv:provision": "node scripts/provision-recursiv-backend.mjs",
