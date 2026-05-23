@@ -33,7 +33,6 @@ const REQUIRED_PROVIDERS = [
   "recursiv-database",
   "x-api",
   "exa",
-  "youtube-rss",
   "youtube-data-api",
   "firecrawl",
   "openai",

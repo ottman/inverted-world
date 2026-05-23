@@ -44,5 +44,7 @@ The Recursiv project and database are configured for `invertedworld`. Keep provi
 - `pnpm recursiv:health` checks local/proof provider access without printing key values.
 - `pnpm recursiv:readiness` compares local provider-key presence with the latest hosted `provider-health` run stored in Recursiv.
 - `pnpm recursiv:readiness -- --run-hosted` runs the authenticated hosted provider-health job first, then prints the same redacted readiness matrix.
+- `pnpm recursiv:readiness -- --persist-hosted` runs the authenticated hosted provider-health job and stores the redacted result in Recursiv so `pnpm recursiv:cutover` reads the current provider matrix.
+- YouTube RSS is a non-keyed fallback only. If the valid public channel page resolves but the RSS endpoint returns 404, do not treat that as a custom-domain blocker; keep YouTube Data API and persisted Recursiv archive rows as the archive-completeness gates.
 
 Treat any required provider with `hostedStatus` other than `ok` as a production cutover blocker for the full AI news product. Current expected blockers are provider/account-side, not app code: X API access must stop returning `402`, and YouTube Data API must stop returning `403` before the archive and X/news velocity system can be considered fully production-ready.

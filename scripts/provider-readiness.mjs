@@ -41,9 +41,10 @@ const PROVIDERS = [
   },
   {
     provider: "youtube-rss",
-    required: true,
+    required: false,
     aliases: [],
-    action: "No key needed; this should work from the hosted runtime.",
+    action:
+      "Treat YouTube RSS as an opportunistic public fallback. If it returns 404 for the valid channel ID, rely on YouTube Data API and persisted Recursiv archive rows.",
   },
   {
     provider: "youtube-data-api",
@@ -183,10 +184,13 @@ async function fetchHostedHealthFromDatabase(sdk, projectId, databaseName) {
   return data.rows?.[0] || null
 }
 
-async function runHostedHealth(siteUrl) {
+async function runHostedHealth(siteUrl, options = {}) {
   const secret = process.env.CRON_SECRET || readFileIfPresent(LOCAL_CRON_SECRET)
   if (!secret) return null
-  const response = await fetch(new URL("/api/recursiv/jobs/provider-health?proof=readiness&persist=0", siteUrl), {
+  const path = options.persist
+    ? "/api/recursiv/jobs/provider-health"
+    : "/api/recursiv/jobs/provider-health?proof=readiness&persist=0"
+  const response = await fetch(new URL(path, siteUrl), {
     method: "POST",
     headers: { authorization: `Bearer ${secret}` },
     signal: AbortSignal.timeout(120000),
@@ -224,7 +228,8 @@ async function main() {
   const projectId = process.env.RECURSIV_PROJECT_ID
   const databaseName = process.env.RECURSIV_DATABASE_NAME || DEFAULT_DATABASE_NAME
   const siteUrl = process.env.INVERTED_WORLD_SITE_URL || DEFAULT_SITE_URL
-  const shouldRunHosted = process.argv.includes("--run-hosted")
+  const shouldPersistHosted = process.argv.includes("--persist-hosted")
+  const shouldRunHosted = shouldPersistHosted || process.argv.includes("--run-hosted")
   if (!shouldRunHosted && (!apiKey || !projectId)) throw new Error("Missing Recursiv project id or API key for readiness check")
 
   const sdk =
@@ -238,7 +243,7 @@ async function main() {
       : null
 
   const hostedRow = shouldRunHosted
-    ? await runHostedHealth(siteUrl)
+    ? await runHostedHealth(siteUrl, { persist: shouldPersistHosted })
     : await fetchHostedHealthFromDatabase(sdk, projectId, databaseName)
   const hosted = normalizeHostedRow(hostedRow)
   const hostedByProvider = new Map((hosted?.providers || []).map((item) => [item.provider, item]))

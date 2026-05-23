@@ -55,7 +55,7 @@ pnpm recursiv:deploy:status
 
 The deploy command uses bounded direct Recursiv API calls and prints the selected local key source, not the key. If it returns `401`, rotate or select the correct local Recursiv key. If it returns `429`, wait for the rate limit to reset or use a healthy project/org key before retrying. A pushed commit is not enough for DNS cutover; the hosted URL must return the new route and the deployment status must be proven.
 
-`fullAiProductReady` is stricter than public hosting readiness. Required hosted providers should still be green before calling the whole AI news product production-complete, especially `recursiv-database`, `x-api`, and `youtube-data-api`, but provider account failures are not DNS fixes.
+`fullAiProductReady` is stricter than public hosting readiness. Required hosted providers should still be green before calling the whole AI news product production-complete, especially `recursiv-database`, `x-api`, and `youtube-data-api`, but provider account failures are not DNS fixes. YouTube RSS is an opportunistic public fallback; it should not block cutover when the channel page and persisted Recursiv archive are live but the RSS endpoint returns 404.
 
 ## Current Expected State
 
@@ -75,7 +75,7 @@ Current live proof:
 
 The custom domain still reports Vercel headers. Keep it there until the Recursiv custom-domain binding for `www.inverted.world` is created and proven. `dnsCutoverReady` is still `false` because custom-domain proof is missing, not because the Recursiv hosted app is unproven.
 
-The known full-product blockers are provider/account-side, not DNS fixes. The latest hosted provider-health run is `degraded`, with blocking providers reported as `recursiv-database`, `x-api`, `youtube-rss`, and `youtube-data-api`. The successful full-pipeline run proves the scheduled public data path can complete despite YouTube RSS falling back to seed data, but the full AI product is not complete until those provider/account paths are healthy. The app accepts `YOUTUBE_API_KEY`, `YOUTUBE_DATA_API_KEY`, `GOOGLE_YOUTUBE_API_KEY`, or `GOOGLE_API_KEY`; production should prefer `YOUTUBE_API_KEY` for clarity.
+The known full-product blockers are provider/account-side, not DNS fixes. A fresh hosted provider-readiness check on May 23, 2026 reports `recursiv-database` as live and narrows the required blocking providers to `x-api` and `youtube-data-api`. The configured YouTube channel ID still resolves through the public channel page, but the YouTube RSS endpoint returns 404; treat RSS as a non-blocking fallback while archive completeness is enforced through YouTube Data API and persisted Recursiv rows. The app accepts `YOUTUBE_API_KEY`, `YOUTUBE_DATA_API_KEY`, `GOOGLE_YOUTUBE_API_KEY`, or `GOOGLE_API_KEY`; production should prefer `YOUTUBE_API_KEY` for clarity.
 
 ## Current Decision
 
