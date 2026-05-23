@@ -10,6 +10,14 @@ Run:
 pnpm recursiv:cutover
 ```
 
+When Recursiv API calls are rate-limited, run the public-only proof without consuming the Recursiv API budget:
+
+```bash
+pnpm recursiv:cutover:public
+```
+
+Public-only proof checks HTTP and DNS surfaces but skips Recursiv project, deployment, scheduled-job, provider-health, and pipeline database checks. It is useful evidence during API cooldowns, but it is not sufficient for DNS cutover.
+
 The command prints a redacted JSON report with:
 
 - latest Recursiv deployment status;

@@ -413,6 +413,7 @@ async function main() {
   loadEnvFile(".env")
   loadEnvFile(".env.local")
 
+  const publicOnly = process.argv.includes("--public-only") || process.env.CUTOVER_PUBLIC_ONLY === "1"
   const apiKey = readRecursivKey()
   const projectId = process.env.RECURSIV_PROJECT_ID
   const databaseName = process.env.RECURSIV_DATABASE_NAME || DEFAULT_DATABASE_NAME
@@ -428,14 +429,20 @@ async function main() {
   const mediaItemApiUrl = new URL(`/api/media/${MEDIA_PROOF_ID}`, recursivUrl).toString()
   const readinessWarnings = []
 
-  if (!apiKey || !projectId) throw new Error("Missing Recursiv project id or API key for cutover readiness")
+  if (publicOnly) {
+    readinessWarnings.push("Public-only mode skipped Recursiv project, deployment, job, provider-health, and pipeline database checks.")
+  } else if (!apiKey || !projectId) {
+    throw new Error("Missing Recursiv project id or API key for cutover readiness")
+  }
 
-  const sdk = new Recursiv({
-    apiKey,
-    baseUrl: process.env.RECURSIV_BASE_URL || DEFAULT_BASE_URL,
-    timeout: READINESS_TIMEOUT_MS,
-    maxRetries: 0,
-  })
+  const sdk = publicOnly
+    ? null
+    : new Recursiv({
+        apiKey,
+        baseUrl: process.env.RECURSIV_BASE_URL || DEFAULT_BASE_URL,
+        timeout: READINESS_TIMEOUT_MS,
+        maxRetries: 0,
+      })
 
   const [
     project,
@@ -453,24 +460,30 @@ async function main() {
     providerHealth,
     pipelineRuns,
   ] = await Promise.all([
-      withTimeout(
-        sdk.projects.get(projectId).then((response) => response.data),
-        "Recursiv project lookup",
-        null,
-        readinessWarnings,
-      ),
-      withTimeout(
-        sdk.deployments.list({ project_id: projectId }).then((response) => response.data),
-        "Recursiv deployment list",
-        null,
-        readinessWarnings,
-      ),
-      withTimeout(
-        sdk.jobs.list().then((response) => response.data),
-        "Recursiv jobs list",
-        null,
-        readinessWarnings,
-      ),
+      publicOnly
+        ? Promise.resolve(null)
+        : withTimeout(
+            sdk.projects.get(projectId).then((response) => response.data),
+            "Recursiv project lookup",
+            null,
+            readinessWarnings,
+          ),
+      publicOnly
+        ? Promise.resolve(null)
+        : withTimeout(
+            sdk.deployments.list({ project_id: projectId }).then((response) => response.data),
+            "Recursiv deployment list",
+            null,
+            readinessWarnings,
+          ),
+      publicOnly
+        ? Promise.resolve(null)
+        : withTimeout(
+            sdk.jobs.list().then((response) => response.data),
+            "Recursiv jobs list",
+            null,
+            readinessWarnings,
+          ),
       probeHttp(recursivUrl),
       probeReleaseApi(releaseApiUrl),
       probeJson(archiveApiUrl),
@@ -480,8 +493,12 @@ async function main() {
       probeMediaItemApi(mediaItemApiUrl),
       probeHttp(customDomainUrl),
       probeDns(customHostname),
-      withTimeout(fetchProviderHealth(sdk, projectId, databaseName), "provider-health database query", null, readinessWarnings),
-      withTimeout(fetchPipelineSummary(sdk, projectId, databaseName), "pipeline summary database query", [], readinessWarnings),
+      publicOnly
+        ? Promise.resolve(null)
+        : withTimeout(fetchProviderHealth(sdk, projectId, databaseName), "provider-health database query", null, readinessWarnings),
+      publicOnly
+        ? Promise.resolve([])
+        : withTimeout(fetchPipelineSummary(sdk, projectId, databaseName), "pipeline summary database query", [], readinessWarnings),
     ])
 
   const deploymentLookupAvailable = Array.isArray(deploymentsResponse)
@@ -648,6 +665,7 @@ async function main() {
     nextActions.push(`Provision missing Recursiv jobs: ${missingJobs.join(", ")}.`)
   }
   if (jobLastErrors.length) nextActions.push("Review stale scheduled-job last_error values and rerun/clear jobs after provider blockers are fixed.")
+  if (publicOnly) nextActions.push("Public-only proof is not enough for DNS cutover; rerun full cutover after the Recursiv API key is healthy.")
   if (publicHostingReady && !customDomainBindingConfigured) {
     nextActions.push("Recursiv public hosting is ready for the custom-domain binding step; redeploy production with custom_domain=www.inverted.world before changing DNS.")
   } else if (dnsChangeReady && !customDomainRecursivProven) {
@@ -662,6 +680,9 @@ async function main() {
     JSON.stringify(
       {
         generatedAt: new Date().toISOString(),
+        mode: {
+          publicOnly,
+        },
         project: {
           id: project?.id || projectId,
           name: project?.name,
