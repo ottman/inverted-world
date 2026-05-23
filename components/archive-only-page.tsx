@@ -1,11 +1,12 @@
 "use client"
 
 import { useEffect, useMemo, useState, type KeyboardEvent } from "react"
-import { ArrowUpRight, Play, RefreshCw, Youtube } from "lucide-react"
+import { Archive, ArrowUpRight, FileText, Film, ImageIcon, Play, RefreshCw, Volume2, Youtube } from "lucide-react"
 import Script from "next/script"
 import { archiveSurface, InvertedPageShell, XIcon, type BreakingItem } from "@/components/inverted-page-shell"
-import { channelProfile, topics, type ChannelVideo, type ContentTopic } from "@/data/inverted-world"
+import { channelProfile, topics, type ChannelVideo, type ContentTopic, type MediaLibraryItem } from "@/data/inverted-world"
 import type { IntelligenceArticle } from "@/data/intelligence-articles"
+import { mediaItemHref } from "@/lib/media-links"
 import { getTopicXSearchUrl } from "@/lib/x-search"
 import { cn } from "@/lib/utils"
 import type { DeepArchiveResponse } from "@/lib/deep-archive"
@@ -100,11 +101,13 @@ export function ArchiveOnlyPage({
   initialArchive,
   initialTopicFeeds,
   initialTopicXPosts,
+  initialMediaItems,
   initialLiveVideo,
 }: {
   initialArchive?: DeepArchiveResponse
   initialTopicFeeds?: TopicFeeds
   initialTopicXPosts?: TopicXPosts
+  initialMediaItems?: MediaLibraryItem[]
   initialLiveVideo?: ChannelVideo
 }) {
   const initialVideos = initialArchive?.videos ?? []
@@ -275,6 +278,8 @@ export function ArchiveOnlyPage({
 
       <TopicIndex summaries={topicSummaries} />
 
+      <MediaShelf items={initialMediaItems ?? []} />
+
       <XEmbedStrip
         posts={Object.values(initialTopicXPosts ?? {})
           .map((posts) => posts[0])
@@ -367,6 +372,92 @@ function TopicIndex({
           </span>
         </a>
       ))}
+    </section>
+  )
+}
+
+function mediaIcon(kind: MediaLibraryItem["kind"], className = "h-5 w-5") {
+  if (kind === "video") return <Film className={className} />
+  if (kind === "document") return <FileText className={className} />
+  if (kind === "image") return <ImageIcon className={className} />
+  if (kind === "audio") return <Volume2 className={className} />
+  return <Archive className={className} />
+}
+
+function MediaShelf({ items }: { items: MediaLibraryItem[] }) {
+  const visibleItems = items
+    .filter((item) => item.kind !== "archive" || item.extraction)
+    .slice(0, 8)
+
+  if (!visibleItems.length) {
+    return (
+      <section className={cn("mt-4 flex flex-wrap items-center justify-between gap-3 p-4", archiveSurface)}>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#df2f2f]">Source media</p>
+          <h2 className="iw-serif mt-1 text-3xl leading-none text-[#fff8e6]">Documents, clips, audio, images</h2>
+        </div>
+        <a
+          href="/media"
+          className="inline-flex h-10 items-center gap-2 bg-black/30 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-black/54"
+        >
+          Open media
+          <ArrowUpRight className="h-4 w-4 text-[#df2f2f]" />
+        </a>
+      </section>
+    )
+  }
+
+  return (
+    <section className={cn("mt-4 grid gap-4 p-3 sm:p-4", archiveSurface)}>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#df2f2f]">Source media</p>
+          <h2 className="iw-serif mt-1 text-4xl leading-none text-[#fff8e6] sm:text-5xl">Watch the files</h2>
+        </div>
+        <a
+          href="/media"
+          className="inline-flex h-10 items-center gap-2 bg-black/30 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-black/54"
+        >
+          Media library
+          <ArrowUpRight className="h-4 w-4 text-[#df2f2f]" />
+        </a>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {visibleItems.map((item) => (
+          <a
+            key={item.id}
+            href={mediaItemHref(item)}
+            className="group grid min-h-[260px] overflow-hidden bg-[#050504]/38 transition hover:bg-black/62"
+          >
+            <span className="relative block aspect-video bg-black/70">
+              {item.thumbnailUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={item.thumbnailUrl} alt="" className="absolute inset-0 h-full w-full object-cover opacity-82" />
+              ) : (
+                <span className="absolute inset-0 grid place-items-center text-[#df2f2f]/78">{mediaIcon(item.kind, "h-8 w-8")}</span>
+              )}
+              <span className="absolute left-2 top-2 inline-flex items-center gap-1 bg-black/58 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#fff8e6]">
+                {mediaIcon(item.kind, "h-3.5 w-3.5")}
+                {item.kind}
+              </span>
+            </span>
+            <span className="grid content-between gap-4 p-3">
+              <span>
+                <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#df2f2f]">{item.source}</span>
+                <span className="iw-serif mt-2 block line-clamp-3 text-2xl leading-none text-[#fff8e6] group-hover:text-[#df2f2f]">
+                  {item.title}
+                </span>
+                <span className="mt-3 block line-clamp-3 text-xs leading-5 text-[#f4efe2]/56">{item.summary}</span>
+              </span>
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/48 group-hover:text-[#fff8e6]">
+                Open media
+                <ArrowUpRight className="h-3.5 w-3.5 text-[#df2f2f]" />
+              </span>
+            </span>
+          </a>
+        ))}
+      </div>
     </section>
   )
 }

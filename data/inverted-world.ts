@@ -805,6 +805,298 @@ export const curatedMediaItems: MediaLibraryItem[] = [
     },
   },
   {
+    id: "war-uap-release-02-image-shelf",
+    title: "Release 02 official image shelf",
+    source: "Department of War",
+    url: "https://www.war.gov/UFO/?releaseDate=Release+02&type=.img",
+    kind: "archive",
+    viewer: "link",
+    topicIds: ["uap-disclosure", "space-anomalies"],
+    summary:
+      "A filtered official view of Release 02 image records for frame grabs, stills, and companion visual evidence.",
+    publishedAt: "2026-05-22",
+    fileType: "Image shelf",
+    agency: "Department of War",
+    collection: "PURSUE Release 02",
+    extraction: {
+      status: "indexed",
+      brief:
+        "Official Release 02 image shelf. Use it to find still frames and companion visuals before relying on screenshots circulating without source context.",
+      highlights: [
+        "The image filter keeps still visuals separate from PDFs, audio, and video records.",
+        "Image records should be paired with incident metadata and companion documents before publication.",
+        "Still frames can become story thumbnails only when the source chain remains visible.",
+      ],
+      sourceChain: [
+        {
+          label: "Filtered records",
+          value: "Release 02 images",
+          url: "https://www.war.gov/UFO/?releaseDate=Release+02&type=.img",
+        },
+        {
+          label: "Collection",
+          value: "PURSUE Release 02",
+        },
+      ],
+      researchQuestions: [
+        "Which stills correspond to a video, sensor record, or written narrative?",
+        "What context is lost when the image is separated from the official record page?",
+        "Which images are strong enough to anchor a visual explainer?",
+      ],
+    },
+  },
+  {
+    id: "war-uap-release-02-audio-shelf",
+    title: "Release 02 official audio shelf",
+    source: "Department of War",
+    url: "https://www.war.gov/UFO/?releaseDate=Release+02&type=.aud",
+    kind: "archive",
+    viewer: "link",
+    topicIds: ["uap-disclosure", "secret-programs"],
+    summary:
+      "A filtered official view of Release 02 audio records for debriefings, mission audio, and companion evidence.",
+    publishedAt: "2026-05-22",
+    fileType: "Audio shelf",
+    agency: "Department of War",
+    collection: "PURSUE Release 02",
+    extraction: {
+      status: "indexed",
+      brief:
+        "Official Release 02 audio shelf. Audio records should be reviewed as source media, not just as background material for written claims.",
+      highlights: [
+        "The official release separates audio records from document, video, and image lanes.",
+        "Audio can carry timing, witness language, and debriefing details that screenshots miss.",
+        "Any transcript should be tied back to the original audio file or record page.",
+      ],
+      sourceChain: [
+        {
+          label: "Filtered records",
+          value: "Release 02 audio",
+          url: "https://www.war.gov/UFO/?releaseDate=Release+02&type=.aud",
+        },
+        {
+          label: "Collection",
+          value: "PURSUE Release 02",
+        },
+      ],
+      researchQuestions: [
+        "Which audio records need transcript extraction first?",
+        "Which document or video record describes the same incident?",
+        "What details are heard in the audio but absent from the written summary?",
+      ],
+    },
+  },
+  {
+    id: "war-uap-release-01-index",
+    title: "Release 01 UAP media package",
+    source: "Department of War",
+    url: "https://www.war.gov/UFO/?releaseDate=Release+01",
+    kind: "archive",
+    viewer: "link",
+    topicIds: ["uap-disclosure", "secret-programs", "space-anomalies"],
+    summary:
+      "The first PURSUE release hub, useful for comparing the first tranche against Release 02 records and media.",
+    publishedAt: "2026-05-08",
+    fileType: "Release hub",
+    agency: "Department of War",
+    collection: "PURSUE Release 01",
+    extraction: {
+      status: "indexed",
+      brief:
+        "Official Release 01 index for the first PURSUE tranche. It is the baseline collection for tracking what changed when Release 02 expanded the public UAP file set.",
+      highlights: [
+        "Release 01 gives the site a before-and-after comparison point for new records.",
+        "The most useful articles should compare titles, agencies, dates, and media types across releases.",
+        "The release hub keeps the original government source visible beside the Inverted World archive.",
+      ],
+      sourceChain: [
+        {
+          label: "Primary index",
+          value: "WAR.GOV/UFO Release 01",
+          url: "https://www.war.gov/UFO/?releaseDate=Release+01",
+        },
+        {
+          label: "Collection",
+          value: "PURSUE Release 01",
+        },
+      ],
+      researchQuestions: [
+        "Which Release 01 records were updated, contradicted, or expanded by Release 02?",
+        "Which files have direct media worth turning into standalone pages?",
+        "Which early records generated the most news and X velocity?",
+      ],
+    },
+  },
+  {
+    id: "aaro-historical-record-report-vol-1",
+    title: "AARO historical record report, Volume I",
+    source: "AARO",
+    url: "https://www.aaro.mil/Portals/136/PDFs/AARO_Historical_Record_Report_Vol_1_2024.pdf",
+    kind: "document",
+    viewer: "pdf",
+    topicIds: ["uap-disclosure", "secret-programs"],
+    summary:
+      "AARO's official historical record report on U.S. government UAP involvement, including past programs, interviewee claims, and official findings.",
+    publishedAt: "2024-02-01",
+    fileType: "PDF",
+    agency: "AARO",
+    collection: "Historical Record Report",
+    extraction: {
+      status: "indexed",
+      brief:
+        "Official AARO report for checking UAP program history, named government efforts, and the office's assessment of hidden-program allegations.",
+      highlights: [
+        "The report organizes U.S. government UAP investigations from 1945 forward.",
+        "It separates historical programs, interviewee claims, and named sensitive-program reviews.",
+        "It is a necessary counter-source beside whistleblower testimony, release packages, and independent media coverage.",
+      ],
+      sourceChain: [
+        {
+          label: "Source file",
+          value: "AARO Historical Record Report Volume I",
+          url: "https://www.aaro.mil/Portals/136/PDFs/AARO_Historical_Record_Report_Vol_1_2024.pdf",
+        },
+        {
+          label: "Agency",
+          value: "All-domain Anomaly Resolution Office",
+          url: "https://www.aaro.mil/UAP-Records/",
+        },
+      ],
+      researchQuestions: [
+        "Which AARO findings are directly contradicted by later releases or testimony?",
+        "Which historical programs deserve their own source chain pages?",
+        "Where does the report rely on classified review that readers cannot independently inspect?",
+      ],
+    },
+  },
+  {
+    id: "nasa-uap-independent-study-report",
+    title: "NASA UAP Independent Study Team final report",
+    source: "NASA",
+    url: "https://science.nasa.gov/wp-content/uploads/2023/09/uap-independent-study-team-final-report.pdf",
+    kind: "document",
+    viewer: "pdf",
+    topicIds: ["uap-disclosure", "space-anomalies", "ai-technocracy"],
+    summary:
+      "NASA's final independent study report on UAP data, sensor limits, public reporting, AI analysis, and scientific standards.",
+    publishedAt: "2023-09-14",
+    fileType: "PDF",
+    agency: "NASA",
+    collection: "UAP Independent Study",
+    extraction: {
+      status: "indexed",
+      brief:
+        "NASA's UAP report is the scientific-method anchor for the library: it frames UAP as a data-quality problem and lays out how future observations should be collected and analyzed.",
+      highlights: [
+        "NASA treats UAP study as a problem of calibrated data, sensor metadata, and repeatable analysis.",
+        "The report discusses the role of AI and machine learning only when the underlying data is well characterized.",
+        "It connects civilian reporting, aviation safety systems, and whole-of-government coordination with AARO.",
+      ],
+      sourceChain: [
+        {
+          label: "Source file",
+          value: "NASA UAP final report",
+          url: "https://science.nasa.gov/wp-content/uploads/2023/09/uap-independent-study-team-final-report.pdf",
+        },
+        {
+          label: "NASA hub",
+          value: "UAP Independent Study",
+          url: "https://science.nasa.gov/uap/",
+        },
+      ],
+      researchQuestions: [
+        "Which Inverted World stories are data-quality stories rather than belief stories?",
+        "Which reports contain sensor metadata strong enough for real analysis?",
+        "How should the site separate UAP observations from claims about origin or intent?",
+      ],
+    },
+  },
+  {
+    id: "nasa-uap-independent-study-briefing",
+    title: "NASA UAP Independent Study media briefing",
+    source: "NASA",
+    url: "https://www.youtube.com/watch?v=eoY2sGo7ZiY",
+    kind: "video",
+    viewer: "youtube",
+    topicIds: ["uap-disclosure", "space-anomalies"],
+    summary:
+      "NASA's public briefing video for the UAP Independent Study Team report, useful for pairing the PDF with what officials said on camera.",
+    publishedAt: "2023-09-14",
+    embedUrl: "https://www.youtube.com/embed/eoY2sGo7ZiY?rel=0",
+    thumbnailUrl: "https://i.ytimg.com/vi/eoY2sGo7ZiY/hqdefault.jpg",
+    fileType: "YouTube",
+    agency: "NASA",
+    collection: "UAP Independent Study",
+    extraction: {
+      status: "indexed",
+      brief:
+        "Official NASA briefing video attached to the UAP report. It belongs beside the PDF so viewers can compare written recommendations with the public explanation.",
+      highlights: [
+        "The video is the official public media companion to the final NASA report.",
+        "It should be clipped around questions on data quality, stigma, reporting systems, and AI analysis.",
+        "The briefing helps convert a dense report into watchable source media without losing the primary document.",
+      ],
+      sourceChain: [
+        {
+          label: "Video",
+          value: "NASA media briefing",
+          url: "https://www.youtube.com/watch?v=eoY2sGo7ZiY",
+        },
+        {
+          label: "Companion PDF",
+          value: "NASA UAP final report",
+          url: "https://science.nasa.gov/wp-content/uploads/2023/09/uap-independent-study-team-final-report.pdf",
+        },
+      ],
+      researchQuestions: [
+        "Which public answers clarified or narrowed the written report?",
+        "Which moments should become short clips for the media library?",
+        "Which claims online omit the scientific caveats in the briefing?",
+      ],
+    },
+  },
+  {
+    id: "fbi-jeffrey-epstein-part-01",
+    title: "FBI Vault Jeffrey Epstein file, Part 01",
+    source: "FBI Vault",
+    url: "https://vault.fbi.gov/jeffrey-epstein/Jeffrey%20Epstein%20Part%2001/at_download/file",
+    kind: "document",
+    viewer: "pdf",
+    topicIds: ["epstein-networks", "secret-programs"],
+    summary:
+      "The first FBI Vault PDF in the Jeffrey Epstein file set, rendered as source material for Power Web reporting.",
+    fileType: "PDF",
+    agency: "FBI",
+    collection: "Jeffrey Epstein Vault",
+    extraction: {
+      status: "indexed",
+      brief:
+        "Official FBI Vault PDF for Epstein file review. It should be used as a record source, with allegations and identities handled only when the document itself supports them.",
+      highlights: [
+        "The FBI Vault page lists this as Part 01 of the Epstein file set.",
+        "The file is a primary-source document, not a finished narrative by itself.",
+        "Power Web coverage should cite exact pages and avoid laundering unsupported social claims through the existence of a file.",
+      ],
+      sourceChain: [
+        {
+          label: "Vault page",
+          value: "Jeffrey Epstein Part 01",
+          url: "https://vault.fbi.gov/jeffrey-epstein/Jeffrey%20Epstein%20Part%2001/view",
+        },
+        {
+          label: "Source file",
+          value: "Download PDF",
+          url: "https://vault.fbi.gov/jeffrey-epstein/Jeffrey%20Epstein%20Part%2001/at_download/file",
+        },
+      ],
+      researchQuestions: [
+        "Which pages contain confirmed records rather than redacted context?",
+        "Which names, dates, and locations can be checked against court records?",
+        "Which parts of the file need careful legal framing before becoming a story?",
+      ],
+    },
+  },
+  {
     id: "war-uap-pr072-kazakhstan-airport-video",
     title: "PR072 Kazakhstan airport UAP video record",
     source: "Department of War",

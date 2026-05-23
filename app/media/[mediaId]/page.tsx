@@ -95,6 +95,14 @@ export default async function MediaItemPage({ params }: PageProps) {
   const sourceLabel = sourceHost(item.url)
   const isDownloadable = item.viewer === "pdf" || item.viewer === "video" || item.viewer === "image" || item.viewer === "audio"
   const archiveHref = item.viewer === "youtube" ? `/archive/${encodeURIComponent(item.id)}` : ""
+  const sourceFacts = [
+    { label: "Source", value: item.source },
+    { label: "Host", value: sourceLabel },
+    { label: "Format", value: item.fileType || item.kind },
+    { label: "Agency", value: item.agency || "" },
+    { label: "Collection", value: item.collection || "" },
+    { label: "Date", value: formatDate(item.publishedAt) },
+  ].filter((fact) => fact.value)
 
   return (
     <InvertedPageShell
@@ -185,6 +193,16 @@ export default async function MediaItemPage({ params }: PageProps) {
               <FileText className="h-4 w-4" />
               Source shelf
             </a>
+            {sourceFacts.length ? (
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {sourceFacts.map((fact) => (
+                  <div key={`${fact.label}-${fact.value}`} className="bg-black/22 p-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#df2f2f]">{fact.label}</p>
+                    <p className="mt-1 text-xs leading-5 text-[#f4efe2]/68">{fact.value}</p>
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </aside>
         </div>
       </section>

@@ -462,19 +462,20 @@ function field(row: Record<string, string>, keys: string[]) {
 }
 
 function officialUapAssetUrls(row: Record<string, string>, viewer: MediaLibraryItem["viewer"]) {
+  const commonKeys = ["downloadurl", "downloadlink", "medialink", "mediaurl", "asseturl", "fileurl", "directurl", "directlink", "href", "link", "url"]
   if (viewer === "video") {
-    return fieldValues(row, ["videourl", "video", "downloadurl", "mediaurl", "asseturl", "fileurl", "url"])
+    return fieldValues(row, ["videourl", "videolink", "video", "mp4url", "movurl", "assetvideo", ...commonKeys])
   }
   if (viewer === "audio") {
-    return fieldValues(row, ["audiourl", "audio", "downloadurl", "mediaurl", "asseturl", "fileurl", "url"])
+    return fieldValues(row, ["audiourl", "audiolink", "audio", "mp3url", "wavurl", "assetaudio", ...commonKeys])
   }
   if (viewer === "image") {
-    return fieldValues(row, ["imageurl", "thumbnailurl", "posterurl", "image", "downloadurl", "mediaurl", "asseturl", "fileurl", "url"])
+    return fieldValues(row, ["imageurl", "imagelink", "thumbnailurl", "posterurl", "image", "jpgurl", "jpegurl", "pngurl", "assetimage", ...commonKeys])
   }
   if (viewer === "pdf") {
-    return fieldValues(row, ["documenturl", "pdfurl", "downloadurl", "mediaurl", "asseturl", "fileurl", "url"])
+    return fieldValues(row, ["documenturl", "documentlink", "pdfurl", "pdflink", "document", "assetdocument", ...commonKeys])
   }
-  return fieldValues(row, ["downloadurl", "documenturl", "videourl", "audiourl", "imageurl", "mediaurl", "asseturl", "fileurl", "url"])
+  return fieldValues(row, ["documenturl", "videourl", "audiourl", "imageurl", ...commonKeys])
 }
 
 function officialUapMediaItemsFromRow(row: Record<string, string>): MediaLibraryItem[] {
@@ -541,7 +542,7 @@ function officialUapMediaItemsFromRow(row: Record<string, string>): MediaLibrary
     .filter((item): item is MediaLibraryItem => item !== null)
 }
 
-export async function fetchOfficialUapReleaseMedia(limit = 160): Promise<MediaLibraryItem[]> {
+export async function fetchOfficialUapReleaseMedia(limit = 500): Promise<MediaLibraryItem[]> {
   try {
     const responses = await Promise.all(
       WAR_UAP_CSV_URLS.map((url) =>

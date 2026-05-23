@@ -1,4 +1,4 @@
-import { Archive, FileText, Film, ImageIcon, Volume2 } from "lucide-react"
+import { Archive, ArrowUpRight, FileText, Film, ImageIcon, Volume2 } from "lucide-react"
 import type { MediaLibraryItem } from "@/data/inverted-world"
 
 function mediaIcon(kind: MediaLibraryItem["kind"], className = "h-5 w-5") {
@@ -28,6 +28,25 @@ function youtubeEmbedUrl(item: MediaLibraryItem) {
   }
 }
 
+function pdfViewerUrl(item: MediaLibraryItem) {
+  try {
+    const url = new URL(item.url)
+    if (!url.hash) url.hash = "toolbar=0&navpanes=0&view=FitH"
+    return url.toString()
+  } catch {
+    const separator = item.url.includes("#") ? "&" : "#"
+    return `${item.url}${separator}toolbar=0&navpanes=0&view=FitH`
+  }
+}
+
+function sourceHost(url: string) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "")
+  } catch {
+    return "source"
+  }
+}
+
 export function MediaViewer({
   item,
   className = "absolute inset-0 h-full w-full",
@@ -54,7 +73,7 @@ export function MediaViewer({
       <iframe
         key={item.id}
         className={`${className} bg-[#111]`}
-        src={item.url}
+        src={pdfViewerUrl(item)}
         title={item.title}
         referrerPolicy="strict-origin-when-cross-origin"
       />
@@ -107,8 +126,18 @@ export function MediaViewer({
     >
       <div className="max-w-lg">
         <div className="mx-auto grid h-14 w-14 place-items-center bg-[#df2f2f]/14 text-[#fff8e6]">{mediaIcon(item.kind)}</div>
-        <p className="iw-serif mt-5 text-4xl leading-none text-[#fff8e6]">{item.title}</p>
+        <p className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-[#df2f2f]">{sourceHost(item.url)}</p>
+        <p className="iw-serif mt-3 text-4xl leading-none text-[#fff8e6]">{item.title}</p>
         <p className="mt-3 text-sm leading-6 text-[#f4efe2]/62">{item.summary}</p>
+        <a
+          href={item.url}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-5 inline-flex h-10 items-center gap-2 bg-[#df2f2f]/12 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-[#df2f2f]/22"
+        >
+          Open record
+          <ArrowUpRight className="h-4 w-4" />
+        </a>
       </div>
     </div>
   )
