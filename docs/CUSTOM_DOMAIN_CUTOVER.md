@@ -14,6 +14,7 @@ The command prints a redacted JSON report with:
 
 - latest Recursiv deployment status;
 - HTTP proof for `https://invertedworld.on.recursiv.io`;
+- release proof from `https://invertedworld.on.recursiv.io/api/release`, including the deployed feature marker;
 - Recursiv archive API proof, including `sourceMode`, data-source classification, and archive count;
 - source-document API proof for `https://invertedworld.on.recursiv.io/api/documents`;
 - media-library detail proof for the UAP PDF route and JSON item route;
