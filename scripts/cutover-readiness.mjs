@@ -14,6 +14,8 @@ const MEDIA_PROOF_ID = "war-uap-release-02-senior-usic-narrative"
 const MEDIA_PROOF_TITLE = "Senior U.S. intelligence officer UAP narrative"
 const MEDIA_PROOF_SOURCE_URL =
   "https://www.war.gov/medialink/ufo/052226/release_02/documents/ODNI-UAP-D001_USPER_Narrative_Senior_USIC.pdf"
+const DOSSIER_CHAT_PROOF_SLUG = "secret-programs-the-top-secret-testimony-of-cia-s-mkultra-chief-50-years-later-national-security"
+const DOSSIER_CHAT_PROOF_QUESTION = "What is actually documented here? Link me to the key sources."
 
 const EXPECTED_JOBS = [
   "inverted-world-youtube-archive-sync",
@@ -348,6 +350,50 @@ async function probeMediaItemApi(url) {
   }
 }
 
+async function probeDossierChatApi(url) {
+  const started = Date.now()
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+        "user-agent": "InvertedWorldCutoverReadiness/1.0",
+      },
+      body: JSON.stringify({
+        message: DOSSIER_CHAT_PROOF_QUESTION,
+        contextOnly: true,
+        persist: false,
+      }),
+      signal: AbortSignal.timeout(20000),
+    })
+    const body = await response.json().catch(() => ({}))
+    const answer = typeof body.response === "string" ? body.response : ""
+
+    return {
+      url,
+      status: response.status,
+      ok: response.ok,
+      mode: typeof body.mode === "string" ? body.mode : undefined,
+      stored: Boolean(body.stored),
+      responseLength: answer.length,
+      hasMarkdown: /\*\*[^*]+\*\*/.test(answer) && /^- /m.test(answer),
+      hasSourceLinks: /\]\(https?:\/\//.test(answer),
+      hasArchiveLinks: /\]\(\/archive\//.test(answer),
+      hasNoDeadEndLanguage: !/not configured|unavailable|failed|error/i.test(answer),
+      durationMs: Date.now() - started,
+    }
+  } catch (error) {
+    return {
+      url,
+      status: 0,
+      ok: false,
+      message: error instanceof Error ? error.message : String(error),
+      durationMs: Date.now() - started,
+    }
+  }
+}
+
 async function probeReleaseApi(url) {
   const started = Date.now()
   try {
@@ -574,6 +620,7 @@ async function main() {
   const frontPageApiUrl = new URL("/api/front-page", recursivUrl).toString()
   const mediaItemPageUrl = new URL(`/media/${MEDIA_PROOF_ID}`, recursivUrl).toString()
   const mediaItemApiUrl = new URL(`/api/media/${MEDIA_PROOF_ID}`, recursivUrl).toString()
+  const dossierChatApiUrl = new URL(`/api/dossiers/${DOSSIER_CHAT_PROOF_SLUG}/chat`, recursivUrl).toString()
   const readinessWarnings = []
   const publicProviderAudit = runPublicProviderAudit()
 
@@ -604,6 +651,7 @@ async function main() {
     frontPageApi,
     mediaItemPage,
     mediaItemApi,
+    dossierChatApi,
     customHttp,
     customDns,
     providerHealth,
@@ -641,6 +689,7 @@ async function main() {
       probeFrontPageApi(frontPageApiUrl),
       probeHttp(mediaItemPageUrl),
       probeMediaItemApi(mediaItemApiUrl),
+      probeDossierChatApi(dossierChatApiUrl),
       probeHttp(customDomainUrl),
       probeDns(customHostname),
       publicOnly
@@ -749,6 +798,16 @@ async function main() {
       mediaItemApi.itemUrl === MEDIA_PROOF_SOURCE_URL &&
       Number(mediaItemApi.relatedCount || 0) >= 1,
   )
+  const dossierChatApiReady = Boolean(
+    dossierChatApi.ok &&
+      dossierChatApi.mode === "context-fallback" &&
+      dossierChatApi.stored === false &&
+      Number(dossierChatApi.responseLength || 0) >= 500 &&
+      dossierChatApi.hasMarkdown &&
+      dossierChatApi.hasSourceLinks &&
+      dossierChatApi.hasArchiveLinks &&
+      dossierChatApi.hasNoDeadEndLanguage,
+  )
   const providerHealthAvailable = Boolean(providerHealth)
   const providerBlocking = providerHealth?.blockingProviders || REQUIRED_PROVIDERS
   const providerHealthFresh = providerHealth?.ageMinutes !== null && Number(providerHealth?.ageMinutes) <= 360
@@ -767,6 +826,7 @@ async function main() {
     frontPageApiReady &&
     mediaItemPageReady &&
     mediaItemApiReady &&
+    dossierChatApiReady &&
     scheduledJobsReady &&
     providerHealthFresh
   const fullAiProductReady = publicHostingReady && providerBlocking.length === 0
@@ -790,6 +850,7 @@ async function main() {
     frontPageApi: statusText(frontPageApiReady),
     mediaItemPage: statusText(mediaItemPageReady),
     mediaItemApi: statusText(mediaItemApiReady),
+    dossierChatApi: statusText(dossierChatApiReady),
     providerHealthFresh: providerHealthAvailable ? statusText(providerHealthFresh) : "unknown",
     fullAiProviders: providerHealthAvailable ? statusText(providerBlocking.length === 0) : "unknown",
     scheduledJobs: jobsLookupAvailable ? statusText(scheduledJobsReady) : "unknown",
@@ -835,6 +896,9 @@ async function main() {
   }
   if (!mediaItemPageReady || !mediaItemApiReady) {
     nextActions.push(`Do not touch DNS until the Recursiv hosted media library proves /media/${MEDIA_PROOF_ID} and /api/media/${MEDIA_PROOF_ID}.`)
+  }
+  if (!dossierChatApiReady) {
+    nextActions.push("Do not touch DNS until Ask This Story returns sourced Markdown with source and archive links without requiring an agent write.")
   }
   if (!providerHealthAvailable) {
     nextActions.push("Provider health could not be audited from Recursiv because the API key is unavailable or rate-limited; rerun readiness after the key is healthy.")
@@ -885,6 +949,7 @@ async function main() {
       frontPageApiReady,
       mediaItemPageReady,
       mediaItemApiReady,
+      dossierChatApiReady,
       publicHostingReady,
       fullAiProductReady,
       recursivDeploymentIncludesSlugHost,
@@ -910,6 +975,7 @@ async function main() {
     mediaItemPage,
     mediaItemApi,
     mediaItemDataSource: dataSourceStatus(mediaItemApi.sourceMode),
+    dossierChatApi,
     customDomain: {
       http: customHttp,
       dns: customDns,

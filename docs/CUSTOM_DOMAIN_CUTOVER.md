@@ -29,6 +29,7 @@ The command prints a redacted JSON report with:
 - Recursiv archive API proof, including `sourceMode`, data-source classification, and archive count;
 - source-document API proof for `https://invertedworld.on.recursiv.io/api/documents`;
 - media-library detail proof for the UAP PDF route and JSON item route;
+- Ask This Story proof from `/api/dossiers/[slug]/chat`, requiring no-write sourced Markdown with source and archive links;
 - latest full-pipeline status and `sourceMode` from `/api/pipeline`;
 - front-page edition and site ticker proof from `/api/front-page`, including direct news, X, and archive targets;
 - HTTP and DNS proof for `https://www.inverted.world`;
@@ -57,6 +58,7 @@ The output file contains the same no-secret report printed to stdout.
 - `pipelineApi` must pass, proving `/api/pipeline` exposes the latest full-pipeline status from live Recursiv database rows or the committed Recursiv snapshot fallback.
 - `frontPageApi` must pass, proving `/api/front-page` exposes a Recursiv-backed edition and direct ticker targets into stories, X signals, and archive items.
 - `mediaItemPage` and `mediaItemApi` must pass, proving the hosted build includes shareable media pages and machine-readable item data for the official UAP PDF.
+- `dossierChatApi` must pass, proving Ask This Story can return sourced Markdown without requiring a writable agent conversation.
 - `publicHostingReady` must be `true`.
 - Recursiv custom-domain binding must be created and proven before changing DNS or removing the Vercel domain binding.
 - `customDomainBindingConfigured` must be `true` before any DNS record is changed. It proves the latest Recursiv deployment advertises both the slug host and the requested custom hostname.

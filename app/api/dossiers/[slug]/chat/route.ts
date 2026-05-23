@@ -245,28 +245,38 @@ export async function POST(request: Request, { params }: RouteContext) {
     return NextResponse.json({ error: "Dossier not found" }, { status: 404 })
   }
 
-  const body = (await request.json().catch(() => ({}))) as { message?: unknown; conversationId?: unknown }
+  const body = (await request.json().catch(() => ({}))) as {
+    message?: unknown
+    conversationId?: unknown
+    contextOnly?: unknown
+    persist?: unknown
+  }
   const message = trimMessage(body.message)
   const conversationId = typeof body.conversationId === "string" ? body.conversationId : undefined
+  const contextOnly = body.contextOnly === true
+  const shouldPersist = body.persist !== false
   if (!message) {
     return NextResponse.json({ error: "Message is required" }, { status: 400 })
   }
 
-  const agentAnswer = await askRecursivAgent(dossier, message, conversationId).catch(() => null)
+  const agentAnswer = contextOnly ? null : await askRecursivAgent(dossier, message, conversationId).catch(() => null)
   const mode: ChatMode = agentAnswer ? "agent" : "context-fallback"
   const responseText = agentAnswer?.content || fallbackDossierAnswer(dossier, message)
   const responseConversationId = agentAnswer?.conversationId || fallbackConversationId(dossier, conversationId)
-  const stored = await persistChatMessage(
-    dossier,
-    message,
-    responseText,
-    responseConversationId,
-    {
-      mode,
-      ...(agentAnswer?.agentId ? { agentId: agentAnswer.agentId } : {}),
-    },
-    agentAnswer?.client,
-  )
+  const stored = shouldPersist
+    ? await persistChatMessage(
+        dossier,
+        message,
+        responseText,
+        responseConversationId,
+        {
+          mode,
+          ...(contextOnly ? { contextOnly: true } : {}),
+          ...(agentAnswer?.agentId ? { agentId: agentAnswer.agentId } : {}),
+        },
+        agentAnswer?.client,
+      )
+    : false
 
   return NextResponse.json({
     conversationId: responseConversationId,
