@@ -434,6 +434,45 @@ async function probePipelineApi(url) {
   }
 }
 
+async function probeFrontPageApi(url) {
+  const started = Date.now()
+  try {
+    const response = await fetch(url, {
+      headers: { accept: "application/json", "user-agent": "InvertedWorldCutoverReadiness/1.0" },
+      signal: AbortSignal.timeout(20000),
+    })
+    const body = await response.json().catch(() => ({}))
+    const edition = body.edition && typeof body.edition === "object" ? body.edition : {}
+    const breakingItems = Array.isArray(body.breakingItems) ? body.breakingItems : []
+    const pipeline = body.pipeline && typeof body.pipeline === "object" ? body.pipeline : {}
+    const hrefs = breakingItems.map((item) => (typeof item?.href === "string" ? item.href : ""))
+
+    return {
+      url,
+      status: response.status,
+      ok: response.ok,
+      sourceMode: body.sourceMode,
+      hasEdition: Boolean(edition && typeof edition.headline === "string" && edition.headline.trim()),
+      headline: typeof edition.headline === "string" ? edition.headline : undefined,
+      breakingItemCount: breakingItems.length,
+      hasNewsLinks: hrefs.some((href) => href.startsWith("/news/")),
+      hasInternalXLinks: hrefs.some((href) => href.startsWith("/x/")),
+      hasArchiveLinks: hrefs.some((href) => href.startsWith("/archive/")),
+      pipelineJobName: typeof pipeline.jobName === "string" ? pipeline.jobName : undefined,
+      pipelineStatus: typeof pipeline.status === "string" ? pipeline.status : undefined,
+      durationMs: Date.now() - started,
+    }
+  } catch (error) {
+    return {
+      url,
+      status: 0,
+      ok: false,
+      message: error instanceof Error ? error.message : String(error),
+      durationMs: Date.now() - started,
+    }
+  }
+}
+
 async function probeDns(hostname) {
   const [cname, a, aaaa] = await Promise.all([
     dns.resolveCname(hostname).catch(() => []),
@@ -502,6 +541,7 @@ async function main() {
   const archiveApiUrl = new URL("/api/archive?limit=1000", recursivUrl).toString()
   const documentsApiUrl = new URL("/api/documents", recursivUrl).toString()
   const pipelineApiUrl = new URL("/api/pipeline?limit=1", recursivUrl).toString()
+  const frontPageApiUrl = new URL("/api/front-page", recursivUrl).toString()
   const mediaItemPageUrl = new URL(`/media/${MEDIA_PROOF_ID}`, recursivUrl).toString()
   const mediaItemApiUrl = new URL(`/api/media/${MEDIA_PROOF_ID}`, recursivUrl).toString()
   const readinessWarnings = []
@@ -531,6 +571,7 @@ async function main() {
     archiveApi,
     documentsApi,
     pipelineApi,
+    frontPageApi,
     mediaItemPage,
     mediaItemApi,
     customHttp,
@@ -567,6 +608,7 @@ async function main() {
       probeJson(archiveApiUrl),
       probeDocumentsApi(documentsApiUrl),
       probePipelineApi(pipelineApiUrl),
+      probeFrontPageApi(frontPageApiUrl),
       probeHttp(mediaItemPageUrl),
       probeMediaItemApi(mediaItemApiUrl),
       probeHttp(customDomainUrl),
@@ -658,6 +700,15 @@ async function main() {
       pipelineApi.latestJobName === "full-pipeline" &&
       pipelineApi.latestStatus === "succeeded",
   )
+  const frontPageApiReady = Boolean(
+    frontPageApi.ok &&
+      RECURSIV_BACKED_SOURCE_MODES.has(frontPageApi.sourceMode) &&
+      frontPageApi.hasEdition &&
+      Number(frontPageApi.breakingItemCount || 0) >= 8 &&
+      frontPageApi.hasNewsLinks &&
+      frontPageApi.hasInternalXLinks &&
+      frontPageApi.hasArchiveLinks,
+  )
   const mediaItemPageReady = Boolean(mediaItemPage.ok && mediaItemPage.contentSignals?.hasMediaLibraryProof)
   const mediaItemApiReady = Boolean(
     mediaItemApi.ok &&
@@ -682,6 +733,7 @@ async function main() {
     recursivArchiveDataReady &&
     documentsApiReady &&
     pipelineApiReady &&
+    frontPageApiReady &&
     mediaItemPageReady &&
     mediaItemApiReady &&
     scheduledJobsReady &&
@@ -704,6 +756,7 @@ async function main() {
     recursivArchiveSnapshot: statusText(recursivArchiveSnapshotReady),
     documentsApi: statusText(documentsApiReady),
     pipelineApi: statusText(pipelineApiReady),
+    frontPageApi: statusText(frontPageApiReady),
     mediaItemPage: statusText(mediaItemPageReady),
     mediaItemApi: statusText(mediaItemApiReady),
     providerHealthFresh: providerHealthAvailable ? statusText(providerHealthFresh) : "unknown",
@@ -745,6 +798,9 @@ async function main() {
   if (!documentsApiReady) nextActions.push("Do not touch DNS until /api/documents returns the machine-readable source shelf with topic and kind coverage.")
   if (!pipelineApiReady) {
     nextActions.push("Do not touch DNS until /api/pipeline returns the latest full-pipeline status from Recursiv database or Recursiv snapshot data.")
+  }
+  if (!frontPageApiReady) {
+    nextActions.push("Do not touch DNS until /api/front-page returns a Recursiv-backed edition with direct news, X, and archive ticker targets.")
   }
   if (!mediaItemPageReady || !mediaItemApiReady) {
     nextActions.push(`Do not touch DNS until the Recursiv hosted media library proves /media/${MEDIA_PROOF_ID} and /api/media/${MEDIA_PROOF_ID}.`)
@@ -795,6 +851,7 @@ async function main() {
       recursivArchiveLiveDatabaseReady,
       recursivArchiveSnapshotReady,
       pipelineApiReady,
+      frontPageApiReady,
       mediaItemPageReady,
       mediaItemApiReady,
       publicHostingReady,
@@ -816,6 +873,8 @@ async function main() {
     documentsDataSource: dataSourceStatus(documentsApi.sourceMode),
     pipelineApi,
     pipelineDataSource: dataSourceStatus(pipelineApi.sourceMode),
+    frontPageApi,
+    frontPageDataSource: dataSourceStatus(frontPageApi.sourceMode),
     mediaItemPage,
     mediaItemApi,
     mediaItemDataSource: dataSourceStatus(mediaItemApi.sourceMode),

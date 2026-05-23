@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server"
-import { getLatestRecursivFrontPageEdition, getLatestRecursivPipelineRun } from "@/lib/recursiv/content"
+import {
+  getLatestRecursivFrontPageEditionWithSource,
+  getLatestRecursivPipelineRun,
+  type FrontPageEdition,
+} from "@/lib/recursiv/content"
 import { xPostInternalHref } from "@/lib/x-links"
 
 export const dynamic = "force-dynamic"
@@ -66,7 +70,7 @@ function dedupeBreakingItems(items: Array<{ title: string; href: string; source?
   return result.slice(0, 32)
 }
 
-function breakingItemsFromEdition(edition: Awaited<ReturnType<typeof getLatestRecursivFrontPageEdition>>) {
+function breakingItemsFromEdition(edition: FrontPageEdition | null | undefined) {
   const sections = edition?.sections || {}
   const leadArticle = directItem((sections.leadArticle || {}) as FrontPageSectionItem, "Story")
   const leadDossier = directItem((sections.leadDossier || {}) as FrontPageSectionItem, "Dossier")
@@ -79,10 +83,12 @@ function breakingItemsFromEdition(edition: Awaited<ReturnType<typeof getLatestRe
 }
 
 export async function GET() {
-  const [edition, pipeline] = await Promise.all([getLatestRecursivFrontPageEdition(), getLatestRecursivPipelineRun()])
+  const [frontPage, pipeline] = await Promise.all([getLatestRecursivFrontPageEditionWithSource(), getLatestRecursivPipelineRun()])
+  const edition = frontPage?.edition ?? null
 
   return NextResponse.json({
     generatedAt: new Date().toISOString(),
+    sourceMode: frontPage?.sourceMode ?? "unavailable",
     edition,
     breakingItems: breakingItemsFromEdition(edition),
     pipeline,

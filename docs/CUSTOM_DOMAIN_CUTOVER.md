@@ -30,6 +30,7 @@ The command prints a redacted JSON report with:
 - source-document API proof for `https://invertedworld.on.recursiv.io/api/documents`;
 - media-library detail proof for the UAP PDF route and JSON item route;
 - latest full-pipeline status and `sourceMode` from `/api/pipeline`;
+- front-page edition and site ticker proof from `/api/front-page`, including direct news, X, and archive targets;
 - HTTP and DNS proof for `https://www.inverted.world`;
 - active Recursiv scheduled job count and missing jobs;
 - latest hosted provider-health blockers for the full AI product;
@@ -54,6 +55,7 @@ The output file contains the same no-secret report printed to stdout.
 - `recursivArchiveDataReady` must be `true`. This can be live `recursiv-database` or `recursiv-snapshot`, but it must not be `seed`, `static`, RSS, YouTube API, or direct provider fallback data.
 - `documentsApi` must pass, proving the source shelf is available as machine-readable JSON from live `recursiv-database` or `recursiv-snapshot` data.
 - `pipelineApi` must pass, proving `/api/pipeline` exposes the latest full-pipeline status from live Recursiv database rows or the committed Recursiv snapshot fallback.
+- `frontPageApi` must pass, proving `/api/front-page` exposes a Recursiv-backed edition and direct ticker targets into stories, X signals, and archive items.
 - `mediaItemPage` and `mediaItemApi` must pass, proving the hosted build includes shareable media pages and machine-readable item data for the official UAP PDF.
 - `publicHostingReady` must be `true`.
 - Recursiv custom-domain binding must be created and proven before changing DNS or removing the Vercel domain binding.
@@ -109,6 +111,7 @@ Current live proof:
 - `https://www.inverted.world` returns HTTP 200 with `server: Vercel` and `x-vercel-id`, so the custom domain is still on the legacy host.
 - `/api/archive?limit=1000` returns `sourceMode: "recursiv-snapshot"`, 437 archive videos, no warnings, and `hasMore: false`.
 - `/api/documents` returns `sourceMode: "recursiv-snapshot"` with 37 source documents across six topics and five media/document kinds.
+- The latest pushed build exposes `/api/front-page` with `sourceMode` and direct Recursiv-backed ticker items, but the hosted build must be redeployed before this can pass publicly.
 - `/media/war-uap-release-02-senior-usic-narrative` returns HTTP 200.
 - `/api/media/war-uap-release-02-senior-usic-narrative` returns `sourceMode: "recursiv-snapshot"` with the official UAP PDF item and related media.
 - `/api/release` still returns `pipelineSnapshotFallback: false` on the hosted app, so the current hosted build is older than the pushed repo.

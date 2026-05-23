@@ -223,6 +223,11 @@ export type FrontPageEdition = {
   metadata: Record<string, unknown>
 }
 
+export type FrontPageEditionResult = {
+  sourceMode: "recursiv-database" | "recursiv-snapshot"
+  edition: FrontPageEdition
+}
+
 export type PipelineRunStatus = {
   id: string
   jobName: string
@@ -1545,7 +1550,7 @@ export async function getRecursivClaimDossier(slug: string) {
   return dossier
 }
 
-export async function getLatestRecursivFrontPageEdition() {
+export async function getLatestRecursivFrontPageEditionWithSource(): Promise<FrontPageEditionResult | null> {
   const rows = await queryInvertedWorldDatabase<FrontPageEditionRow>(
     `SELECT
       id,
@@ -1566,7 +1571,24 @@ export async function getLatestRecursivFrontPageEdition() {
     LIMIT 1`,
   )
 
-  return rows?.[0] ? frontPageEditionRowToEdition(rows[0]) : snapshotFrontPageRows().map(frontPageEditionRowToEdition)[0] ?? null
+  if (rows?.[0]) {
+    return {
+      sourceMode: "recursiv-database",
+      edition: frontPageEditionRowToEdition(rows[0]),
+    }
+  }
+
+  const snapshotEdition = snapshotFrontPageRows().map(frontPageEditionRowToEdition)[0]
+  return snapshotEdition
+    ? {
+        sourceMode: "recursiv-snapshot",
+        edition: snapshotEdition,
+      }
+    : null
+}
+
+export async function getLatestRecursivFrontPageEdition() {
+  return (await getLatestRecursivFrontPageEditionWithSource())?.edition ?? null
 }
 
 export async function fetchRecursivPipelineRunsWithSource(
