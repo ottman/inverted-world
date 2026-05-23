@@ -1,4 +1,11 @@
-import { channelProfile, featuredVideos, researchDocuments, topics, type ChannelVideo } from "@/data/inverted-world"
+import {
+  channelProfile,
+  featuredVideos,
+  researchDocuments,
+  topics,
+  type ChannelVideo,
+  type MediaLibraryItem,
+} from "@/data/inverted-world"
 import { fetchLiveArticlesForTopic } from "@/lib/live-articles"
 import { fetchMediaSeedItemsForSync, mediaItemMetadata } from "@/lib/media-library"
 import { createRecursivServerClient } from "@/lib/recursiv/client"
@@ -656,9 +663,53 @@ export async function syncSourceDocumentsToRecursiv() {
 export async function syncMediaLibraryToRecursiv() {
   const { sdk, config } = getInvertedWorldDatabase()
   const items = await fetchMediaSeedItemsForSync()
+  const batchSize = Math.max(1, Math.min(Math.trunc(Number(process.env.MEDIA_LIBRARY_SYNC_BATCH_SIZE || "5")) || 5, 10))
   let synced = 0
 
-  for (const item of items) {
+  for (let offset = 0; offset < items.length; offset += batchSize) {
+    const batch = items.slice(offset, offset + batchSize)
+    const values = batch
+      .map((_, index) => {
+        const base = index * 15
+        return `(
+          $${base + 1},
+          $${base + 2},
+          $${base + 3},
+          $${base + 4},
+          $${base + 5},
+          $${base + 6},
+          $${base + 7}::jsonb,
+          $${base + 8},
+          NULLIF($${base + 9}, '')::timestamptz,
+          $${base + 10},
+          $${base + 11},
+          $${base + 12},
+          $${base + 13},
+          $${base + 14},
+          'active',
+          $${base + 15}::jsonb,
+          now()
+        )`
+      })
+      .join(", ")
+    const params = batch.flatMap((item: MediaLibraryItem) => [
+      item.id,
+      item.title,
+      item.source,
+      item.url,
+      item.kind,
+      item.viewer,
+      JSON.stringify(item.topicIds),
+      item.summary,
+      normalizedTimestamp(item.publishedAt),
+      item.embedUrl || "",
+      item.thumbnailUrl || "",
+      item.fileType || "",
+      item.agency || "",
+      item.collection || "",
+      JSON.stringify(mediaItemMetadata(item)),
+    ])
+
     await sdk.databases.query({
       project_id: config.projectId,
       database_name: config.databaseName,
@@ -681,25 +732,7 @@ export async function syncMediaLibraryToRecursiv() {
           metadata,
           updated_at
         )
-        VALUES (
-          $1,
-          $2,
-          $3,
-          $4,
-          $5,
-          $6,
-          $7::jsonb,
-          $8,
-          NULLIF($9, '')::timestamptz,
-          $10,
-          $11,
-          $12,
-          $13,
-          $14,
-          'active',
-          $15::jsonb,
-          now()
-        )
+        VALUES ${values}
         ON CONFLICT (slug) DO UPDATE SET
           title = EXCLUDED.title,
           source = EXCLUDED.source,
@@ -717,29 +750,15 @@ export async function syncMediaLibraryToRecursiv() {
           status = EXCLUDED.status,
           metadata = EXCLUDED.metadata,
           updated_at = now()`,
-      params: [
-        item.id,
-        item.title,
-        item.source,
-        item.url,
-        item.kind,
-        item.viewer,
-        JSON.stringify(item.topicIds),
-        item.summary,
-        normalizedTimestamp(item.publishedAt),
-        item.embedUrl || "",
-        item.thumbnailUrl || "",
-        item.fileType || "",
-        item.agency || "",
-        item.collection || "",
-        JSON.stringify(mediaItemMetadata(item)),
-      ],
+      params,
     })
-    synced += 1
+    synced += batch.length
   }
 
   return {
     synced,
+    batchSize,
+    batches: Math.ceil(items.length / batchSize),
     sourceMode: "static-and-official-media-to-recursiv",
   }
 }
