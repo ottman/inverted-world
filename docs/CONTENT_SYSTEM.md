@@ -217,4 +217,6 @@ If the accepted counts look useful, rerun with `--keep-existing` to bulk upsert 
 
 If Recursiv returns an API-key per-hour rate limit and no direct database URL is available, do not rotate or paste keys into the repo; wait for the limit window or run the hosted topic-pulse job once the server-side key budget is healthy.
 
+The scheduled topic-pulse manifest enables `profileReader=1` so Recursiv can keep collecting priority-account X signals through the public profile-reader lane while paid X API credits are blocked. Paid X API access is still the full-fidelity provider for metric-aware velocity.
+
 `recursiv:health` prints a non-secret provider health report for local proof. The authenticated hosted job `/api/recursiv/jobs/provider-health` runs the same class of checks inside the Recursiv-hosted app and persists the redacted result into `pipeline_runs` under `job_name = 'provider-health'`. It reports whether provider paths are missing, live, or errored without returning API keys or secret values.

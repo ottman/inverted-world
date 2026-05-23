@@ -279,7 +279,7 @@ const JOBS = [
   {
     name: "inverted-world-topic-pulse",
     cron: "*/20 * * * *",
-    endpoint: "/api/recursiv/jobs/topic-pulse?limit=24&profileReader=0&async=1",
+    endpoint: "/api/recursiv/jobs/topic-pulse?limit=24&profileReader=1&async=1",
   },
   {
     name: "inverted-world-article-generation",

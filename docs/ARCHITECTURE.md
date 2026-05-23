@@ -36,7 +36,7 @@ The site has moved into a Recursiv-hosted, Recursiv-backed shape, but it is not 
 - `scripts/provision-recursiv-backend.mjs --with-jobs` is the desired-state manifest for the Recursiv scheduled jobs, including the bounded full-pipeline refresh and pipeline-maintenance cleanup job. Its job endpoints use `async=1` to prevent scheduler-level timeout noise on ingestion tasks that intentionally keep running in the hosted app;
 - `/api/autopost/daily` now exposes the Recursiv-published daily packet for site/social/newsletter/video reuse without exposing provider keys to the browser;
 - AI article generation is implemented as a Recursiv job handler over published claim dossiers; image generation tries Recursiv media first and stores a generated SVG fallback asset when the media endpoint is unavailable; YouTube archive sync now falls back to the seeded Tales video list when RSS/Data API access is unavailable;
-- X API access is currently blocked by account credits, YouTube Data API access is blocked by quota, and local Recursiv writes can hit API-key per-hour limits; these are full-product/provider blockers, not DNS blockers;
+- X API access is currently blocked by account credits, YouTube Data API access is blocked by quota or missing configuration, and local Recursiv writes can hit API-key per-hour limits; these are full-product/provider blockers, not DNS blockers. The scheduled topic-pulse job should still run with the public X profile-reader fallback enabled so the site continues collecting priority-account X signals while paid X API access is repaired;
 - Vercel should not own YouTube, X, Brave, OpenRouter, or image-generation keys;
 - the archive is complete only when a backend with the YouTube key paginates the full uploads playlist.
 

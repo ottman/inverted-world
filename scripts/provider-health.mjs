@@ -166,6 +166,27 @@ async function checkXApi() {
   }
 }
 
+async function checkXProfileReader() {
+  try {
+    const response = await fetch("https://r.jina.ai/http://https://x.com/InvertedTales", {
+      headers: { "user-agent": "InvertedWorldProviderHealth/1.0" },
+      signal: AbortSignal.timeout(10000),
+    })
+    const text = await response.text()
+    const count = response.ok ? text.split(/\r?\n/).filter((line) => /status\/\d+|posts|tweet/i.test(line)).length : 0
+    return result("x-profile-reader", {
+      status: response.ok ? "ok" : "error",
+      configured: true,
+      httpStatus: response.status,
+      count,
+      mode: "live",
+      message: response.ok ? undefined : `X profile reader returned ${response.status}`,
+    })
+  } catch (error) {
+    return result("x-profile-reader", { status: "error", configured: true, mode: "live", message: safeMessage(error) })
+  }
+}
+
 async function checkExa() {
   const apiKey = envAny(["EXA_API_KEY", "EXA_SEARCH_API_KEY"])
   if (!apiKey) return missing("exa")
@@ -275,6 +296,7 @@ async function main() {
     ...(await Promise.all([
       checkRecursivDatabase(),
       checkXApi(),
+      checkXProfileReader(),
       checkExa(),
       checkBrave(),
       checkYouTubeRss(),

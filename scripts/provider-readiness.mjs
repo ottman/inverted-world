@@ -22,6 +22,12 @@ const PROVIDERS = [
     action: "Fix X paid API access or rotate the bearer token, then store it in Recursiv/Infisical.",
   },
   {
+    provider: "x-profile-reader",
+    required: false,
+    aliases: [],
+    action: "Keep the public X profile-reader lane healthy as a fallback while paid X API credits are blocked.",
+  },
+  {
     provider: "exa",
     required: true,
     aliases: ["EXA_API_KEY", "EXA_SEARCH_API_KEY"],
@@ -243,7 +249,7 @@ async function main() {
     const localProtectedFilePresent = protectedLocalFilePresent(template.provider)
     const localConfigured = template.aliases.length
       ? aliasesPresent.length > 0 || localProtectedFilePresent
-      : template.provider === "youtube-rss" || localProtectedFilePresent
+      : template.provider === "youtube-rss" || template.provider === "x-profile-reader" || localProtectedFilePresent
     return {
       provider: template.provider,
       required: template.required,

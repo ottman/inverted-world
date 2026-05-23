@@ -187,6 +187,37 @@ async function checkXApi(): Promise<ProviderHealthResult> {
   }
 }
 
+async function checkXProfileReader(): Promise<ProviderHealthResult> {
+  try {
+    const response = await fetch("https://r.jina.ai/http://https://x.com/InvertedTales", {
+      headers: { "user-agent": "InvertedWorldProviderHealth/1.0" },
+      signal: AbortSignal.timeout(PROVIDER_HEALTH_TIMEOUT_MS),
+    })
+    const text = await response.text()
+    const count = response.ok ? text.split(/\r?\n/).filter((line) => /status\/\d+|posts|tweet/i.test(line)).length : 0
+
+    return {
+      provider: "x-profile-reader",
+      status: response.ok ? "ok" : "error",
+      configured: true,
+      checkedAt: now(),
+      httpStatus: response.status,
+      count,
+      mode: "live",
+      message: response.ok ? undefined : `X profile reader returned ${response.status}`,
+    }
+  } catch (error) {
+    return {
+      provider: "x-profile-reader",
+      status: "error",
+      configured: true,
+      checkedAt: now(),
+      mode: "live",
+      message: safeMessage(error),
+    }
+  }
+}
+
 async function checkExa(): Promise<ProviderHealthResult> {
   const apiKey = envAny(["EXA_API_KEY", "EXA_SEARCH_API_KEY"])
   if (!apiKey) return missing("exa")
@@ -363,6 +394,7 @@ export async function runProviderHealthCheck(options: { persist?: boolean } = {}
     ...(await Promise.all([
       checkRecursivDatabase(),
       checkXApi(),
+      checkXProfileReader(),
       checkExa(),
       checkBrave(),
       checkYouTubeRss(),
