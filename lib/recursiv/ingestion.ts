@@ -1997,7 +1997,6 @@ export async function runFullPipelineInRecursiv(options: { mode?: string | null;
   const { sdk, config } = getInvertedWorldDatabase()
   const started = Date.now()
   const mode = normalizePipelineMode(options.mode)
-  const staleCleanup = await markStalePipelineRunsForPipelineStart(sdk, config, "full-pipeline", options.staleAfterMinutes)
   const run = await sdk.databases.query({
     project_id: config.projectId,
     database_name: config.databaseName,
@@ -2011,11 +2010,30 @@ export async function runFullPipelineInRecursiv(options: { mode?: string | null;
         generatedBy: "recursiv-full-pipeline-v1",
         mode,
         siteUrl: process.env.INVERTED_WORLD_SITE_URL || "https://invertedworld.on.recursiv.io",
-        staleCleanup,
+        staleCleanup: {
+          staleRunCount: 0,
+          staleRunIds: [],
+          status: "pending",
+        },
       }),
     ],
   })
   const runId = String(run.data.rows[0]?.id || "")
+  void markStalePipelineRunsForPipelineStart(sdk, config, "full-pipeline", options.staleAfterMinutes)
+    .then((staleCleanup) =>
+      runId
+        ? sdk.databases.query({
+            project_id: config.projectId,
+            database_name: config.databaseName,
+            sql: `UPDATE pipeline_runs
+              SET metadata = metadata || $1::jsonb,
+                updated_at = now()
+              WHERE id = $2`,
+            params: [JSON.stringify({ staleCleanup }), runId],
+          })
+        : undefined,
+    )
+    .catch(() => undefined)
   const steps: PipelineStep[] = []
 
   const allStepDefinitions: Array<[string, () => Promise<unknown>]> = [
@@ -2078,7 +2096,7 @@ export async function runFullPipelineInRecursiv(options: { mode?: string | null;
     runId,
     status,
     durationMs,
-    staleCleanup,
+    staleCleanup: { status: "background" },
     mode,
     skippedSteps,
     steps,
