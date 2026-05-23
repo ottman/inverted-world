@@ -1,13 +1,15 @@
 "use client"
 
-import { useEffect, useMemo, useState, type KeyboardEvent } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Archive, ArrowUpRight, FileText, Film, ImageIcon, Play, RefreshCw, Volume2, Youtube } from "lucide-react"
 import Script from "next/script"
 import { archiveSurface, InvertedPageShell, XIcon, type BreakingItem } from "@/components/inverted-page-shell"
 import { channelProfile, topics, type ChannelVideo, type ContentTopic, type MediaLibraryItem } from "@/data/inverted-world"
 import type { IntelligenceArticle } from "@/data/intelligence-articles"
 import { mediaItemHref } from "@/lib/media-links"
+import { articleHref } from "@/lib/news-links"
 import { getTopicXSearchUrl } from "@/lib/x-search"
+import { xPostInternalHref } from "@/lib/x-links"
 import { cn } from "@/lib/utils"
 import type { DeepArchiveResponse } from "@/lib/deep-archive"
 import type { ViralXPost } from "@/lib/x-posts"
@@ -86,15 +88,8 @@ function topicById(topicId?: string) {
   return topics.find((topic) => topic.id === topicId)
 }
 
-function openInAppSignal(topicId: string) {
-  window.location.href = `/x/${topicId}`
-}
-
-function handleSignalKey(event: KeyboardEvent<HTMLElement>, topicId: string) {
-  if (event.key === "Enter" || event.key === " ") {
-    event.preventDefault()
-    openInAppSignal(topicId)
-  }
+function openInAppPostSignal(post: ViralXPost, fallbackTopicId: string) {
+  window.location.href = xPostInternalHref(post, fallbackTopicId)
 }
 
 export function ArchiveOnlyPage({
@@ -161,7 +156,7 @@ export function ArchiveOnlyPage({
         .slice(0, 18)
         .map((article) => ({
           title: article.title,
-          href: article.sourceUrl,
+          href: articleHref(article),
           source: article.source,
         }))
 
@@ -171,7 +166,7 @@ export function ArchiveOnlyPage({
         .slice(0, 18)
         .map((post) => ({
           title: post.text,
-          href: `/x/${post.topicId || "uap-disclosure"}`,
+          href: xPostInternalHref(post, "uap-disclosure"),
           source: post.username ? `@${post.username}` : "X",
         }))
 
@@ -334,7 +329,6 @@ function videoEmbedUrl(video?: ChannelVideo, autoplay = false) {
     url.searchParams.set("playsinline", "1")
     if (autoplay) {
       url.searchParams.set("autoplay", "1")
-      url.searchParams.set("mute", "1")
     }
     url.searchParams.set("controls", "1")
     url.searchParams.set("playsinline", "1")
@@ -342,7 +336,7 @@ function videoEmbedUrl(video?: ChannelVideo, autoplay = false) {
   } catch {
     if (!autoplay) return source
     const separator = source.includes("?") ? "&" : "?"
-    return `${source}${separator}autoplay=1&mute=1&playsinline=1`
+    return `${source}${separator}autoplay=1&playsinline=1`
   }
 }
 
@@ -509,8 +503,13 @@ function EmbeddedTweetGrid({ posts, topicId }: { posts: ViralXPost[]; topicId: s
           key={post.id || post.url}
           role="link"
           tabIndex={0}
-          onClick={() => openInAppSignal(post.topicId || topicId)}
-          onKeyDown={(event) => handleSignalKey(event, post.topicId || topicId)}
+          onClick={() => openInAppPostSignal(post, topicId)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault()
+              openInAppPostSignal(post, topicId)
+            }
+          }}
           className="block cursor-pointer bg-black/72 p-3 transition hover:bg-black"
         >
           <p className="line-clamp-4 text-sm leading-5 text-[#f4efe2]/74">{post.text}</p>
@@ -547,8 +546,13 @@ function XEmbedStrip({ posts }: { posts: ViralXPost[] }) {
           <div
             role="link"
             tabIndex={0}
-            onClick={() => openInAppSignal(post.topicId || "uap-disclosure")}
-            onKeyDown={(event) => handleSignalKey(event, post.topicId || "uap-disclosure")}
+            onClick={() => openInAppPostSignal(post, "uap-disclosure")}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault()
+                openInAppPostSignal(post, "uap-disclosure")
+              }
+            }}
             className="iw-compact-tweet iw-compact-tweet--strip cursor-pointer"
           >
             <blockquote
@@ -585,9 +589,7 @@ function LiveFeed({ topicTitle, articles }: { topicTitle: string; articles: Inte
         {visibleArticles.map((article) => (
           <a
             key={article.id}
-            href={article.sourceUrl}
-            target={article.sourceUrl.startsWith("/") ? undefined : "_blank"}
-            rel={article.sourceUrl.startsWith("/") ? undefined : "noreferrer"}
+            href={articleHref(article)}
             className="group grid gap-3 bg-[#050504]/36 p-2.5 transition hover:bg-[#070706]/58 data-[image=true]:grid-cols-[72px_minmax(0,1fr)]"
             data-image={Boolean(article.thumbnail.imageUrl)}
           >

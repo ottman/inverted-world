@@ -3,6 +3,7 @@ import { notFound } from "next/navigation"
 import { InvertedPageShell, type BreakingItem } from "@/components/inverted-page-shell"
 import { XSignalPage } from "@/components/x-signal-page"
 import { topics } from "@/data/inverted-world"
+import { xPostInternalHref } from "@/lib/x-links"
 import { fetchViralXPostsForTopic } from "@/lib/x-posts"
 
 type PageProps = {
@@ -38,7 +39,7 @@ export default async function XTopicPage({ params }: PageProps) {
   const posts = await fetchViralXPostsForTopic(topic.id, { limit: 24 }).catch(() => [])
   const breakingItems: BreakingItem[] = posts.map((post) => ({
     title: post.text,
-    href: `/x/${post.topicId || topic.id}`,
+    href: xPostInternalHref(post, topic.id),
     source: post.username ? `@${post.username}` : "X",
   }))
 
@@ -47,7 +48,7 @@ export default async function XTopicPage({ params }: PageProps) {
       eyebrow="LIVE Mon - Thurs at 10 p.m. EST"
       title={`${topic.title} X Signals`}
       heroTitle={`${topic.title} X Signals`}
-      heroDescription={`Fresh viral X posts, social velocity, and live stream tracking for ${topic.signal.toLowerCase()}.`}
+      heroDescription={`Ranked posts and source leads for ${topic.signal.toLowerCase()}. Open a post, follow the original, or jump back into the related archive lane.`}
       breakingItems={breakingItems}
     >
       <XSignalPage topic={topic} initialPosts={posts} />

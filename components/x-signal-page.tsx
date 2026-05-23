@@ -5,6 +5,7 @@ import { ArrowUpRight, RefreshCw } from "lucide-react"
 import { XIcon } from "@/components/inverted-page-shell"
 import type { ContentTopic } from "@/data/inverted-world"
 import { getTopicXQueries, getTopicXSearchUrl } from "@/lib/x-search"
+import { xPostAnchorId } from "@/lib/x-links"
 import type { ViralXPost } from "@/lib/x-posts"
 import { cn } from "@/lib/utils"
 
@@ -27,7 +28,7 @@ function metricLine(post: ViralXPost) {
     views ? `${views} views` : undefined,
   ].filter(Boolean)
 
-  return parts.length ? parts.join(" / ") : "fresh signal"
+  return parts.length ? parts.join(" / ") : "tracked post"
 }
 
 function formatAge(value?: string) {
@@ -105,9 +106,7 @@ export function XSignalPage({ topic, initialPosts }: { topic: ContentTopic; init
               {tickerPosts.map((post, index) => (
                 <a
                   key={`${post.id}-${index}`}
-                  href={post.url}
-                  target="_blank"
-                  rel="noreferrer"
+                  href={`#${xPostAnchorId(post)}`}
                   className="flex max-w-[520px] shrink-0 items-center gap-2 bg-black/42 px-3 py-2 text-xs text-[#f4efe2]/72 transition hover:text-[#fff8e6]"
                 >
                   <span className="text-[#df2f2f]">@{post.username || "x"}</span>
@@ -118,7 +117,7 @@ export function XSignalPage({ topic, initialPosts }: { topic: ContentTopic; init
           </div>
         ) : (
           <div className="bg-black/36 p-4 text-sm text-[#f4efe2]/62">
-            No ranked posts passed the filters yet. The live search is still available.
+            This lane is waiting for a strong post. Use the source queries at right to inspect the live X search.
           </div>
         )}
       </section>
@@ -128,10 +127,11 @@ export function XSignalPage({ topic, initialPosts }: { topic: ContentTopic; init
           {posts.map((post) => (
             <a
               key={post.id || post.url}
+              id={xPostAnchorId(post)}
               href={post.url}
               target="_blank"
               rel="noreferrer"
-              className="group grid min-h-[172px] gap-5 bg-[#050504]/46 p-4 transition hover:bg-black/72"
+              className="group grid min-h-[172px] scroll-mt-36 gap-5 bg-[#050504]/46 p-4 transition target:ring-1 target:ring-[#df2f2f]/70 hover:bg-black/72"
             >
               <div>
                 <div className="mb-3 flex items-center justify-between gap-3 text-[10px] uppercase tracking-[0.14em] text-[#f4efe2]/44">

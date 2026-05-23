@@ -429,7 +429,9 @@ function articleRowToArticle(row: ArticleDraftRow): IntelligenceArticle {
       ...(thumbnail as Partial<IntelligenceArticle["thumbnail"]>),
       imageUrl: row.asset_url || (typeof metadata.assetUrl === "string" ? metadata.assetUrl : undefined),
     },
-    body: body.length ? body : ["This story is still being written. Start with the source links and related archive material below."],
+    body: body.length
+      ? body
+      : ["Start with the attached source links, then compare the related Tales archive clips and the live X signal before treating the story as settled."],
     thumbnailPrompt:
       cleanPublicText(
         row.thumbnail_prompt ||
@@ -813,7 +815,7 @@ function frontPageEditionRowToEdition(row: FrontPageEditionRow): FrontPageEditio
     headline: row.headline || "Inverted World front page",
     deck: /Recursiv edition|AI briefs|claim dossiers/i.test(deck)
       ? "Today's edition tracks the strongest stories, source links, X signal, and related Tales archive context across the conspiracy-world desk."
-      : deck || "The latest Inverted World front page edition.",
+      : deck || "The desk is tracking the strongest source links, X signal, and archive hooks moving right now.",
     status: row.status || "published",
     leadDossierSlug: row.lead_dossier_slug,
     sections: jsonObject(row.sections),

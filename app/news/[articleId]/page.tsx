@@ -88,7 +88,7 @@ function storyParagraphs(article?: IntelligenceArticle | null, dossier?: ClaimDo
     dossier.summary,
     source
       ? `The strongest starting point is ${source.outlet || "the linked source"}: ${source.title}. Read that record first, then compare the surrounding coverage and social reaction.`
-      : `The story is still being assembled from available reporting, source material, social reaction, and the Tales archive.`,
+      : `Start with the source links below, then compare the X signals, related Tales videos, and skeptical read before sharing the story.`,
     dossier.skepticalRead,
   ].filter(Boolean)
 }
@@ -282,9 +282,9 @@ export default async function NewsArticlePage({ params }: PageProps) {
 
         <aside className="grid gap-4">
           {article?.thumbnail.imageUrl ? (
-            <div className="overflow-hidden bg-[#050504]/42">
+            <div className="overflow-hidden bg-[#050504]/42 p-2">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={article.thumbnail.imageUrl} alt="" className="aspect-square w-full object-cover opacity-90" />
+              <img src={article.thumbnail.imageUrl} alt="" className="aspect-square w-full object-contain opacity-95" />
             </div>
           ) : null}
 
