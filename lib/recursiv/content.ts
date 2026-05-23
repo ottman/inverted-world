@@ -685,6 +685,28 @@ function snapshotChannelRows() {
   return snapshotRows<ChannelItemRow>("channelItems")
 }
 
+function snapshotChannelArchive({
+  safeOffset,
+  safeLimit,
+}: {
+  safeOffset: number
+  safeLimit: number
+}) {
+  const rows = snapshotChannelRows()
+  const videos = rows.slice(safeOffset, safeOffset + safeLimit).map(channelRowToVideo)
+  if (!videos.length) return null
+
+  return {
+    generatedAt: new Date().toISOString(),
+    sourceMode: "recursiv-snapshot" as const,
+    videos,
+    totalCount: rows.length,
+    offset: safeOffset,
+    limit: safeLimit,
+    hasMore: safeOffset + safeLimit < rows.length,
+  }
+}
+
 function snapshotArticleRows() {
   return snapshotRows<ArticleDraftRow>("articleDrafts")
 }
@@ -919,9 +941,28 @@ export async function getRecursivChannelArchive({
   const safeMaxLimit = Math.min(Math.max(Math.trunc(maxLimit) || 100, 1), 1000)
   const safeLimit = Math.min(Math.max(Math.trunc(limit) || 100, 1), safeMaxLimit)
   const safeOffset = Math.max(Math.trunc(offset) || 0, 0)
-  const rows = await queryInvertedWorldDatabase<ChannelItemRow>(
-    `WITH deduped AS (
-      SELECT DISTINCT ON (COALESCE(source_id, source_url, id))
+  let rows: ChannelItemRow[] | null = null
+  try {
+    rows = await queryInvertedWorldDatabase<ChannelItemRow>(
+      `WITH deduped AS (
+        SELECT DISTINCT ON (COALESCE(source_id, source_url, id))
+          id,
+          source_id,
+          source_url,
+          title,
+          description,
+          published_at,
+          topic_id,
+          thumbnail_url,
+          embed_url,
+          kind,
+          metadata,
+          created_at
+        FROM channel_items
+        WHERE source = 'youtube'
+        ORDER BY COALESCE(source_id, source_url, id), published_at DESC NULLS LAST, created_at DESC
+      )
+      SELECT
         id,
         source_id,
         source_url,
@@ -933,44 +974,21 @@ export async function getRecursivChannelArchive({
         embed_url,
         kind,
         metadata,
-        created_at
-      FROM channel_items
-      WHERE source = 'youtube'
-      ORDER BY COALESCE(source_id, source_url, id), published_at DESC NULLS LAST, created_at DESC
+        count(*) OVER() AS total_count
+      FROM deduped
+      ORDER BY published_at DESC NULLS LAST, created_at DESC
+      LIMIT $1 OFFSET $2`,
+      [safeLimit, safeOffset],
     )
-    SELECT
-      id,
-      source_id,
-      source_url,
-      title,
-      description,
-      published_at,
-      topic_id,
-      thumbnail_url,
-      embed_url,
-      kind,
-      metadata,
-      count(*) OVER() AS total_count
-    FROM deduped
-    ORDER BY published_at DESC NULLS LAST, created_at DESC
-    LIMIT $1 OFFSET $2`,
-    [safeLimit, safeOffset],
-  )
+  } catch {
+    if (process.env.RECURSIV_STRICT_READS === "1") {
+      console.warn("[recursiv] channel archive strict read failed; using committed snapshot fallback")
+    }
+    rows = null
+  }
 
   if (!rows?.length) {
-    const snapshotRows = snapshotChannelRows()
-    const videos = snapshotRows.slice(safeOffset, safeOffset + safeLimit).map(channelRowToVideo)
-    if (!videos.length) return null
-
-    return {
-      generatedAt: new Date().toISOString(),
-      sourceMode: "recursiv-snapshot" as const,
-      videos,
-      totalCount: snapshotRows.length,
-      offset: safeOffset,
-      limit: safeLimit,
-      hasMore: safeOffset + safeLimit < snapshotRows.length,
-    }
+    return snapshotChannelArchive({ safeOffset, safeLimit })
   }
 
   const totalCount = Number(rows[0].total_count || rows.length)
@@ -988,23 +1006,31 @@ export async function getRecursivChannelArchive({
 export async function getRecursivChannelVideo(videoId: string) {
   if (!videoId) return null
 
-  const rows = await queryInvertedWorldDatabase<ChannelItemRow>(
-    `SELECT
-      source_id,
-      source_url,
-      title,
-      description,
-      published_at,
-      topic_id,
-      thumbnail_url,
-      embed_url,
-      kind,
-      metadata
-    FROM channel_items
-    WHERE source = 'youtube' AND (source_id = $1 OR source_url = $2)
-    LIMIT 1`,
-    [videoId, `https://www.youtube.com/watch?v=${videoId}`],
-  )
+  let rows: ChannelItemRow[] | null = null
+  try {
+    rows = await queryInvertedWorldDatabase<ChannelItemRow>(
+      `SELECT
+        source_id,
+        source_url,
+        title,
+        description,
+        published_at,
+        topic_id,
+        thumbnail_url,
+        embed_url,
+        kind,
+        metadata
+      FROM channel_items
+      WHERE source = 'youtube' AND (source_id = $1 OR source_url = $2)
+      LIMIT 1`,
+      [videoId, `https://www.youtube.com/watch?v=${videoId}`],
+    )
+  } catch {
+    if (process.env.RECURSIV_STRICT_READS === "1") {
+      console.warn("[recursiv] channel video strict read failed; using committed snapshot fallback")
+    }
+    rows = null
+  }
 
   if (rows?.[0]) return channelRowToVideo(rows[0])
 
