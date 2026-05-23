@@ -167,8 +167,13 @@ export function hostName(url: string) {
 export function sourceLabel(source?: string, url?: string) {
   const host = hostName(url || "")
   const cleaned = normalizeWorldwireText(source || "")
-  const looksLikeByline = /^by\b/i.test(cleaned) || cleaned.split(/\s+/).length > 5 || cleaned.length > 42
-  return looksLikeByline ? host || cleaned || "source" : cleaned || host || "source"
+  const wordCount = cleaned ? cleaned.split(/\s+/).length : 0
+  const looksLikeDomain = /\.[a-z]{2,}/i.test(cleaned)
+  const knownShortBrand = /^(ap|bbc|cnn|npr|reuters|axios|politico|bloomberg|propublica)$/i.test(cleaned)
+  const preferHost =
+    Boolean(host) &&
+    (!cleaned || /^by\b/i.test(cleaned) || cleaned.length > 42 || (wordCount > 1 && !looksLikeDomain && !knownShortBrand))
+  return preferHost ? host : cleaned || host || "source"
 }
 
 const SOURCE_AUTHORITY_BONUSES: Array<[string, number]> = [
