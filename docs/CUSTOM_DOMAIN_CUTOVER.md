@@ -22,6 +22,7 @@ The command prints a redacted JSON report with:
 
 - latest Recursiv deployment status;
 - HTTP proof for `https://invertedworld.on.recursiv.io`;
+- `/news` source-board proof, including direct external source links and internal Inverted World context links;
 - release proof from `https://invertedworld.on.recursiv.io/api/release`, including the deployed feature marker;
 - source-revision proof from `/api/release` when the hosted build exposes `deployment.sourceRevision` from a commit environment variable or the commit-shaped Next build id, or from authenticated Recursiv deployment metadata when the runtime cannot expose either;
 - public provider-fallback audit proof from `pnpm audit:public-providers`;
@@ -51,6 +52,7 @@ The output file contains the same no-secret report printed to stdout.
 
 - `recursivHostingProven` must be `true`.
 - If `recursivHostedUrl` passes but `recursivDeploymentCompleted` is `unknown`, HTTP proof is good but deployment proof is incomplete. Do not treat that as a DNS-ready state.
+- `newsPage` must pass, proving `/news` renders the source-board page with direct external source links and internal Inverted World context links.
 - `releaseCommit` must be `pass`. Full readiness may prove this from `/api/release` or from authenticated Recursiv deployment metadata. `unknown` means neither source exposes a revision yet, and `fail` means the deployed revision is not the expected commit.
 - `publicProviderFallbackAudit` must be `pass`, proving public `app/` routes and pages do not call provider-capable helpers without `allowProviderFallbacks: false`.
 - `recursivArchiveDataReady` must be `true`. This can be live `recursiv-database` or `recursiv-snapshot`, but it must not be `seed`, `static`, RSS, YouTube API, or direct provider fallback data.

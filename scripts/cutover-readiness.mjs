@@ -286,6 +286,44 @@ async function probeHttp(url) {
   }
 }
 
+async function probeNewsPage(url) {
+  const started = Date.now()
+  try {
+    const response = await fetch(url, {
+      headers: { "user-agent": "InvertedWorldCutoverReadiness/1.0" },
+      redirect: "manual",
+      signal: AbortSignal.timeout(20000),
+    })
+    const contentType = response.headers.get("content-type") || ""
+    const html = contentType.includes("text/html") ? await response.text() : ""
+    const externalSourceLinks = (html.match(/href="https?:\/\/(?!www\.inverted\.world|invertedworld\.on\.recursiv\.io)[^"]+"/g) || []).length
+    const contextLinks = (html.match(/href="\/news\/[^"]+"/g) || []).length
+    const sourceLabels = (html.match(/target="_blank"/g) || []).length
+
+    return {
+      url,
+      status: response.status,
+      ok: response.ok,
+      title: html.match(/<title>(.*?)<\/title>/i)?.[1]?.trim(),
+      hasSourceSheet: /source sheet|outside world, sorted by heat|original sources first/i.test(html),
+      hasNewsMetrics: /ranked links|source hosts|lanes/i.test(html),
+      hasEmptyState: /current source board has no ranked links/i.test(html),
+      externalSourceLinks,
+      contextLinks,
+      sourceLabels,
+      durationMs: Date.now() - started,
+    }
+  } catch (error) {
+    return {
+      url,
+      status: 0,
+      ok: false,
+      message: error instanceof Error ? error.message : String(error),
+      durationMs: Date.now() - started,
+    }
+  }
+}
+
 async function probeJson(url) {
   const started = Date.now()
   try {
@@ -614,6 +652,7 @@ async function main() {
   const customHostname = new URL(customDomainUrl).hostname
   const recursivHostname = new URL(recursivUrl).hostname
   const releaseApiUrl = new URL("/api/release", recursivUrl).toString()
+  const newsPageUrl = new URL("/news", recursivUrl).toString()
   const archiveApiUrl = new URL("/api/archive?limit=1000", recursivUrl).toString()
   const documentsApiUrl = new URL("/api/documents", recursivUrl).toString()
   const pipelineApiUrl = new URL("/api/pipeline?limit=1", recursivUrl).toString()
@@ -644,6 +683,7 @@ async function main() {
     deploymentsResponse,
     jobsResponse,
     recursivHttp,
+    newsPage,
     releaseApi,
     archiveApi,
     documentsApi,
@@ -682,6 +722,7 @@ async function main() {
             readinessWarnings,
           ),
       probeHttp(recursivUrl),
+      probeNewsPage(newsPageUrl),
       probeReleaseApi(releaseApiUrl),
       probeJson(archiveApiUrl),
       probeDocumentsApi(documentsApiUrl),
@@ -752,6 +793,14 @@ async function main() {
       releaseApi.pipelineSnapshotFallback &&
       releaseApi.dnsCutoverRequiresCustomDomainProof,
   )
+  const newsPageReady = Boolean(
+    newsPage.ok &&
+      newsPage.hasSourceSheet &&
+      newsPage.hasNewsMetrics &&
+      !newsPage.hasEmptyState &&
+      Number(newsPage.externalSourceLinks || 0) >= 20 &&
+      Number(newsPage.contextLinks || 0) >= 3,
+  )
   const releaseRevision = releaseRevisionProof(releaseApi, latestDeployment, deploymentLookupAvailable)
   const releaseCommitMatch = commitsMatch(releaseRevision.value, expectedReleaseCommit)
   const releaseCommitReady = releaseCommitMatch === true
@@ -817,6 +866,7 @@ async function main() {
   const customDomainBindingConfigured = deploymentHostnames.includes(customHostname)
   const publicHostingReady =
     recursivHostingProven &&
+    newsPageReady &&
     releaseProofReady &&
     releaseCommitReady &&
     publicProviderFallbackAuditReady &&
@@ -837,6 +887,7 @@ async function main() {
 
   const checks = {
     recursivHostedUrl: statusText(recursivHostedUrlProven),
+    newsPage: statusText(newsPageReady),
     recursivDeploymentCompleted: deploymentLookupAvailable ? statusText(recursivDeploymentCompleted) : "unknown",
     recursivHosting: statusText(recursivHostingProven),
     releaseProof: statusText(releaseProofReady),
@@ -865,6 +916,9 @@ async function main() {
 
   const nextActions = []
   if (!recursivHostedUrlProven) nextActions.push("Do not touch DNS until invertedworld.on.recursiv.io returns the expected app.")
+  if (!newsPageReady) {
+    nextActions.push("Do not touch DNS until /news renders the source-board page with direct external source links and internal Inverted World context links.")
+  }
   if (!releaseProofReady) {
     nextActions.push("Do not touch DNS until /api/release returns the current Recursiv feature marker for the deployed backend.")
   }
@@ -938,6 +992,7 @@ async function main() {
     decision: {
       recursivHostingProven,
       recursivHostedUrlProven,
+      newsPageReady,
       recursivDeploymentCompleted,
       releaseProofReady,
       releaseCommitReady,
@@ -960,6 +1015,7 @@ async function main() {
       keepDnsOnVercel,
     },
     recursivUrl: recursivHttp,
+    newsPage,
     releaseApi,
     expectedReleaseCommit,
     releaseRevision,
