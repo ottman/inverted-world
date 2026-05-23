@@ -219,6 +219,8 @@ The media-library importer reads the WAR.GOV PURSUE CSV manifest when available,
 
 `recursiv:backfill:x` is a local/proof ingestion path for widening stored X coverage without exposing provider keys to public requests. It reads the protected local provider env file when present, filters X results through topic terms and trusted source accounts, and upserts only normalized rows into Recursiv `x_signals`. By default it only replaces previous local-backfill rows after the new fetch has accepted rows; pass `--keep-existing` to append/refresh without clearing previous local-backfill rows.
 
+`--provider=all` combines paid X API search, Exa-indexed X discovery, and the public profile-reader fallback. Use `--provider=x`, `--provider=exa`, or `--provider=profile` to isolate a single lane during proof.
+
 When X API credits are blocked, run the profile-reader lane first as a dry run:
 
 ```bash
