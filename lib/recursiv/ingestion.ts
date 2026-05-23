@@ -1065,7 +1065,7 @@ function compactWorldwireItem(item: WorldwireItem): WorldwireItem {
 
 export async function syncWorldwireCoverageToRecursiv(options: { limitPerLane?: number } = {}) {
   const { sdk, config } = getInvertedWorldDatabase()
-  const limitPerLane = Math.max(1, Math.min(Math.trunc(options.limitPerLane || 8), 12))
+  const limitPerLane = Math.max(1, Math.min(Math.trunc(options.limitPerLane || 16), 24))
   const items = (await fetchWorldwireItems())
     .map(compactWorldwireItem)
     .filter((item) => item.title && item.url && item.url.startsWith("http"))

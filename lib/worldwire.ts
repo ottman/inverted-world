@@ -20,22 +20,27 @@ export const WORLDWIRE_LANES: WorldwireLane[] = [
   {
     id: "front-page",
     title: "Front Page",
-    query: "breaking news live updates global crisis scandal investigation emergency",
+    query: "breaking news live updates global crisis scandal investigation emergency latest",
   },
   {
     id: "world",
     title: "World",
-    query: "world news coup protest scandal leak emergency election geopolitics",
+    query: "world news coup protest scandal leak emergency election geopolitics diplomacy",
   },
   {
     id: "war",
     title: "War",
-    query: "war military attack border missiles drone intelligence defense escalation",
+    query: "war military attack missiles drone intelligence defense escalation invasion",
   },
   {
     id: "america",
     title: "America",
-    query: "US politics courts congress election corruption investigation live",
+    query: "US politics White House Congress election corruption investigation live",
+  },
+  {
+    id: "law-courts",
+    title: "Law / Courts",
+    query: "court ruling lawsuit indictment trial judge prosecutor supreme court investigation",
   },
   {
     id: "power-files",
@@ -45,17 +50,17 @@ export const WORLDWIRE_LANES: WorldwireLane[] = [
   {
     id: "money",
     title: "Money",
-    query: "markets economy banks debt inflation crypto collapse fraud trade",
+    query: "markets economy banks debt inflation crypto collapse fraud trade layoffs",
   },
   {
     id: "tech-ai",
     title: "Tech / AI",
-    query: "artificial intelligence surveillance cyberattack robots chips censorship internet",
+    query: "artificial intelligence surveillance cyberattack robots chips censorship internet data center",
   },
   {
-    id: "science-space",
-    title: "Science / Space",
-    query: "NASA space anomaly asteroid discovery physics telescope launch",
+    id: "energy-grid",
+    title: "Energy / Grid",
+    query: "power grid energy blackout oil gas nuclear electricity infrastructure data centers",
   },
   {
     id: "health-earth",
@@ -63,9 +68,24 @@ export const WORLDWIRE_LANES: WorldwireLane[] = [
     query: "disease outbreak lab medicine volcano earthquake climate disaster weather",
   },
   {
+    id: "science-space",
+    title: "Science / Space",
+    query: "NASA space anomaly asteroid discovery physics telescope launch solar storm",
+  },
+  {
     id: "crime-culture",
     title: "Crime / Culture",
-    query: "crime scandal culture celebrity police censorship trial media",
+    query: "crime scandal culture celebrity police censorship trial media backlash",
+  },
+  {
+    id: "media-internet",
+    title: "Media / Internet",
+    query: "media scandal censorship platform journalism influencer viral internet controversy",
+  },
+  {
+    id: "sports-spectacle",
+    title: "Sports / Spectacle",
+    query: "sports scandal championship fight injury gambling league controversy viral",
   },
   {
     id: "strange",
@@ -79,8 +99,10 @@ const HOT_WORDS = [
   "alien",
   "anomaly",
   "attack",
+  "assassination",
   "bankrupt",
   "blackout",
+  "bombshell",
   "classified",
   "court",
   "coup",
@@ -99,6 +121,7 @@ const HOT_WORDS = [
   "fraud",
   "hack",
   "hostage",
+  "indictment",
   "intelligence",
   "investigation",
   "leak",
@@ -109,12 +132,15 @@ const HOT_WORDS = [
   "raid",
   "records",
   "resigns",
+  "sanctions",
   "secret",
   "shooting",
   "shock",
+  "shutdown",
   "spy",
   "strike",
   "surveillance",
+  "terror",
   "trial",
   "uap",
   "ufo",
@@ -226,6 +252,19 @@ export function isExternalUrl(value?: string) {
 
 export function isGoogleNewsUrl(value: string) {
   return hostName(value) === "news.google.com"
+}
+
+export function looksLikeArticleUrl(value: string) {
+  try {
+    const url = new URL(value)
+    if (!/^https?:$/.test(url.protocol)) return false
+    const pathParts = url.pathname.split("/").filter(Boolean)
+    if (pathParts.length === 0) return false
+    if (/^(home|search|tag|topic|topics|category|categories|author|authors)$/i.test(pathParts[0] || "")) return false
+    return true
+  } catch {
+    return false
+  }
 }
 
 export function scoreWorldwireTitle(title: string, baseScore: number, index: number, context: { source?: string; url?: string } = {}) {

@@ -4,6 +4,7 @@ import {
   hostName,
   isExternalUrl,
   isGoogleNewsUrl,
+  looksLikeArticleUrl,
   normalizeWorldwireText,
   readWorldwireXmlSource,
   readWorldwireXmlTag,
@@ -31,7 +32,7 @@ async function fetchExaLane(lane: WorldwireLane): Promise<WorldwireItem[]> {
     body: JSON.stringify({
       query: `${lane.query} latest high consequence source reporting`,
       type: "auto",
-      numResults: 8,
+      numResults: 12,
       contents: {
         highlights: true,
       },
@@ -76,7 +77,7 @@ async function fetchBraveLane(lane: WorldwireLane): Promise<WorldwireItem[]> {
 
   const url = new URL("https://api.search.brave.com/res/v1/web/search")
   url.searchParams.set("q", `${lane.query} latest`)
-  url.searchParams.set("count", "8")
+  url.searchParams.set("count", "12")
   url.searchParams.set("freshness", "pd")
   url.searchParams.set("safesearch", "moderate")
 
@@ -144,13 +145,13 @@ async function fetchGoogleLane(lane: WorldwireLane): Promise<WorldwireItem[]> {
 
   const xml = await response.text()
   return [...xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)]
-    .slice(0, 8)
+    .slice(0, 12)
     .map((match, index) => {
       const item = match[1]
       const title = readWorldwireXmlTag(item, "title")
       const link = decodeWorldwireEntities(readWorldwireXmlTag(item, "link"))
       const source = readWorldwireXmlSource(item)
-      const directUrl = source.url && !isGoogleNewsUrl(source.url) ? source.url : link
+      const directUrl = link && !isGoogleNewsUrl(link) ? link : source.url || ""
       return {
         id: `google-${lane.id}-${index}`,
         title,
@@ -163,14 +164,14 @@ async function fetchGoogleLane(lane: WorldwireLane): Promise<WorldwireItem[]> {
         excerpt: readWorldwireXmlTag(item, "description"),
       }
     })
-    .filter((item) => !isGoogleNewsUrl(item.url))
+    .filter((item) => !isGoogleNewsUrl(item.url) && looksLikeArticleUrl(item.url))
 }
 
 async function fetchLane(lane: WorldwireLane) {
-  const exaItems = await fetchExaLane(lane).catch(() => [])
-  if (exaItems.length) return exaItems
-  const braveItems = await fetchBraveLane(lane).catch(() => [])
-  return braveItems.length ? braveItems : fetchGoogleLane(lane).catch(() => [])
+  const results = await Promise.allSettled([fetchExaLane(lane), fetchBraveLane(lane), fetchGoogleLane(lane)])
+  return uniqueWorldwireItems(results.flatMap((result) => (result.status === "fulfilled" ? result.value : [])))
+    .filter((item) => isExternalUrl(item.url) && !isGoogleNewsUrl(item.url) && looksLikeArticleUrl(item.url))
+    .sort((left, right) => right.score - left.score)
 }
 
 export async function fetchWorldwireItems(options: { lanes?: WorldwireLane[] } = {}) {
