@@ -1843,6 +1843,10 @@ const PIPELINE_STALE_AFTER_MINUTES = Math.max(
   1,
   Math.trunc(Number(process.env.RECURSIV_PIPELINE_STALE_AFTER_MINUTES || "30")) || 30,
 )
+const PIPELINE_STALE_CLEANUP_TIMEOUT_MS = Math.max(
+  1000,
+  Math.trunc(Number(process.env.RECURSIV_PIPELINE_STALE_CLEANUP_TIMEOUT_MS || "15000")) || 15000,
+)
 
 function normalizePipelineMode(mode?: string | null): FullPipelineMode {
   return mode === "all" ? "all" : "scheduled"
@@ -1913,6 +1917,39 @@ async function markStalePipelineRuns(
   }
 }
 
+async function markStalePipelineRunsForPipelineStart(
+  sdk: RecursivServerClient,
+  config: RecursivDatabaseConfig,
+  jobName: string,
+  staleAfterMinutes?: number,
+) {
+  let timeout: ReturnType<typeof setTimeout> | undefined
+  try {
+    return await Promise.race([
+      markStalePipelineRuns(sdk, config, jobName, staleAfterMinutes),
+      new Promise<{ staleRunCount: number; staleRunIds: string[]; warning: string }>((resolve) => {
+        timeout = setTimeout(
+          () =>
+            resolve({
+              staleRunCount: 0,
+              staleRunIds: [],
+              warning: `Skipped stale-run cleanup after ${PIPELINE_STALE_CLEANUP_TIMEOUT_MS}ms so the pipeline could start.`,
+            }),
+          PIPELINE_STALE_CLEANUP_TIMEOUT_MS,
+        )
+      }),
+    ])
+  } catch (error) {
+    return {
+      staleRunCount: 0,
+      staleRunIds: [],
+      warning: `Skipped stale-run cleanup: ${error instanceof Error ? error.message : String(error)}`,
+    }
+  } finally {
+    if (timeout) clearTimeout(timeout)
+  }
+}
+
 export async function markStalePipelineRunsInRecursiv(options: { jobName?: string; staleAfterMinutes?: number } = {}) {
   const { sdk, config } = getInvertedWorldDatabase()
   return markStalePipelineRuns(
@@ -1960,7 +1997,7 @@ export async function runFullPipelineInRecursiv(options: { mode?: string | null;
   const { sdk, config } = getInvertedWorldDatabase()
   const started = Date.now()
   const mode = normalizePipelineMode(options.mode)
-  const staleCleanup = await markStalePipelineRuns(sdk, config, "full-pipeline", options.staleAfterMinutes)
+  const staleCleanup = await markStalePipelineRunsForPipelineStart(sdk, config, "full-pipeline", options.staleAfterMinutes)
   const run = await sdk.databases.query({
     project_id: config.projectId,
     database_name: config.databaseName,
