@@ -1,5 +1,6 @@
 import dns from "node:dns/promises"
 import fs from "node:fs"
+import path from "node:path"
 import { Recursiv } from "@recursiv/sdk"
 
 const LOCAL_RECURSIV_KEY = "/private/tmp/inverted-world-recursiv-key"
@@ -78,6 +79,17 @@ function statusText(ok) {
 function statusTextOrUnknown(value) {
   if (value === null || value === undefined) return "unknown"
   return statusText(Boolean(value))
+}
+
+function readArgValue(name) {
+  const exact = `--${name}`
+  const prefix = `${exact}=`
+  for (let index = 2; index < process.argv.length; index += 1) {
+    const arg = process.argv[index]
+    if (arg === exact) return process.argv[index + 1] || ""
+    if (arg.startsWith(prefix)) return arg.slice(prefix.length)
+  }
+  return ""
 }
 
 function dataSourceStatus(sourceMode) {
@@ -414,6 +426,7 @@ async function main() {
   loadEnvFile(".env.local")
 
   const publicOnly = process.argv.includes("--public-only") || process.env.CUTOVER_PUBLIC_ONLY === "1"
+  const outputPath = readArgValue("output") || process.env.CUTOVER_READINESS_OUTPUT || ""
   const apiKey = readRecursivKey()
   const projectId = process.env.RECURSIV_PROJECT_ID
   const databaseName = process.env.RECURSIV_DATABASE_NAME || DEFAULT_DATABASE_NAME
@@ -676,91 +689,91 @@ async function main() {
     nextActions.push("Keep www.inverted.world on the legacy host until the failed gates pass.")
   }
 
-  console.log(
-    JSON.stringify(
-      {
-        generatedAt: new Date().toISOString(),
-        mode: {
-          publicOnly,
-        },
-        project: {
-          id: project?.id || projectId,
-          name: project?.name,
-          slug: project?.slug,
-          repoUrl: project?.repo_url,
-        },
-        checks,
-        readinessWarnings,
-        decision: {
-          recursivHostingProven,
-          recursivHostedUrlProven,
-          recursivDeploymentCompleted,
-          releaseProofReady,
-          recursivArchiveDataReady,
-          recursivArchiveLiveDatabaseReady,
-          recursivArchiveSnapshotReady,
-          pipelineApiReady,
-          mediaItemPageReady,
-          mediaItemApiReady,
-          publicHostingReady,
-          fullAiProductReady,
-          recursivDeploymentIncludesSlugHost,
-          customDomainBindingConfigured,
-          dnsChangeReady,
-          customDomainRecursivProven,
-          dnsCutoverReady,
-          keepDnsOnVercel,
-        },
-        recursivUrl: recursivHttp,
-        releaseApi,
-        recursivArchiveApi: archiveApi,
-        recursivArchiveDataSource: dataSourceStatus(archiveApi.sourceMode),
-        documentsApi,
-        documentsDataSource: dataSourceStatus(documentsApi.sourceMode),
-        pipelineApi,
-        pipelineDataSource: dataSourceStatus(pipelineApi.sourceMode),
-        mediaItemPage,
-        mediaItemApi,
-        mediaItemDataSource: dataSourceStatus(mediaItemApi.sourceMode),
-        customDomain: {
-          http: customHttp,
-          dns: customDns,
-          looksLikeLegacyVercel: customLooksVercel,
-        },
-        deployment: latestDeployment
-          ? {
-              id: latestDeployment.id,
-              status: latestDeployment.status,
-              statusSync: deploymentStatusSync,
-              deploymentUrl: latestDeployment.deployment_url,
-              coolifyDomain: latestDeployment.coolify_domain,
-              hostnames: deploymentHostnames,
-              completedAt: latestDeployment.completed_at,
-              errorMessage: latestDeployment.error_message,
-            }
-          : null,
-        jobs: {
-          expectedCount: EXPECTED_JOBS.length,
-          lookupAvailable: jobsLookupAvailable,
-          activeCount: invertedWorldJobs.filter((job) => job.status === "active").length,
-          missingJobs,
-          lastErrors: jobLastErrors,
-        },
-        providerHealth,
-        providerHealthAvailable,
-        recentPipelineRuns: pipelineRuns.map((run) => ({
-          jobName: run.job_name,
-          status: run.status,
-          completedAt: run.completed_at,
-          durationMs: run.duration_ms,
-          error: run.error ? String(run.error).slice(0, 220) : "",
-        })),
-        nextActions,
-      },
-      null,
-      2,
-    ),
-  )
+  const report = {
+    generatedAt: new Date().toISOString(),
+    mode: {
+      publicOnly,
+    },
+    project: {
+      id: project?.id || projectId,
+      name: project?.name,
+      slug: project?.slug,
+      repoUrl: project?.repo_url,
+    },
+    checks,
+    readinessWarnings,
+    decision: {
+      recursivHostingProven,
+      recursivHostedUrlProven,
+      recursivDeploymentCompleted,
+      releaseProofReady,
+      recursivArchiveDataReady,
+      recursivArchiveLiveDatabaseReady,
+      recursivArchiveSnapshotReady,
+      pipelineApiReady,
+      mediaItemPageReady,
+      mediaItemApiReady,
+      publicHostingReady,
+      fullAiProductReady,
+      recursivDeploymentIncludesSlugHost,
+      customDomainBindingConfigured,
+      dnsChangeReady,
+      customDomainRecursivProven,
+      dnsCutoverReady,
+      keepDnsOnVercel,
+    },
+    recursivUrl: recursivHttp,
+    releaseApi,
+    recursivArchiveApi: archiveApi,
+    recursivArchiveDataSource: dataSourceStatus(archiveApi.sourceMode),
+    documentsApi,
+    documentsDataSource: dataSourceStatus(documentsApi.sourceMode),
+    pipelineApi,
+    pipelineDataSource: dataSourceStatus(pipelineApi.sourceMode),
+    mediaItemPage,
+    mediaItemApi,
+    mediaItemDataSource: dataSourceStatus(mediaItemApi.sourceMode),
+    customDomain: {
+      http: customHttp,
+      dns: customDns,
+      looksLikeLegacyVercel: customLooksVercel,
+    },
+    deployment: latestDeployment
+      ? {
+          id: latestDeployment.id,
+          status: latestDeployment.status,
+          statusSync: deploymentStatusSync,
+          deploymentUrl: latestDeployment.deployment_url,
+          coolifyDomain: latestDeployment.coolify_domain,
+          hostnames: deploymentHostnames,
+          completedAt: latestDeployment.completed_at,
+          errorMessage: latestDeployment.error_message,
+        }
+      : null,
+    jobs: {
+      expectedCount: EXPECTED_JOBS.length,
+      lookupAvailable: jobsLookupAvailable,
+      activeCount: invertedWorldJobs.filter((job) => job.status === "active").length,
+      missingJobs,
+      lastErrors: jobLastErrors,
+    },
+    providerHealth,
+    providerHealthAvailable,
+    recentPipelineRuns: pipelineRuns.map((run) => ({
+      jobName: run.job_name,
+      status: run.status,
+      completedAt: run.completed_at,
+      durationMs: run.duration_ms,
+      error: run.error ? String(run.error).slice(0, 220) : "",
+    })),
+    nextActions,
+  }
+  const output = JSON.stringify(report, null, 2)
+  if (outputPath) {
+    fs.mkdirSync(path.dirname(path.resolve(outputPath)), { recursive: true })
+    fs.writeFileSync(outputPath, `${output}\n`)
+  }
+  console.log(output)
 }
 
 main().catch((error) => {
