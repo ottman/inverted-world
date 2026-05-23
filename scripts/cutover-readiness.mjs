@@ -1,4 +1,5 @@
 import dns from "node:dns/promises"
+import { execFileSync } from "node:child_process"
 import fs from "node:fs"
 import path from "node:path"
 import { Recursiv } from "@recursiv/sdk"
@@ -133,6 +134,28 @@ function latestByCreatedAt(items) {
     const rightTime = new Date(right.created_at || right.started_at || 0).getTime()
     return rightTime - leftTime
   })[0]
+}
+
+function currentCommitHash() {
+  try {
+    return execFileSync("git", ["rev-parse", "--short=12", "HEAD"], { encoding: "utf8" }).trim()
+  } catch {
+    return undefined
+  }
+}
+
+function normalizeCommit(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-f0-9]/g, "")
+}
+
+function commitsMatch(actual, expected) {
+  const actualCommit = normalizeCommit(actual)
+  const expectedCommit = normalizeCommit(expected)
+  if (actualCommit.length < 7 || expectedCommit.length < 7) return null
+  return actualCommit.startsWith(expectedCommit) || expectedCommit.startsWith(actualCommit)
 }
 
 async function withTimeout(promise, label, fallback, warnings, timeoutMs = READINESS_TIMEOUT_MS) {
@@ -288,6 +311,18 @@ async function probeReleaseApi(url) {
           : undefined,
       pipelineSnapshotFallback: Boolean(body.features?.pipelineSnapshotFallback),
       dnsCutoverRequiresCustomDomainProof: Boolean(body.features?.dnsCutoverRequiresCustomDomainProof),
+      deployment:
+        body.deployment && typeof body.deployment === "object"
+          ? {
+              buildId: typeof body.deployment.buildId === "string" ? body.deployment.buildId : undefined,
+              sourceRevision:
+                typeof body.deployment.sourceRevision === "string" ? body.deployment.sourceRevision : undefined,
+              sourceRevisionSource:
+                typeof body.deployment.sourceRevisionSource === "string" ? body.deployment.sourceRevisionSource : undefined,
+              recursivDeploymentId:
+                typeof body.deployment.recursivDeploymentId === "string" ? body.deployment.recursivDeploymentId : undefined,
+            }
+          : undefined,
       durationMs: Date.now() - started,
     }
   } catch (error) {
@@ -427,6 +462,7 @@ async function main() {
 
   const publicOnly = process.argv.includes("--public-only") || process.env.CUTOVER_PUBLIC_ONLY === "1"
   const outputPath = readArgValue("output") || process.env.CUTOVER_READINESS_OUTPUT || ""
+  const expectedReleaseCommit = process.env.RECURSIV_EXPECTED_RELEASE_COMMIT || currentCommitHash()
   const apiKey = readRecursivKey()
   const projectId = process.env.RECURSIV_PROJECT_ID
   const databaseName = process.env.RECURSIV_DATABASE_NAME || DEFAULT_DATABASE_NAME
@@ -566,6 +602,7 @@ async function main() {
       releaseApi.pipelineSnapshotFallback &&
       releaseApi.dnsCutoverRequiresCustomDomainProof,
   )
+  const releaseCommitMatch = commitsMatch(releaseApi.deployment?.sourceRevision, expectedReleaseCommit)
   const recursivDeploymentCompleted = Boolean(latestDeployment?.status === "completed")
   const recursivHostingProven = Boolean(recursivHostedUrlProven && recursivDeploymentCompleted)
   const recursivArchiveDataReady = Boolean(
@@ -627,6 +664,7 @@ async function main() {
     recursivDeploymentCompleted: deploymentLookupAvailable ? statusText(recursivDeploymentCompleted) : "unknown",
     recursivHosting: statusText(recursivHostingProven),
     releaseProof: statusText(releaseProofReady),
+    releaseCommit: releaseCommitMatch === null ? "unknown" : statusText(releaseCommitMatch),
     recursivArchiveData: statusText(recursivArchiveDataReady),
     recursivArchiveLiveDatabase: statusText(recursivArchiveLiveDatabaseReady),
     recursivArchiveSnapshot: statusText(recursivArchiveSnapshotReady),
@@ -650,6 +688,11 @@ async function main() {
   if (!recursivHostedUrlProven) nextActions.push("Do not touch DNS until invertedworld.on.recursiv.io returns the expected app.")
   if (!releaseProofReady) {
     nextActions.push("Do not touch DNS until /api/release returns the current Recursiv feature marker for the deployed backend.")
+  }
+  if (releaseCommitMatch === false) {
+    nextActions.push(
+      `Do not touch DNS until /api/release source revision matches the expected deployed commit ${expectedReleaseCommit}.`,
+    )
   }
   if (recursivHostedUrlProven && !recursivDeploymentCompleted) {
     nextActions.push("HTTP proof for invertedworld.on.recursiv.io is green, but Recursiv deployment completion could not be proven; rerun cutover after the Recursiv API key is healthy.")
@@ -724,6 +767,7 @@ async function main() {
     },
     recursivUrl: recursivHttp,
     releaseApi,
+    expectedReleaseCommit,
     recursivArchiveApi: archiveApi,
     recursivArchiveDataSource: dataSourceStatus(archiveApi.sourceMode),
     documentsApi,

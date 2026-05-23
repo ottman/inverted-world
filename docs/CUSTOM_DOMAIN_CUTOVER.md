@@ -23,6 +23,7 @@ The command prints a redacted JSON report with:
 - latest Recursiv deployment status;
 - HTTP proof for `https://invertedworld.on.recursiv.io`;
 - release proof from `https://invertedworld.on.recursiv.io/api/release`, including the deployed feature marker;
+- source-revision proof from `/api/release` when the hosted build exposes `deployment.sourceRevision`;
 - Recursiv deployment-domain proof that distinguishes the platform slug host from a configured custom-domain binding;
 - Recursiv archive API proof, including `sourceMode`, data-source classification, and archive count;
 - source-document API proof for `https://invertedworld.on.recursiv.io/api/documents`;
@@ -47,6 +48,7 @@ The output file contains the same no-secret report printed to stdout.
 
 - `recursivHostingProven` must be `true`.
 - If `recursivHostedUrl` passes but `recursivDeploymentCompleted` is `unknown`, HTTP proof is good but deployment proof is incomplete. Do not treat that as a DNS-ready state.
+- `releaseCommit` should be `pass` when the hosted build exposes a source revision. `unknown` is acceptable only when the runtime cannot expose a git/build revision; `fail` means the hosted app is not the expected commit.
 - `recursivArchiveDataReady` must be `true`. This can be live `recursiv-database` or `recursiv-snapshot`, but it must not be `seed`, `static`, RSS, YouTube API, or direct provider fallback data.
 - `documentsApi` must pass, proving the source shelf is available as machine-readable JSON from live `recursiv-database` or `recursiv-snapshot` data.
 - `pipelineApi` must pass, proving `/api/pipeline` exposes the latest full-pipeline status from live Recursiv database rows or the committed Recursiv snapshot fallback.
