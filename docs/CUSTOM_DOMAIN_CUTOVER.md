@@ -23,7 +23,7 @@ The command prints a redacted JSON report with:
 - latest Recursiv deployment status;
 - HTTP proof for `https://invertedworld.on.recursiv.io`;
 - release proof from `https://invertedworld.on.recursiv.io/api/release`, including the deployed feature marker;
-- source-revision proof from `/api/release` when the hosted build exposes `deployment.sourceRevision`, or from authenticated Recursiv deployment metadata when the runtime does not inject a commit environment variable;
+- source-revision proof from `/api/release` when the hosted build exposes `deployment.sourceRevision` from a commit environment variable or the commit-shaped Next build id, or from authenticated Recursiv deployment metadata when the runtime cannot expose either;
 - public provider-fallback audit proof from `pnpm audit:public-providers`;
 - Recursiv deployment-domain proof that distinguishes the platform slug host from a configured custom-domain binding;
 - Recursiv archive API proof, including `sourceMode`, data-source classification, and archive count;

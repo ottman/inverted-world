@@ -19,7 +19,13 @@ function readBuildId() {
   }
 }
 
-function sourceRevision() {
+function commitLikeBuildId(value: string | null) {
+  if (!value) return null
+  const normalized = value.trim().toLowerCase()
+  return /^[a-f0-9]{7,40}$/.test(normalized) ? normalized : null
+}
+
+function sourceRevision(buildId: string | null) {
   const pairs = [
     ["RECURSIV_DEPLOY_COMMIT", publicEnv("RECURSIV_DEPLOY_COMMIT")],
     ["RECURSIV_DEPLOYMENT_COMMIT", publicEnv("RECURSIV_DEPLOYMENT_COMMIT")],
@@ -30,6 +36,7 @@ function sourceRevision() {
     ["COOLIFY_GIT_COMMIT_SHA", publicEnv("COOLIFY_GIT_COMMIT_SHA")],
     ["CF_PAGES_COMMIT_SHA", publicEnv("CF_PAGES_COMMIT_SHA")],
     ["GITHUB_SHA", publicEnv("GITHUB_SHA")],
+    ["NEXT_BUILD_ID", commitLikeBuildId(buildId)],
   ] as const
   const match = pairs.find(([, value]) => value)
   return {
@@ -40,7 +47,7 @@ function sourceRevision() {
 
 export async function GET() {
   const buildId = readBuildId()
-  const revision = sourceRevision()
+  const revision = sourceRevision(buildId)
 
   return NextResponse.json({
     ...INVERTED_WORLD_RELEASE,
