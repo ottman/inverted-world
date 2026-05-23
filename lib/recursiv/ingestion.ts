@@ -2006,10 +2006,11 @@ async function persistPipelineProgress(
   })
 }
 
-export async function runFullPipelineInRecursiv(options: { mode?: string | null; staleAfterMinutes?: number } = {}) {
+export async function runFullPipelineInRecursiv(options: { mode?: string | null; staleAfterMinutes?: number; profileReader?: boolean } = {}) {
   const { sdk, config } = getInvertedWorldDatabase()
   const started = Date.now()
   const mode = normalizePipelineMode(options.mode)
+  const profileReader = options.profileReader !== false
   const run = await sdk.databases.query({
     project_id: config.projectId,
     database_name: config.databaseName,
@@ -2022,6 +2023,7 @@ export async function runFullPipelineInRecursiv(options: { mode?: string | null;
       JSON.stringify({
         generatedBy: "recursiv-full-pipeline-v1",
         mode,
+        profileReader,
         siteUrl: process.env.INVERTED_WORLD_SITE_URL || "https://invertedworld.on.recursiv.io",
         staleCleanup: {
           staleRunCount: 0,
@@ -2053,7 +2055,7 @@ export async function runFullPipelineInRecursiv(options: { mode?: string | null;
     ["source-documents", syncSourceDocumentsToRecursiv],
     ["media-library", syncMediaLibraryToRecursiv],
     ["youtube-archive-sync", syncYouTubeArchiveToRecursiv],
-    ["topic-pulse", syncTopicPulseToRecursiv],
+    ["topic-pulse", () => syncTopicPulseToRecursiv({ profileReader })],
     ["worldwire", syncWorldwireCoverageToRecursiv],
     ["claim-dossiers", generateClaimDossiersInRecursiv],
     ["article-generation", generateArticleDraftsInRecursiv],
@@ -2065,7 +2067,7 @@ export async function runFullPipelineInRecursiv(options: { mode?: string | null;
     ["source-documents", syncSourceDocumentsToRecursiv],
     ["media-library", syncMediaLibraryToRecursiv],
     ["youtube-archive-sync", syncYouTubeArchiveToRecursiv],
-    ["topic-pulse", syncTopicPulseToRecursiv],
+    ["topic-pulse", () => syncTopicPulseToRecursiv({ profileReader })],
     ["worldwire", syncWorldwireCoverageToRecursiv],
     ["publishing", publishReadyDraftsInRecursiv],
     ["front-page-edition", publishFrontPageEditionInRecursiv],

@@ -221,6 +221,6 @@ If Recursiv returns an API-key per-hour rate limit and no direct database URL is
 
 `recursiv:deploy` and `recursiv:deploy:status` record a local cooldown in `/private/tmp/inverted-world-recursiv-api-cooldown.json` after a Recursiv API `429`, then refuse further deploy/status calls until the window is likely clear. Use `node scripts/deploy-recursiv.mjs --clear-cooldown` only when the window has likely cleared, or `--ignore-cooldown` for a deliberate one-shot override.
 
-The scheduled topic-pulse manifest enables `profileReader=1` so Recursiv can keep collecting priority-account X signals through the public profile-reader lane while paid X API credits are blocked. Paid X API access is still the full-fidelity provider for metric-aware velocity.
+The scheduled topic-pulse manifest and the scheduled full-pipeline manifest enable `profileReader=1` so Recursiv can keep collecting priority-account X signals through the public profile-reader lane while paid X API credits are blocked. Paid X API access is still the full-fidelity provider for metric-aware velocity.
 
 `recursiv:health` prints a non-secret provider health report for local proof. The authenticated hosted job `/api/recursiv/jobs/provider-health` runs the same class of checks inside the Recursiv-hosted app and persists the redacted result into `pipeline_runs` under `job_name = 'provider-health'`. It reports whether provider paths are missing, live, or errored without returning API keys or secret values.

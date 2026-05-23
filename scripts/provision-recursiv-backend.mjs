@@ -324,7 +324,7 @@ const JOBS = [
   {
     name: "inverted-world-full-pipeline",
     cron: "2 * * * *",
-    endpoint: "/api/recursiv/jobs/full-pipeline?mode=scheduled&staleAfterMinutes=30&async=1",
+    endpoint: "/api/recursiv/jobs/full-pipeline?mode=scheduled&staleAfterMinutes=30&profileReader=1&async=1",
   },
   {
     name: "inverted-world-pipeline-maintenance",
