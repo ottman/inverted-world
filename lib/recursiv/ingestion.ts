@@ -8,6 +8,7 @@ import {
 } from "@/data/inverted-world"
 import { fetchLiveArticlesForTopic } from "@/lib/live-articles"
 import { fetchMediaSeedItemsForSync, mediaItemMetadata } from "@/lib/media-library"
+import { generatedSvgThumbnail } from "@/lib/generated-thumbnail"
 import { createRecursivServerClient } from "@/lib/recursiv/client"
 import { INVERTED_WORLD_SCHEMA_SQL } from "@/lib/recursiv/schema"
 import { extractSourceText } from "@/lib/source-extraction"
@@ -376,24 +377,6 @@ function diversifyFrontPageItems<T extends { title?: string; text?: string; href
   }
 
   return [...primary, ...overflow].slice(0, limit)
-}
-
-function escapeXml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&apos;")
-}
-
-function generatedSvgThumbnail(title: string, slug: string) {
-  const words = title.split(/\s+/).filter(Boolean)
-  const lineOne = escapeXml(words.slice(0, 5).join(" "))
-  const lineTwo = escapeXml(words.slice(5, 10).join(" "))
-  const sigil = escapeXml(slug.replace(/^brief-/, "").slice(0, 3).toUpperCase() || "IW")
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#050504"/><stop offset=".58" stop-color="#17100a"/><stop offset="1" stop-color="#7f1d1d"/></linearGradient><pattern id="p" width="64" height="64" patternUnits="userSpaceOnUse"><path d="M64 0H0v64" fill="none" stroke="#f4efe2" stroke-opacity=".08" stroke-width="1"/></pattern></defs><rect width="1024" height="1024" fill="url(#g)"/><rect width="1024" height="1024" fill="url(#p)"/><rect x="72" y="72" width="880" height="880" fill="none" stroke="#df2f2f" stroke-width="10"/><text x="94" y="166" fill="#df2f2f" font-family="Arial, sans-serif" font-size="42" font-weight="700" letter-spacing="8">INVERTED WORLD</text><text x="94" y="456" fill="#fff8e6" font-family="Georgia, serif" font-size="76" font-weight="700">${lineOne}</text><text x="94" y="552" fill="#fff8e6" font-family="Georgia, serif" font-size="76" font-weight="700">${lineTwo}</text><text x="94" y="854" fill="#f4efe2" fill-opacity=".58" font-family="Arial, sans-serif" font-size="36" font-weight="700" letter-spacing="6">${sigil} / SOURCE DOSSIER</text></svg>`
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
 }
 
 function sourceKind(sourceName: string, sourceUrl = "") {

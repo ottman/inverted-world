@@ -2,6 +2,7 @@ import { researchDocuments, topics, type ChannelVideo, type ResearchDocument } f
 import recursivPublicSnapshot from "@/data/generated/recursiv-public-snapshot.json"
 import recursivNewsSnapshot from "@/data/generated/recursiv-news-snapshot.json"
 import type { IntelligenceArticle } from "@/data/intelligence-articles"
+import { generatedSvgThumbnail, isGeneratedSvgThumbnailUrl } from "@/lib/generated-thumbnail"
 import type { ViralXPost } from "@/lib/x-posts"
 import { queryInvertedWorldDatabase, type RecursivRow } from "@/lib/recursiv/database"
 import {
@@ -410,6 +411,22 @@ function cleanDossierDeck(value: string | undefined, topicId: string) {
   return deck
 }
 
+function defaultDossierSummary(topicId: string, sourceCount: number, xSignalCount: number, relatedVideoCount: number) {
+  const topic = topicDisplayTitle(topicId)
+  return `${topic} file with ${sourceCount} source link${sourceCount === 1 ? "" : "s"}, ${xSignalCount} stored X signal${
+    xSignalCount === 1 ? "" : "s"
+  }, and ${relatedVideoCount} related Tales archive item${relatedVideoCount === 1 ? "" : "s"}. Start from the linked records before drawing conclusions.`
+}
+
+function defaultWeirdRead(topicId: string, title: string) {
+  const topic = topicDisplayTitle(topicId)
+  return `The ${topic} read is to watch the timing, repeated language, missing records, and institutional incentives around ${title}; the anomaly may be in the pattern around the story, not just the headline.`
+}
+
+function defaultSkepticalRead(title: string) {
+  return `The skeptical check is to separate what ${title} directly documents from commentary, social amplification, old claims resurfacing as new, and inferences that still need primary records.`
+}
+
 function defaultThumbnail(topicId?: string) {
   const topic = topics.find((item) => item.id === topicId)
   return {
@@ -417,6 +434,14 @@ function defaultThumbnail(topicId?: string) {
     sigil: "REC",
     palette: "from-[#050504] via-[#21180d] to-[#df2f2f]",
   }
+}
+
+function articleImageUrl(row: ArticleDraftRow, title: string, topicId: string) {
+  const metadata = jsonObject(row.metadata)
+  const assetUrl = row.asset_url || (typeof metadata.assetUrl === "string" ? metadata.assetUrl : undefined)
+  const slug = row.slug || row.id || `${topicId}-${title}`
+  if (!assetUrl || isGeneratedSvgThumbnailUrl(assetUrl)) return generatedSvgThumbnail(title, slug)
+  return assetUrl
 }
 
 function channelRowToVideo(row: ChannelItemRow): ChannelVideo {
@@ -465,7 +490,7 @@ function articleRowToArticle(row: ArticleDraftRow): IntelligenceArticle {
     thumbnail: {
       ...defaultThumbnail(topicId),
       ...(thumbnail as Partial<IntelligenceArticle["thumbnail"]>),
-      imageUrl: row.asset_url || (typeof metadata.assetUrl === "string" ? metadata.assetUrl : undefined),
+      imageUrl: articleImageUrl(row, title, topicId),
     },
     body: body.length
       ? body
@@ -612,6 +637,9 @@ function claimDossierRowToDossier(row: ClaimDossierRow): ClaimDossier {
   const publishedAt = safeDate(row.published_at || row.generated_at) || new Date().toISOString().slice(0, 10)
   const title = cleanDossierTitle(row.title, topicId)
   const rawSlug = row.slug || row.id || "claim-dossier"
+  const sourceCount = Number(row.source_count || 0)
+  const xSignalCount = Number(row.x_signal_count || 0)
+  const relatedVideoCount = Number(row.related_video_count || 0)
 
   return {
     id: row.id || row.slug || "claim-dossier",
@@ -621,19 +649,19 @@ function claimDossierRowToDossier(row: ClaimDossierRow): ClaimDossier {
     topicId,
     topic: topicTitle(topicId),
     claim: cleanDossierTitle(row.claim || title, topicId),
-    summary: row.summary || "The research desk has not written a summary yet.",
+    summary: row.summary || defaultDossierSummary(topicId, sourceCount, xSignalCount, relatedVideoCount),
     status: row.status || "draft",
     evidenceGrade: row.evidence_grade || "developing",
     confidenceScore: Number(row.confidence_score || 0),
     xVelocityScore: Number(row.x_velocity_score || 0),
-    sourceCount: Number(row.source_count || 0),
-    xSignalCount: Number(row.x_signal_count || 0),
-    relatedVideoCount: Number(row.related_video_count || 0),
+    sourceCount,
+    xSignalCount,
+    relatedVideoCount,
     sourceLinks: jsonArray(row.source_links).map(sourceLinkFromJson).filter((item): item is ClaimSourceLink => Boolean(item)),
     xSignals: jsonArray(row.x_signals).map(postFromJson).filter((item): item is ViralXPost => Boolean(item)),
     relatedVideos: jsonArray(row.related_videos).map(videoFromJson).filter((item): item is ChannelVideo => Boolean(item)),
-    weirdRead: row.weird_read || "The weird read has not been generated yet.",
-    skepticalRead: row.skeptical_read || "The skeptical read has not been generated yet.",
+    weirdRead: row.weird_read || defaultWeirdRead(topicId, title),
+    skepticalRead: row.skeptical_read || defaultSkepticalRead(title),
     viralHeadlines: jsonArray(row.viral_headlines).map(String).filter(Boolean),
     chatPrompt: row.chat_prompt || "",
     publishedAt,
