@@ -30,6 +30,7 @@ The command prints a redacted JSON report with:
 - public provider-fallback audit proof from `pnpm audit:public-providers`;
 - Recursiv deployment-domain proof that distinguishes the platform slug host from a configured custom-domain binding;
 - Recursiv archive API proof, including `sourceMode`, data-source classification, archive count, required topic coverage, and dominant-topic balance;
+- published article API proof from `/api/articles`, including Recursiv-backed source mode, generated thumbnails, topic spread, and clean non-duplicated headlines;
 - source-document API proof for `https://invertedworld.on.recursiv.io/api/documents`;
 - media-library detail proof for the UAP PDF route and JSON item route;
 - Ask This Story proof from `/api/dossiers/[slug]/chat`, requiring no-write sourced Markdown with source and archive links;
@@ -61,6 +62,7 @@ The output file contains the same no-secret report printed to stdout.
 - `publicProviderFallbackAudit` must be `pass`, proving public `app/` routes and pages do not call provider-capable helpers without `allowProviderFallbacks: false`.
 - `recursivArchiveDataReady` must be `true`. This can be live `recursiv-database` or `recursiv-snapshot`, but it must not be `seed`, `static`, RSS, YouTube API, or direct provider fallback data.
 - `recursivArchiveTopicCoverage` must pass, proving the archive has at least 12 videos in each core topic and no single topic is more than 70% of the archive.
+- `articlesApi` must pass, proving `/api/articles` returns at least 12 Recursiv-backed published articles across at least four topics, with generated thumbnails and no repeated lane prefixes in headlines.
 - `documentsApi` must pass, proving the source shelf is available as machine-readable JSON from live `recursiv-database` or `recursiv-snapshot` data.
 - `pipelineApi` and `pipelineFreshness` must pass, proving `/api/pipeline` exposes a succeeded full-pipeline run from live Recursiv database rows or the committed Recursiv snapshot fallback completed inside 36 hours.
 - `frontPageApi` and `frontPageFreshness` must pass, proving `/api/front-page` exposes a Recursiv-backed edition tied to an edition or pipeline timestamp inside 36 hours and direct ticker targets into stories, X signals, and archive items.
@@ -112,7 +114,7 @@ This still does not change DNS. The `:wait` variant polls deployment status unti
 
 ## Current Expected State
 
-As of the latest public-only proof on May 23, 2026 at `16:34Z`, `invertedworld.on.recursiv.io` is live but the hosted build has not yet caught up to the latest pushed repo commit. Treat the Recursiv slug as available, not DNS-ready.
+As of the latest public-only proof on May 23, 2026 at `16:46Z`, `invertedworld.on.recursiv.io` is live but the hosted build has not yet caught up to the latest repo changes. Treat the Recursiv slug as available, not DNS-ready.
 
 Current live proof:
 
@@ -121,8 +123,9 @@ Current live proof:
 - `/x/secret-programs` returns HTTP 200 with 26 outbound X links, 19 anchored post cards, and 38 ticker anchor links.
 - `/api/x/secret-programs?limit=24` returns 19 recent Declassified X posts from two source modes, with the latest post age inside the freshness window.
 - `/api/archive?limit=1000` returns `sourceMode: "recursiv-snapshot"`, 437 archive videos, no warnings, all six core topics above the minimum coverage threshold, no topic above the 70% dominance threshold, and `hasMore: false`.
+- `/api/articles` currently returns 8 articles and 8 generated thumbnails on the hosted build, but it does not expose Recursiv `sourceMode` and does not meet the 12-article cutover gate. The local built proof returns `sourceMode: "recursiv-snapshot"` with 16 articles across six topics, 16 generated thumbnails, and no repeated lane prefixes; deploy that build before considering the article gate live.
 - `/api/documents` returns `sourceMode: "recursiv-snapshot"` with 37 source documents across six topics and five media/document kinds.
-- The latest pushed build exposes `/api/front-page` with `sourceMode` and direct Recursiv-backed ticker items, but the hosted build must be redeployed before this can pass publicly.
+- The repo exposes `/api/front-page` with `sourceMode` and direct Recursiv-backed ticker items, but the hosted build must be redeployed before this can pass publicly.
 - `/media/war-uap-release-02-senior-usic-narrative` returns HTTP 200.
 - `/api/media/war-uap-release-02-senior-usic-narrative` returns `sourceMode: "recursiv-snapshot"` with the official UAP PDF item and related media.
 - `/api/release` still returns `pipelineSnapshotFallback: false` on the hosted app, so the current hosted build is older than the pushed repo.
@@ -132,7 +135,7 @@ Current live proof:
 
 Earlier full readiness runs proved the Recursiv database, scheduled jobs, provider-health row, and successful full-pipeline run, but those authenticated checks are not current while the Recursiv key is under a per-day deploy/status cooldown. Use them as historical context only; rerun full `pnpm recursiv:cutover` after API health returns.
 
-The latest pushed commit includes the expected `/api/release` marker and `/api/pipeline` snapshot fallback locally. The next required platform step is to deploy that commit to Recursiv, create the custom-domain binding for `www.inverted.world`, and rerun full cutover proof.
+The current local build includes the expected `/api/release` marker, `/api/pipeline` snapshot fallback, sourced Markdown Ask This Story route, and Recursiv-backed article API. The next required platform step is to deploy the latest repo commit to Recursiv, create the custom-domain binding for `www.inverted.world`, and rerun full cutover proof.
 
 The direct custom-domain binding attempt on May 23, 2026 at `13:44Z` used `pnpm recursiv:deploy:custom-domain` and returned `429 rate_limit_exceeded` with the API message `per-day`. The deploy helper normalizes that to a daily guard from the recorded time. Do not retry the binding path with the same key until a healthy Recursiv key is installed or the actual daily limit is known to have reset.
 
@@ -140,7 +143,7 @@ The known full-product blockers are provider/account-side, not DNS fixes. A fres
 
 ## Current Decision
 
-As of the latest public-only proof on May 23, 2026 at `16:34Z`:
+As of the latest public-only proof on May 23, 2026 at `16:46Z`:
 
 - `publicHostingReady: false`
 - `fullAiProductReady: false`
@@ -294,7 +297,7 @@ If Recursiv TLS, routing, or app health fails after DNS cutover:
 
 ## Inverted World Status
 
-As of a live check on May 23, 2026 at `16:34Z`:
+As of a live check on May 23, 2026 at `16:46Z`:
 
 - `https://www.inverted.world` returns HTTP 200 with `server: Vercel` and `x-vercel-id`, so the custom domain is still on Vercel.
 - `https://www.inverted.world` currently resolves to legacy Vercel IPs such as `64.29.17.65` and `216.198.79.1`.

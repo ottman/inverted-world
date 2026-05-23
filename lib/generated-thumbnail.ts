@@ -8,10 +8,19 @@ function escapeSvgText(value: string) {
 }
 
 function cleanThumbnailTitle(value: string) {
-  return value
+  let title = value
     .replace(/\s+/g, " ")
     .replace(/\s+\|\s+.+$/g, "")
     .trim()
+  const labels = ["Skywatch", "Declassified", "Power Web", "High Strangeness", "Machine State", "Off-World Signals", "Inverted World"]
+  for (let pass = 0; pass < 4; pass += 1) {
+    const before = title
+    for (const label of labels) {
+      title = title.replace(new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*:\\s*`, "i"), "").trim()
+    }
+    if (title === before) break
+  }
+  return title
 }
 
 function compactSlug(value: string) {
@@ -29,11 +38,25 @@ function truncateLine(value: string, maxLength: number) {
   return `${value.slice(0, Math.max(1, maxLength - 1)).trim()}...`
 }
 
+function headlineWords(title: string, maxChars: number) {
+  return title
+    .split(/\s+/)
+    .filter(Boolean)
+    .flatMap((word) => {
+      if (word.length <= maxChars) return word
+      const chunks: string[] = []
+      for (let index = 0; index < word.length; index += maxChars - 1) {
+        chunks.push(word.slice(index, index + maxChars - 1))
+      }
+      return chunks
+    })
+}
+
 function wrapHeadline(value: string) {
   const title = cleanThumbnailTitle(value) || "Inverted World report"
-  const words = title.split(/\s+/).filter(Boolean)
-  const maxLines = 5
-  const maxChars = title.length > 105 ? 19 : title.length > 72 ? 22 : 26
+  const maxLines = 6
+  const maxChars = title.length > 105 ? 17 : title.length > 72 ? 19 : 22
+  const words = headlineWords(title, maxChars)
   const lines: string[] = []
   let current = ""
 
@@ -61,8 +84,8 @@ function wrapHeadline(value: string) {
 
 function headlineFontSize(lines: string[]) {
   const longest = Math.max(...lines.map((line) => line.length))
-  const lineCountSize = lines.length >= 5 ? 48 : lines.length === 4 ? 54 : lines.length === 3 ? 62 : 72
-  const lengthSize = longest > 26 ? 48 : longest > 22 ? 54 : longest > 18 ? 62 : 72
+  const lineCountSize = lines.length >= 6 ? 40 : lines.length === 5 ? 44 : lines.length === 4 ? 50 : lines.length === 3 ? 58 : 66
+  const lengthSize = longest > 22 ? 42 : longest > 19 ? 46 : longest > 16 ? 54 : 62
   return Math.min(lineCountSize, lengthSize)
 }
 
@@ -73,9 +96,9 @@ export function isGeneratedSvgThumbnailUrl(value?: string) {
 export function generatedSvgThumbnail(title: string, slug: string) {
   const lines = wrapHeadline(title)
   const fontSize = headlineFontSize(lines)
-  const lineHeight = Math.round(fontSize * 1.15)
+  const lineHeight = Math.round(fontSize * 1.12)
   const totalHeight = (lines.length - 1) * lineHeight
-  const startY = Math.round(520 - totalHeight / 2)
+  const startY = Math.round(500 - totalHeight / 2)
   const sigil = escapeSvgText(compactSlug(slug))
   const tspans = lines
     .map((line, index) => `<tspan x="94" y="${startY + index * lineHeight}">${escapeSvgText(line)}</tspan>`)

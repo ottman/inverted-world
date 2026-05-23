@@ -31,6 +31,10 @@ const ARCHIVE_REQUIRED_TOPIC_IDS = [
 const ARCHIVE_MIN_TOTAL_COUNT = Number(process.env.CUTOVER_ARCHIVE_MIN_TOTAL_COUNT || "100")
 const ARCHIVE_MIN_TOPIC_COUNT = Number(process.env.CUTOVER_ARCHIVE_MIN_TOPIC_COUNT || "12")
 const ARCHIVE_MAX_DOMINANT_TOPIC_SHARE = Number(process.env.CUTOVER_ARCHIVE_MAX_DOMINANT_TOPIC_SHARE || "0.7")
+const ARTICLE_MIN_COUNT = Number(process.env.CUTOVER_ARTICLE_MIN_COUNT || "12")
+const ARTICLE_MIN_THUMBNAILS = Number(process.env.CUTOVER_ARTICLE_MIN_THUMBNAILS || "8")
+const ARTICLE_MIN_TOPICS = Number(process.env.CUTOVER_ARTICLE_MIN_TOPICS || "4")
+const ARTICLE_LANE_TITLES = ["Skywatch", "Declassified", "Power Web", "High Strangeness", "Machine State", "Off-World Signals"]
 
 const EXPECTED_JOBS = [
   "inverted-world-youtube-archive-sync",
@@ -516,6 +520,63 @@ async function probeArchiveApi(url) {
   }
 }
 
+function hasRepeatedLanePrefix(title) {
+  return ARTICLE_LANE_TITLES.some((lane) => {
+    const escaped = lane.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    return new RegExp(`^(?:${escaped}\\s*:\\s*){2,}`, "i").test(String(title || ""))
+  })
+}
+
+async function probeArticlesApi(url) {
+  const started = Date.now()
+  try {
+    const response = await fetch(url, {
+      headers: { accept: "application/json", "user-agent": "InvertedWorldCutoverReadiness/1.0" },
+      signal: AbortSignal.timeout(20000),
+    })
+    const body = await response.json().catch(() => ({}))
+    const articles = Array.isArray(body.articles) ? body.articles : []
+    const topicCount = new Set(articles.map((article) => article?.topicId).filter(Boolean)).size
+    const thumbnailUrls = articles
+      .map((article) => article?.thumbnail?.imageUrl)
+      .filter((value) => typeof value === "string" && value.length > 0)
+    const generatedThumbnailCount = thumbnailUrls.filter((value) => /^data:image\/svg\+xml/i.test(value) || /generated|assets|thumbnail/i.test(value)).length
+    const externalSourceCount = articles.filter((article) => /^https?:\/\//i.test(String(article?.sourceUrl || ""))).length
+    const repeatedLanePrefixCount = articles.filter((article) => hasRepeatedLanePrefix(article?.title)).length
+
+    return {
+      url,
+      status: response.status,
+      ok: response.ok,
+      sourceMode: body.sourceMode,
+      count: Number(body.count || articles.length || 0),
+      articleCount: articles.length,
+      topicCount,
+      thumbnailCount: thumbnailUrls.length,
+      generatedThumbnailCount,
+      externalSourceCount,
+      repeatedLanePrefixCount,
+      firstArticleId: typeof articles[0]?.id === "string" ? articles[0].id : undefined,
+      firstArticleTitle: typeof articles[0]?.title === "string" ? articles[0].title : undefined,
+      warningCount: Array.isArray(body.warnings) ? body.warnings.length : 0,
+      thresholds: {
+        minArticles: ARTICLE_MIN_COUNT,
+        minThumbnails: ARTICLE_MIN_THUMBNAILS,
+        minTopics: ARTICLE_MIN_TOPICS,
+      },
+      durationMs: Date.now() - started,
+    }
+  } catch (error) {
+    return {
+      url,
+      status: 0,
+      ok: false,
+      message: error instanceof Error ? error.message : String(error),
+      durationMs: Date.now() - started,
+    }
+  }
+}
+
 async function probeMediaItemApi(url) {
   const started = Date.now()
   try {
@@ -828,6 +889,7 @@ async function main() {
   const xSignalPageUrl = new URL(`/x/${X_SIGNAL_PROOF_TOPIC}`, recursivUrl).toString()
   const xSignalApiUrl = new URL(`/api/x/${X_SIGNAL_PROOF_TOPIC}?limit=24`, recursivUrl).toString()
   const archiveApiUrl = new URL("/api/archive?limit=1000", recursivUrl).toString()
+  const articlesApiUrl = new URL("/api/articles", recursivUrl).toString()
   const documentsApiUrl = new URL("/api/documents", recursivUrl).toString()
   const pipelineApiUrl = new URL("/api/pipeline?limit=1", recursivUrl).toString()
   const frontPageApiUrl = new URL("/api/front-page", recursivUrl).toString()
@@ -862,6 +924,7 @@ async function main() {
     xSignalApi,
     releaseApi,
     archiveApi,
+    articlesApi,
     documentsApi,
     pipelineApi,
     frontPageApi,
@@ -903,6 +966,7 @@ async function main() {
       probeXSignalApi(xSignalApiUrl),
       probeReleaseApi(releaseApiUrl),
       probeArchiveApi(archiveApiUrl),
+      probeArticlesApi(articlesApiUrl),
       probeDocumentsApi(documentsApiUrl),
       probePipelineApi(pipelineApiUrl),
       probeFrontPageApi(frontPageApiUrl),
@@ -1019,6 +1083,15 @@ async function main() {
   )
   const recursivArchiveLiveDatabaseReady = Boolean(archiveApi.ok && archiveApi.sourceMode === "recursiv-database")
   const recursivArchiveSnapshotReady = Boolean(archiveApi.ok && archiveApi.sourceMode === "recursiv-snapshot")
+  const articlesApiReady = Boolean(
+    articlesApi.ok &&
+      RECURSIV_BACKED_SOURCE_MODES.has(articlesApi.sourceMode) &&
+      Number(articlesApi.articleCount || articlesApi.count || 0) >= ARTICLE_MIN_COUNT &&
+      Number(articlesApi.topicCount || 0) >= ARTICLE_MIN_TOPICS &&
+      Number(articlesApi.thumbnailCount || 0) >= ARTICLE_MIN_THUMBNAILS &&
+      Number(articlesApi.repeatedLanePrefixCount || 0) === 0 &&
+      Number(articlesApi.warningCount || 0) === 0,
+  )
   const documentsApiReady = Boolean(
     documentsApi.ok &&
       RECURSIV_BACKED_SOURCE_MODES.has(documentsApi.sourceMode) &&
@@ -1082,6 +1155,7 @@ async function main() {
     releaseCommitReady &&
     publicProviderFallbackAuditReady &&
     recursivArchiveDataReady &&
+    articlesApiReady &&
     documentsApiReady &&
     pipelineApiReady &&
     frontPageApiReady &&
@@ -1111,6 +1185,7 @@ async function main() {
     recursivArchiveTopicCoverage: statusText(archiveTopicCoverageReady),
     recursivArchiveLiveDatabase: statusText(recursivArchiveLiveDatabaseReady),
     recursivArchiveSnapshot: statusText(recursivArchiveSnapshotReady),
+    articlesApi: statusText(articlesApiReady),
     documentsApi: statusText(documentsApiReady),
     pipelineApi: statusText(pipelineApiReady),
     pipelineFreshness: statusText(pipelineApiFresh),
@@ -1172,6 +1247,11 @@ async function main() {
   }
   if (recursivArchiveSnapshotReady && !recursivArchiveLiveDatabaseReady) {
     nextActions.push("Public archive data is Recursiv-backed through an exported snapshot while the runtime database key is unhealthy; fix the Recursiv runtime key before calling the full product live-database ready.")
+  }
+  if (!articlesApiReady) {
+    nextActions.push(
+      `Do not touch DNS until /api/articles returns at least ${ARTICLE_MIN_COUNT} Recursiv-backed published articles across ${ARTICLE_MIN_TOPICS} topics with generated thumbnails and clean titles.`,
+    )
   }
   if (!documentsApiReady) nextActions.push("Do not touch DNS until /api/documents returns the machine-readable source shelf with topic and kind coverage.")
   if (!pipelineApiReady) {
@@ -1240,6 +1320,7 @@ async function main() {
       archiveTopicCoverageReady,
       recursivArchiveLiveDatabaseReady,
       recursivArchiveSnapshotReady,
+      articlesApiReady,
       pipelineApiFresh,
       pipelineApiReady,
       frontPageApiFresh,
@@ -1266,6 +1347,8 @@ async function main() {
     publicProviderAudit,
     recursivArchiveApi: archiveApi,
     recursivArchiveDataSource: dataSourceStatus(archiveApi.sourceMode),
+    articlesApi,
+    articlesDataSource: dataSourceStatus(articlesApi.sourceMode),
     documentsApi,
     documentsDataSource: dataSourceStatus(documentsApi.sourceMode),
     pipelineApi,

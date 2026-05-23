@@ -248,6 +248,11 @@ export type PipelineRunsResult = {
   runs: PipelineRunStatus[]
 }
 
+export type PublishedArticlesResult = {
+  sourceMode: "recursiv-database" | "recursiv-snapshot"
+  articles: IntelligenceArticle[]
+}
+
 export type ClaimChatMessage = {
   id: string
   dossierSlug: string
@@ -788,10 +793,10 @@ function findMatchingDossier(dossiers: ClaimDossier[], requestedSlug: string) {
 }
 
 function articleDedupKey(article: IntelligenceArticle) {
-  const textKey = dossierClusterTextKey(article.title)
-  if (textKey) return `${article.topicId}:text:${textKey}`
   const sourceKey = normalizedUrlKey(article.sourceUrl)
   if (sourceKey) return `${article.topicId}:source:${sourceKey}`
+  const idKey = normalizedSlugKey(article.id)
+  if (idKey) return `${article.topicId}:id:${idKey}`
   return `${article.topicId}:title:${normalizedTextKey(article.title)}`
 }
 
@@ -1255,6 +1260,10 @@ export async function getRecursivChannelVideo(videoId: string) {
 }
 
 export async function fetchRecursivPublishedArticles(options: { limit?: number } = {}) {
+  return (await fetchRecursivPublishedArticlesWithSource(options))?.articles ?? null
+}
+
+export async function fetchRecursivPublishedArticlesWithSource(options: { limit?: number } = {}): Promise<PublishedArticlesResult | null> {
   const limit = Math.max(1, Math.min(Math.trunc(options.limit || 100), 100))
   const queryLimit = Math.max(limit, Math.min(limit * 4, 200))
   const rows = await queryInvertedWorldDatabase<ArticleDraftRow>(
@@ -1280,8 +1289,20 @@ export async function fetchRecursivPublishedArticles(options: { limit?: number }
     [queryLimit],
   )
 
-  const sourceRows = rows?.length ? rows : snapshotArticleRows()
-  return sourceRows.length ? dedupeArticles(sourceRows.map(articleRowToArticle)).slice(0, limit) : rows ? [] : null
+  if (rows) {
+    return {
+      sourceMode: "recursiv-database",
+      articles: dedupeArticles(rows.map(articleRowToArticle)).slice(0, limit),
+    }
+  }
+
+  const snapshotRows = snapshotArticleRows()
+  return snapshotRows.length
+    ? {
+        sourceMode: "recursiv-snapshot",
+        articles: dedupeArticles(snapshotRows.map(articleRowToArticle)).slice(0, limit),
+      }
+    : null
 }
 
 export async function fetchRecursivPublishedArticlesForTopic(topicId: string, options: { limit?: number } = {}) {
