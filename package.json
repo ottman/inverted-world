@@ -19,6 +19,7 @@
     "recursiv:deploy:status": "node scripts/deploy-recursiv.mjs --status",
     "recursiv:deploy:dry-run": "node scripts/deploy-recursiv.mjs --dry-run",
     "recursiv:deploy:custom-domain": "node scripts/deploy-recursiv.mjs --custom-domain=www.inverted.world",
+    "recursiv:deploy:custom-domain:wait": "node scripts/deploy-recursiv.mjs --custom-domain=www.inverted.world --wait",
     "recursiv:deploy": "node scripts/deploy-recursiv.mjs"
   },
   "dependencies": {

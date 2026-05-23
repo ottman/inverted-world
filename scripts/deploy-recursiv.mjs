@@ -7,6 +7,10 @@ const DEFAULT_DEPLOY_TIMEOUT_MS = 30000
 const DEFAULT_RATE_LIMIT_COOLDOWN_MS = 60 * 60 * 1000
 const LOCAL_RATE_LIMIT_COOLDOWN_FILE = "/private/tmp/inverted-world-recursiv-api-cooldown.json"
 const DEFAULT_CUSTOM_DOMAIN = "www.inverted.world"
+const DEFAULT_WAIT_TIMEOUT_MS = 10 * 60 * 1000
+const DEFAULT_WAIT_INTERVAL_MS = 10 * 1000
+const TERMINAL_DEPLOYMENT_STATUSES = new Set(["completed", "failed", "cancelled", "canceled", "error"])
+const SUCCESS_DEPLOYMENT_STATUSES = new Set(["completed"])
 
 function loadEnvFile(file) {
   if (!fs.existsSync(file)) return
@@ -94,6 +98,20 @@ function requestedCustomDomain() {
   const hasCustomDomainFlag = process.argv.includes("--custom-domain") || process.argv.some((arg) => arg.startsWith("--custom-domain="))
   if (!hasCustomDomainFlag && !process.env.RECURSIV_DEPLOY_CUSTOM_DOMAIN) return undefined
   return normalizeCustomDomain(argValue("--custom-domain") || process.env.RECURSIV_DEPLOY_CUSTOM_DOMAIN || DEFAULT_CUSTOM_DOMAIN)
+}
+
+function waitEnabled() {
+  return process.argv.includes("--wait") || process.env.RECURSIV_DEPLOY_WAIT === "1"
+}
+
+function waitTimeoutMs() {
+  const parsed = Number(argValue("--wait-timeout-ms") || process.env.RECURSIV_DEPLOY_WAIT_TIMEOUT_MS || "")
+  return Math.max(30_000, Math.min(Math.trunc(parsed) || DEFAULT_WAIT_TIMEOUT_MS, 30 * 60 * 1000))
+}
+
+function waitIntervalMs() {
+  const parsed = Number(argValue("--wait-interval-ms") || process.env.RECURSIV_DEPLOY_WAIT_INTERVAL_MS || "")
+  return Math.max(3_000, Math.min(Math.trunc(parsed) || DEFAULT_WAIT_INTERVAL_MS, 60_000))
 }
 
 function clearCooldownFile() {
@@ -191,6 +209,18 @@ function deploymentSummary(deployment) {
   }
 }
 
+function deploymentId(deployment) {
+  return deployment?.id || deployment?.deployment_id
+}
+
+function statusTextValue(deployment) {
+  return String(deployment?.status || "").toLowerCase()
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 async function requestRecursiv(path, options) {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), options.timeoutMs)
@@ -241,6 +271,65 @@ async function requestRecursiv(path, options) {
   }
 }
 
+async function listDeploymentsForProject(projectId, requestOptions) {
+  const response = await requestRecursiv(`/deployments?project_id=${encodeURIComponent(projectId)}`, requestOptions)
+  return Array.isArray(response.data) ? response.data : []
+}
+
+function selectDeployment(deployments, targetDeployment) {
+  const targetId = deploymentId(targetDeployment)
+  if (targetId) {
+    const match = deployments.find((deployment) => deploymentId(deployment) === targetId)
+    if (match) return match
+  }
+  return latestByCreatedAt(deployments)
+}
+
+async function waitForDeployment(projectId, targetDeployment, requestOptions) {
+  const startedAt = Date.now()
+  const timeout = waitTimeoutMs()
+  const interval = waitIntervalMs()
+  const observations = []
+
+  while (Date.now() - startedAt <= timeout) {
+    const deployments = await listDeploymentsForProject(projectId, requestOptions)
+    const deployment = selectDeployment(deployments, targetDeployment)
+    const status = statusTextValue(deployment)
+    const summary = deploymentSummary(deployment)
+    observations.push({
+      observedAt: new Date().toISOString(),
+      id: summary?.id,
+      status: summary?.status,
+    })
+
+    if (TERMINAL_DEPLOYMENT_STATUSES.has(status)) {
+      return {
+        ok: SUCCESS_DEPLOYMENT_STATUSES.has(status),
+        timedOut: false,
+        timeoutMs: timeout,
+        intervalMs: interval,
+        observedCount: observations.length,
+        deployment: summary,
+        recentObservations: observations.slice(-6),
+      }
+    }
+
+    await delay(interval)
+  }
+
+  const deployments = await listDeploymentsForProject(projectId, requestOptions).catch(() => [])
+  const deployment = selectDeployment(deployments, targetDeployment)
+  return {
+    ok: false,
+    timedOut: true,
+    timeoutMs: timeout,
+    intervalMs: interval,
+    observedCount: observations.length,
+    deployment: deploymentSummary(deployment),
+    recentObservations: observations.slice(-6),
+  }
+}
+
 async function main() {
   loadEnvFile(".env")
   loadEnvFile(".env.local")
@@ -281,6 +370,12 @@ async function main() {
           customDomain,
           deploymentPayload,
           cooldown: readCooldown(),
+          wait: waitEnabled()
+            ? {
+                timeoutMs: waitTimeoutMs(),
+                intervalMs: waitIntervalMs(),
+              }
+            : undefined,
         },
         null,
         2,
@@ -300,22 +395,24 @@ async function main() {
   }
 
   if (process.argv.includes("--status")) {
-    const response = await requestRecursiv(`/deployments?project_id=${encodeURIComponent(projectId)}`, requestOptions)
-    const deployments = Array.isArray(response.data) ? response.data : []
+    const deployments = await listDeploymentsForProject(projectId, requestOptions)
     const latestDeployment = latestByCreatedAt(deployments)
+    const waitResult = waitEnabled() ? await waitForDeployment(projectId, latestDeployment, requestOptions) : undefined
     console.log(
       JSON.stringify(
         {
-          ok: true,
+          ok: waitResult ? waitResult.ok : true,
           action: "status",
           keySource: apiKey.source,
           deploymentCount: deployments.length,
-          latestDeployment: deploymentSummary(latestDeployment),
+          latestDeployment: waitResult?.deployment || deploymentSummary(latestDeployment),
+          wait: waitResult,
         },
         null,
         2,
       ),
     )
+    if (waitResult && !waitResult.ok) process.exit(1)
     return
   }
 
@@ -338,22 +435,26 @@ async function main() {
     method: "POST",
     body: deploymentPayload,
   })
+  const waitResult = waitEnabled() ? await waitForDeployment(projectId, response.data, requestOptions) : undefined
 
   console.log(
     JSON.stringify(
       {
-        ok: true,
+        ok: waitResult ? waitResult.ok : true,
         action: "deploy",
         keySource: apiKey.source,
         branch,
         commitHash,
         customDomain,
-        deployment: deploymentSummary(response.data),
+        deployment: waitResult?.deployment || deploymentSummary(response.data),
+        wait: waitResult,
       },
       null,
       2,
     ),
   )
+
+  if (waitResult && !waitResult.ok) process.exit(1)
 }
 
 main().catch((error) => {

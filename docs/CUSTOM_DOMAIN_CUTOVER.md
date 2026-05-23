@@ -71,9 +71,10 @@ Create the pre-DNS custom-domain binding after public hosting and Recursiv API h
 
 ```bash
 pnpm recursiv:deploy:custom-domain
+pnpm recursiv:deploy:custom-domain:wait
 ```
 
-This still does not change DNS. It should make the latest Recursiv deployment metadata include both `invertedworld.on.recursiv.io` and `www.inverted.world`; rerun `pnpm recursiv:cutover` and require `customDomainBindingConfigured: true` plus `dnsChangeReady: true` before planning the DNS record edit.
+This still does not change DNS. The `:wait` variant polls deployment status until the latest deployment is completed or fails, without printing secrets. It should make the latest Recursiv deployment metadata include both `invertedworld.on.recursiv.io` and `www.inverted.world`; rerun `pnpm recursiv:cutover` and require `customDomainBindingConfigured: true` plus `dnsChangeReady: true` before planning the DNS record edit.
 
 `fullAiProductReady` is stricter than public hosting readiness. Required hosted providers should still be green before calling the whole AI news product production-complete, especially `recursiv-database`, `x-api`, and `youtube-data-api`, but provider account failures are not DNS fixes. YouTube RSS is an opportunistic public fallback; it should not block cutover when the public channel-page fallback and persisted Recursiv archive are live but the RSS endpoint returns 404.
 
