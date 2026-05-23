@@ -1533,7 +1533,7 @@ export async function getLatestRecursivFrontPageEdition() {
   return rows?.[0] ? frontPageEditionRowToEdition(rows[0]) : snapshotFrontPageRows().map(frontPageEditionRowToEdition)[0] ?? null
 }
 
-export async function fetchRecursivPipelineRuns(options: { limit?: number; jobName?: string } = {}) {
+export async function fetchRecursivPipelineRuns(options: { limit?: number; jobName?: string; allowSnapshotFallback?: boolean } = {}) {
   const limit = Math.max(1, Math.min(Math.trunc(options.limit || 5), 20))
   const where = options.jobName ? "WHERE job_name = $2" : ""
   const params = options.jobName ? [limit, options.jobName] : [limit]
@@ -1555,9 +1555,12 @@ export async function fetchRecursivPipelineRuns(options: { limit?: number; jobNa
     params,
   )
 
+  if (!rows && options.allowSnapshotFallback === false) return null
   const sourceRows = rows?.length
     ? rows
-    : snapshotPipelineRows().filter((row) => !options.jobName || row.job_name === options.jobName).slice(0, limit)
+    : options.allowSnapshotFallback === false
+      ? []
+      : snapshotPipelineRows().filter((row) => !options.jobName || row.job_name === options.jobName).slice(0, limit)
   return sourceRows.length ? sourceRows.map(pipelineRunRowToStatus) : rows ? [] : null
 }
 
