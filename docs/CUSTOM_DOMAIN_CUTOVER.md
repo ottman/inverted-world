@@ -15,6 +15,7 @@ The command prints a redacted JSON report with:
 - latest Recursiv deployment status;
 - HTTP proof for `https://invertedworld.on.recursiv.io`;
 - release proof from `https://invertedworld.on.recursiv.io/api/release`, including the deployed feature marker;
+- Recursiv deployment-domain proof that distinguishes the platform slug host from a configured custom-domain binding;
 - Recursiv archive API proof, including `sourceMode`, data-source classification, and archive count;
 - source-document API proof for `https://invertedworld.on.recursiv.io/api/documents`;
 - media-library detail proof for the UAP PDF route and JSON item route;
@@ -22,7 +23,7 @@ The command prints a redacted JSON report with:
 - HTTP and DNS proof for `https://www.inverted.world`;
 - active Recursiv scheduled job count and missing jobs;
 - latest hosted provider-health blockers for the full AI product;
-- separate `publicHostingReady`, `fullAiProductReady`, and `dnsCutoverReady` decisions;
+- separate `publicHostingReady`, `fullAiProductReady`, `dnsChangeReady`, and `dnsCutoverReady` decisions;
 - a `dnsCutoverReady` boolean.
 
 ## Cutover Rules
@@ -34,7 +35,9 @@ The command prints a redacted JSON report with:
 - `mediaItemPage` and `mediaItemApi` must pass, proving the hosted build includes shareable media pages and machine-readable item data for the official UAP PDF.
 - `publicHostingReady` must be `true`.
 - Recursiv custom-domain binding must be created and proven before changing DNS or removing the Vercel domain binding.
-- `dnsCutoverReady` must be `true` before any DNS record is changed.
+- `customDomainBindingConfigured` must be `true` before any DNS record is changed. It proves the latest Recursiv deployment advertises both the slug host and the requested custom hostname.
+- `dnsChangeReady` means it is safe to plan the `www` record change. It is not the same as finished cutover.
+- `dnsCutoverReady` means the custom hostname itself is already serving the Recursiv app after DNS propagation.
 - If `keepDnsOnVercel` is `true`, leave DNS unchanged.
 
 `recursiv-snapshot` means the public app is reading a generated export of persisted Recursiv database rows while the runtime database API key is unhealthy or rate-limited. This is acceptable proof that the public pages are not falling back to direct provider keys, seed-only data, or hand-authored static UI, but it is not the same as live database health.
@@ -65,7 +68,7 @@ As of May 23, 2026, `invertedworld.on.recursiv.io` is proven live on Recursiv. A
 Current live proof:
 
 - `https://invertedworld.on.recursiv.io` returns the app.
-- latest Recursiv deployment `019e54f2-4bad-77a8-99fa-891cd38a59a9` completed on May 23, 2026 at `13:10:24Z`.
+- latest Recursiv deployment `019e54f7-4164-7205-ac68-23cb148b5f45` completed on May 23, 2026 at `13:15:22Z`.
 - `/api/release` returns `release: "worldwire-persistence-v2"` and `worldwireJsonbPayloads: "dollar-quoted-sql-literals"`, proving the hosted build contains the compact Worldwire JSONB persistence path.
 - earlier `/api/archive?limit=1000` proof returned `sourceMode: "recursiv-database"` with 437 archive rows and no warnings; fresh archive reads may temporarily return `recursiv-snapshot` while the runtime key is backed off.
 - earlier `/api/documents` proof returned `sourceMode: "recursiv-database"` with 37 source documents across all six topics.
@@ -90,11 +93,13 @@ As of the successful May 23, 2026 readiness run, before the current key backoff:
 
 - `publicHostingReady: true`
 - `fullAiProductReady: false`
+- `customDomainBindingConfigured: false`
+- `dnsChangeReady: false`
 - `customDomainRecursivProven: false`
 - `dnsCutoverReady: false`
 - `keepDnsOnVercel: true`
 
-Next step is not a DNS change. Create and prove the Recursiv custom-domain binding for `www.inverted.world`, then rerun `pnpm recursiv:cutover`. Only after `customDomainRecursivProven` and `dnsCutoverReady` are true should the DNS host change be planned.
+Next step is not a DNS change. Create and prove the Recursiv custom-domain binding for `www.inverted.world`, then rerun `pnpm recursiv:cutover`. Only after `customDomainBindingConfigured` and `dnsChangeReady` are true should the DNS host change be planned. Only after `customDomainRecursivProven` and `dnsCutoverReady` are true should the cutover be called complete.
 
 As of the fresh May 23, 2026 `13:10Z` checks, the immediate next step is to wait for the Recursiv runtime key backoff to clear, rerun hosted provider/readiness checks, then run the wider Worldwire proof. DNS cutover remains blocked.
 
@@ -138,6 +143,17 @@ Create the custom-domain binding in Recursiv for the project before changing DNS
 - binding status exposed through a project/domains API or admin UI.
 
 Until that binding exists and returns a verifiable target, DNS cutover is blocked.
+
+For projects using the Recursiv deploy API, the desired production bind step is:
+
+```bash
+curl -X POST "https://api.recursiv.io/api/v1/projects/$PROJECT_ID/deploy" \
+  -H "Authorization: Bearer $RECURSIV_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"type":"production","branch":"main","custom_domain":"www.customer.com"}'
+```
+
+Do not paste the API key into logs or docs. After the deploy completes, the latest deployment metadata should include both `<slug>.on.recursiv.io` and `www.customer.com`; that is the pre-DNS custom-domain binding proof.
 
 ### 4. DNS Preflight
 

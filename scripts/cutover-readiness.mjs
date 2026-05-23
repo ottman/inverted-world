@@ -87,6 +87,34 @@ function dataSourceStatus(sourceMode) {
   return "unknown"
 }
 
+function normalizeHostname(value) {
+  const raw = String(value || "").trim().toLowerCase()
+  if (!raw) return ""
+  try {
+    return new URL(raw.includes("://") ? raw : `https://${raw}`).hostname
+  } catch {
+    return raw.replace(/^https?:\/\//, "").split("/")[0].split(":")[0]
+  }
+}
+
+function parseDeploymentHostnames(deployment) {
+  const rawValues = [
+    deployment?.deployment_url,
+    deployment?.coolify_domain,
+    deployment?.coolifyDomain,
+    deployment?.domains,
+  ]
+  const hostnames = new Set()
+  for (const rawValue of rawValues) {
+    if (!rawValue) continue
+    for (const part of String(rawValue).split(",")) {
+      const hostname = normalizeHostname(part)
+      if (hostname) hostnames.add(hostname)
+    }
+  }
+  return [...hostnames].sort()
+}
+
 function latestByCreatedAt(items) {
   return [...items].sort((left, right) => {
     const leftTime = new Date(left.created_at || left.started_at || 0).getTime()
@@ -355,6 +383,7 @@ async function main() {
   const recursivUrl = process.env.INVERTED_WORLD_SITE_URL || DEFAULT_SITE_URL
   const customDomainUrl = process.env.INVERTED_WORLD_CUSTOM_DOMAIN || DEFAULT_CUSTOM_DOMAIN
   const customHostname = new URL(customDomainUrl).hostname
+  const recursivHostname = new URL(recursivUrl).hostname
   const releaseApiUrl = new URL("/api/release", recursivUrl).toString()
   const archiveApiUrl = new URL("/api/archive?limit=1000", recursivUrl).toString()
   const documentsApiUrl = new URL("/api/documents", recursivUrl).toString()
@@ -497,6 +526,9 @@ async function main() {
   const providerBlocking = providerHealth?.blockingProviders || REQUIRED_PROVIDERS
   const providerHealthFresh = providerHealth?.ageMinutes !== null && Number(providerHealth?.ageMinutes) <= 360
   const scheduledJobsReady = jobsLookupAvailable && missingJobs.length === 0
+  const deploymentHostnames = parseDeploymentHostnames(latestDeployment)
+  const recursivDeploymentIncludesSlugHost = deploymentHostnames.includes(recursivHostname)
+  const customDomainBindingConfigured = deploymentHostnames.includes(customHostname)
   const publicHostingReady =
     recursivHostingProven &&
     releaseProofReady &&
@@ -508,6 +540,7 @@ async function main() {
     providerHealthFresh
   const fullAiProductReady = publicHostingReady && providerBlocking.length === 0
   const customDomainRecursivProven = Boolean(customHttp.ok && !customLooksVercel && customHttp.contentSignals?.hasCoreProductCopy)
+  const dnsChangeReady = publicHostingReady && customDomainBindingConfigured
   const dnsCutoverReady = publicHostingReady && customDomainRecursivProven
   const keepDnsOnVercel = !dnsCutoverReady
 
@@ -525,8 +558,11 @@ async function main() {
     providerHealthFresh: providerHealthAvailable ? statusText(providerHealthFresh) : "unknown",
     fullAiProviders: providerHealthAvailable ? statusText(providerBlocking.length === 0) : "unknown",
     scheduledJobs: jobsLookupAvailable ? statusText(scheduledJobsReady) : "unknown",
+    recursivDeploymentIncludesSlugHost: deploymentLookupAvailable ? statusText(recursivDeploymentIncludesSlugHost) : "unknown",
+    customDomainBindingConfigured: deploymentLookupAvailable ? statusText(customDomainBindingConfigured) : "unknown",
     publicHostingReady: statusText(publicHostingReady),
     customDomainRecursivProven: statusTextOrUnknown(customDomainRecursivProven),
+    dnsChangeReady: statusText(dnsChangeReady),
     customDomainStillLegacy: customLooksVercel ? "pass" : "unknown",
     dnsCutoverReady: statusText(dnsCutoverReady),
   }
@@ -560,10 +596,12 @@ async function main() {
     nextActions.push(`Provision missing Recursiv jobs: ${missingJobs.join(", ")}.`)
   }
   if (jobLastErrors.length) nextActions.push("Review stale scheduled-job last_error values and rerun/clear jobs after provider blockers are fixed.")
-  if (publicHostingReady && !customDomainRecursivProven) {
-    nextActions.push("Recursiv public hosting is ready for the custom-domain planning step; create/prove the Recursiv www.inverted.world binding before changing DNS.")
+  if (publicHostingReady && !customDomainBindingConfigured) {
+    nextActions.push("Recursiv public hosting is ready for the custom-domain binding step; redeploy production with custom_domain=www.inverted.world before changing DNS.")
+  } else if (dnsChangeReady && !customDomainRecursivProven) {
+    nextActions.push("Recursiv custom-domain binding is configured; change only the www DNS record when ready, then prove HTTPS/content before removing the legacy Vercel binding.")
   } else if (dnsCutoverReady) {
-    nextActions.push("Recursiv custom-domain proof is green; update DNS intentionally, then remove the legacy Vercel binding after HTTP proof stays green.")
+    nextActions.push("Recursiv custom-domain proof is green; keep monitoring, then remove the legacy Vercel binding after HTTP proof stays green.")
   } else {
     nextActions.push("Keep www.inverted.world on the legacy host until the failed gates pass.")
   }
@@ -592,6 +630,9 @@ async function main() {
           mediaItemApiReady,
           publicHostingReady,
           fullAiProductReady,
+          recursivDeploymentIncludesSlugHost,
+          customDomainBindingConfigured,
+          dnsChangeReady,
           customDomainRecursivProven,
           dnsCutoverReady,
           keepDnsOnVercel,
@@ -617,6 +658,7 @@ async function main() {
               statusSync: deploymentStatusSync,
               deploymentUrl: latestDeployment.deployment_url,
               coolifyDomain: latestDeployment.coolify_domain,
+              hostnames: deploymentHostnames,
               completedAt: latestDeployment.completed_at,
               errorMessage: latestDeployment.error_message,
             }
