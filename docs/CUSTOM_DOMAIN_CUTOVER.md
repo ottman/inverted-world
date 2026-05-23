@@ -125,6 +125,14 @@ As of the fresh May 23, 2026 `13:44Z` checks, the immediate next step is to rest
 
 Use this sequence for every Recursiv-hosted org site. The goal is a repeatable cutover with proof at each step, not a one-off DNS guess.
 
+For new orgs, copy the operator packet in [ORG_CUSTOM_DOMAIN_CUTOVER_TEMPLATE.md](./ORG_CUSTOM_DOMAIN_CUTOVER_TEMPLATE.md) and attach the final command output to the customer or internal handoff. The no-secret preflight command is:
+
+```bash
+pnpm recursiv:domain:preflight -- --slug=<slug>.on.recursiv.io --custom-domain=www.customer.com --expected-text="Customer"
+```
+
+That command proves the current HTTP/DNS posture without calling Recursiv deploy/status APIs. It does not replace the Recursiv custom-domain binding proof.
+
 ### 1. Intake
 
 Capture the site owner, Recursiv organization, Recursiv project, canonical host, apex host, current host, DNS provider, registrar, current deployment provider, and rollback owner.
