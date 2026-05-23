@@ -116,7 +116,7 @@ export function MediaLibraryPage({
   if (!items.length) {
     return (
       <section className={cn("grid gap-3 p-5 text-sm leading-6 text-[#f4efe2]/66", archiveSurface)}>
-        <p>The media library is warming up. Open the archive or source shelf while the next media sync runs.</p>
+        <p>The media library is warming up. Open the archive or official source index while the next media sync runs.</p>
         <div className="flex flex-wrap gap-2">
           <a href="/archive" className="bg-black/30 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6]">
             Archive

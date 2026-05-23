@@ -176,7 +176,6 @@ function BreakingTicker({ items }: { items?: BreakingItem[] }) {
   const fallbackItems = [
     { title: "Latest ranked source board", href: "/news", source: "News" },
     { title: "Full Tales video archive", href: "/archive", source: "Archive" },
-    { title: "Documents, videos, audio, and official releases", href: "/media", source: "Media" },
     { title: "Primary source index", href: "/documents", source: "Sources" },
   ]
   const visibleItems = (items?.length ? items : fallbackItems)
@@ -258,9 +257,6 @@ function SimpleFooter() {
         </a>
         <a href="/news" className="transition hover:text-[#df2f2f]">
           News
-        </a>
-        <a href="/media" className="transition hover:text-[#df2f2f]">
-          Media
         </a>
         <a href="/documents" className="transition hover:text-[#df2f2f]">
           Sources
