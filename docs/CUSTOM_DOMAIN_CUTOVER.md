@@ -116,12 +116,13 @@ This still does not change DNS. The `:wait` variant polls deployment status unti
 
 ## Current Expected State
 
-As of the latest public-only proof on May 23, 2026 at `16:46Z`, `invertedworld.on.recursiv.io` is live but the hosted build has not yet caught up to the latest repo changes. Treat the Recursiv slug as available, not DNS-ready.
+As of the latest public-only proof on May 23, 2026 at `23:36Z`, `invertedworld.on.recursiv.io` is live but the hosted build has not yet caught up to the latest repo changes. Treat the Recursiv slug as available, not DNS-ready.
 
 Current live proof:
 
 - `https://invertedworld.on.recursiv.io` returns HTTP 200 with the Inverted World app.
 - `https://www.inverted.world` returns HTTP 200 with `server: Vercel` and `x-vercel-id`, so the custom domain is still on the legacy host.
+- `https://www.inverted.world/archive` no longer contains the removed homepage source-media shelf on the legacy deployment, while the stale Recursiv slug still does until the next Recursiv deploy.
 - `/x/secret-programs` returns HTTP 200 with 26 outbound X links, 19 anchored post cards, and 38 ticker anchor links.
 - `/api/x/secret-programs?limit=24` returns 19 recent Declassified X posts from two source modes, with the latest post age inside the freshness window.
 - `/api/archive?limit=1000` returns `sourceMode: "recursiv-snapshot"`, 437 archive videos, no warnings, all six core topics above the minimum coverage threshold, no topic above the 70% dominance threshold, and `hasMore: false`.
@@ -130,7 +131,7 @@ Current live proof:
 - The repo exposes `/api/front-page` with `sourceMode` and direct Recursiv-backed ticker items, but the hosted build must be redeployed before this can pass publicly.
 - `/media/war-uap-release-02-senior-usic-narrative` returns HTTP 200.
 - `/api/media/war-uap-release-02-senior-usic-narrative` returns `sourceMode: "recursiv-snapshot"` with the official UAP PDF item and related media.
-- `/api/release` still returns `pipelineSnapshotFallback: false` on the hosted app, so the current hosted build is older than the pushed repo.
+- `/api/release` still returns `pipelineSnapshotFallback: false` and release `worldwire-persistence-v2` on the hosted app, so the current hosted build is older than the pushed repo.
 - `releaseCommit` is `unknown` because the hosted app does not expose `deployment.sourceRevision` yet.
 - `/api/pipeline?limit=1` returns `sourceMode: "unavailable"` with `readHealthLastErrorStatus: 429`, so the hosted pipeline status fallback and 36-hour freshness proof are not live until the newer commit is deployed.
 - `/api/front-page` exposes the latest pipeline timestamp, but the hosted build still returns zero ticker items and no `sourceMode`, so `frontPageApi` remains blocked until redeploy.
@@ -145,7 +146,7 @@ The known full-product blockers are provider/account-side, not DNS fixes. A fres
 
 ## Current Decision
 
-As of the latest public-only proof on May 23, 2026 at `16:46Z`:
+As of the latest public-only proof on May 23, 2026 at `23:36Z`:
 
 - `publicHostingReady: false`
 - `fullAiProductReady: false`
@@ -299,11 +300,11 @@ If Recursiv TLS, routing, or app health fails after DNS cutover:
 
 ## Inverted World Status
 
-As of a live check on May 23, 2026 at `16:46Z`:
+As of a live check on May 23, 2026 at `23:36Z`:
 
 - `https://www.inverted.world` returns HTTP 200 with `server: Vercel` and `x-vercel-id`, so the custom domain is still on Vercel.
-- `https://www.inverted.world` currently resolves to legacy Vercel IPs such as `64.29.17.65` and `216.198.79.1`.
+- `https://www.inverted.world` currently resolves to legacy Vercel IPs such as `64.29.17.1` and `216.198.79.65`.
 - `https://invertedworld.on.recursiv.io` returns HTTP 200 with the Recursiv-hosted Inverted World app.
-- Route-aware domain preflight proves the Recursiv slug host serves `/news`, `/x/secret-programs`, and `/api/release`; the custom domain still fails route-aware cutover proof because it is on the legacy host.
+- Route-aware public proof shows the Recursiv slug host serves `/news`, `/x/secret-programs`, and `/api/release`, but `/api/release` is stale and the custom domain still fails route-aware cutover proof because it is on the legacy host.
 - The next platform step is a Recursiv custom-domain binding for `www.inverted.world`.
 - DNS should stay unchanged until that binding is created and proven.

@@ -125,7 +125,16 @@ function readCooldown() {
   if (!fs.existsSync(file)) return null
   try {
     const parsed = JSON.parse(fs.readFileSync(file, "utf8"))
-    return parsed && typeof parsed === "object" ? normalizeCooldown(parsed) : null
+    if (!parsed || typeof parsed !== "object") return null
+    const normalized = normalizeCooldown(parsed)
+    if (JSON.stringify(normalized) !== JSON.stringify(parsed)) {
+      try {
+        writeCooldown(normalized)
+      } catch {
+        // Keep the in-memory guard even if the local proof file cannot be rewritten.
+      }
+    }
+    return normalized
   } catch {
     return null
   }
