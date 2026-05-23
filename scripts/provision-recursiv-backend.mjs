@@ -274,62 +274,62 @@ const JOBS = [
   {
     name: "inverted-world-youtube-archive-sync",
     cron: "*/30 * * * *",
-    endpoint: "/api/recursiv/jobs/youtube-archive-sync",
+    endpoint: "/api/recursiv/jobs/youtube-archive-sync?async=1",
   },
   {
     name: "inverted-world-topic-pulse",
     cron: "*/20 * * * *",
-    endpoint: "/api/recursiv/jobs/topic-pulse?limit=24&profileReader=0",
+    endpoint: "/api/recursiv/jobs/topic-pulse?limit=24&profileReader=0&async=1",
   },
   {
     name: "inverted-world-article-generation",
     cron: "5 * * * *",
-    endpoint: "/api/recursiv/jobs/article-generation?limit=2&useAgent=0",
+    endpoint: "/api/recursiv/jobs/article-generation?limit=2&useAgent=0&async=1",
   },
   {
     name: "inverted-world-claim-dossiers",
     cron: "10 * * * *",
-    endpoint: "/api/recursiv/jobs/claim-dossiers",
+    endpoint: "/api/recursiv/jobs/claim-dossiers?async=1",
   },
   {
     name: "inverted-world-source-documents",
     cron: "12 * * * *",
-    endpoint: "/api/recursiv/jobs/source-documents",
+    endpoint: "/api/recursiv/jobs/source-documents?async=1",
   },
   {
     name: "inverted-world-media-library",
     cron: "14 * * * *",
-    endpoint: "/api/recursiv/jobs/media-library",
+    endpoint: "/api/recursiv/jobs/media-library?async=1",
   },
   {
     name: "inverted-world-image-generation",
     cron: "15 * * * *",
-    endpoint: "/api/recursiv/jobs/image-generation",
+    endpoint: "/api/recursiv/jobs/image-generation?async=1",
   },
   {
     name: "inverted-world-publishing",
     cron: "25 * * * *",
-    endpoint: "/api/recursiv/jobs/publishing",
+    endpoint: "/api/recursiv/jobs/publishing?async=1",
   },
   {
     name: "inverted-world-front-page-edition",
     cron: "30 * * * *",
-    endpoint: "/api/recursiv/jobs/front-page-edition",
+    endpoint: "/api/recursiv/jobs/front-page-edition?async=1",
   },
   {
     name: "inverted-world-full-pipeline",
     cron: "2 * * * *",
-    endpoint: "/api/recursiv/jobs/full-pipeline?mode=scheduled&staleAfterMinutes=30",
+    endpoint: "/api/recursiv/jobs/full-pipeline?mode=scheduled&staleAfterMinutes=30&async=1",
   },
   {
     name: "inverted-world-pipeline-maintenance",
     cron: "*/15 * * * *",
-    endpoint: "/api/recursiv/jobs/pipeline-maintenance",
+    endpoint: "/api/recursiv/jobs/pipeline-maintenance?async=1",
   },
   {
     name: "inverted-world-provider-health",
     cron: "0 */6 * * *",
-    endpoint: "/api/recursiv/jobs/provider-health",
+    endpoint: "/api/recursiv/jobs/provider-health?async=1",
   },
 ]
 

@@ -1,18 +1,16 @@
-import { NextRequest, NextResponse } from "next/server"
-import { authorizeRecursivJob } from "@/lib/recursiv/job-auth"
+import { NextRequest } from "next/server"
 import { runFullPipelineInRecursiv } from "@/lib/recursiv/ingestion"
+import { runRecursivJob } from "@/lib/recursiv/job-runner"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
 export async function POST(request: NextRequest) {
-  const unauthorized = authorizeRecursivJob(request)
-  if (unauthorized) return unauthorized
-
   const url = new URL(request.url)
-  const result = await runFullPipelineInRecursiv({
-    mode: url.searchParams.get("mode"),
-    staleAfterMinutes: Number(url.searchParams.get("staleAfterMinutes") || "") || undefined,
-  })
-  return NextResponse.json({ ok: true, job: "full-pipeline", ...result })
+  return runRecursivJob(request, "full-pipeline", () =>
+    runFullPipelineInRecursiv({
+      mode: url.searchParams.get("mode"),
+      staleAfterMinutes: Number(url.searchParams.get("staleAfterMinutes") || "") || undefined,
+    }),
+  )
 }

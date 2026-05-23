@@ -1,14 +1,10 @@
-import { NextRequest, NextResponse } from "next/server"
-import { authorizeRecursivJob } from "@/lib/recursiv/job-auth"
+import { NextRequest } from "next/server"
 import { reclassifyYouTubeArchiveInRecursiv } from "@/lib/recursiv/ingestion"
+import { runRecursivJob } from "@/lib/recursiv/job-runner"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
 export async function POST(request: NextRequest) {
-  const unauthorized = authorizeRecursivJob(request)
-  if (unauthorized) return unauthorized
-
-  const result = await reclassifyYouTubeArchiveInRecursiv()
-  return NextResponse.json({ ok: true, job: "archive-reclassify", ...result })
+  return runRecursivJob(request, "archive-reclassify", reclassifyYouTubeArchiveInRecursiv)
 }

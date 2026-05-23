@@ -1,14 +1,12 @@
-import { NextRequest, NextResponse } from "next/server"
-import { authorizeRecursivJob } from "@/lib/recursiv/job-auth"
+import { NextRequest } from "next/server"
 import { runProviderHealthCheck } from "@/lib/recursiv/provider-health"
+import { runRecursivJob } from "@/lib/recursiv/job-runner"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
 export async function POST(request: NextRequest) {
-  const unauthorized = authorizeRecursivJob(request)
-  if (unauthorized) return unauthorized
-
-  const report = await runProviderHealthCheck({ persist: true })
-  return NextResponse.json({ ok: report.summary.error === 0, job: "provider-health", ...report })
+  return runRecursivJob(request, "provider-health", () => runProviderHealthCheck({ persist: true }), {
+    ok: (report) => report.summary.error === 0,
+  })
 }

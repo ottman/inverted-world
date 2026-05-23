@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server"
-import { authorizeRecursivJob } from "@/lib/recursiv/job-auth"
+import { NextRequest } from "next/server"
 import { generateArticleDraftsInRecursiv } from "@/lib/recursiv/ingestion"
+import { runRecursivJob } from "@/lib/recursiv/job-runner"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -11,13 +11,11 @@ function optionalBoolean(value: string | null) {
 }
 
 export async function POST(request: NextRequest) {
-  const unauthorized = authorizeRecursivJob(request)
-  if (unauthorized) return unauthorized
-
   const url = new URL(request.url)
-  const result = await generateArticleDraftsInRecursiv({
-    limit: Number(url.searchParams.get("limit") || "") || undefined,
-    useAgent: optionalBoolean(url.searchParams.get("useAgent")),
-  })
-  return NextResponse.json({ ok: true, job: "article-generation", ...result })
+  return runRecursivJob(request, "article-generation", () =>
+    generateArticleDraftsInRecursiv({
+      limit: Number(url.searchParams.get("limit") || "") || undefined,
+      useAgent: optionalBoolean(url.searchParams.get("useAgent")),
+    }),
+  )
 }
