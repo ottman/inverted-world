@@ -324,6 +324,41 @@ async function probeDocumentsApi(url) {
   }
 }
 
+async function probePipelineApi(url) {
+  const started = Date.now()
+  try {
+    const response = await fetch(url, {
+      headers: { accept: "application/json", "user-agent": "InvertedWorldCutoverReadiness/1.0" },
+      signal: AbortSignal.timeout(20000),
+    })
+    const body = await response.json().catch(() => ({}))
+    const latest = body.latest && typeof body.latest === "object" ? body.latest : {}
+    const readHealth = body.readHealth && typeof body.readHealth === "object" ? body.readHealth : {}
+
+    return {
+      url,
+      status: response.status,
+      ok: response.ok,
+      sourceMode: body.sourceMode,
+      count: Number(body.count || 0),
+      latestJobName: typeof latest.jobName === "string" ? latest.jobName : undefined,
+      latestStatus: typeof latest.status === "string" ? latest.status : undefined,
+      latestStepCount: Number(latest.stepCount || 0),
+      readHealthStatus: typeof readHealth.status === "string" ? readHealth.status : undefined,
+      readHealthLastErrorStatus: readHealth.lastErrorStatus,
+      durationMs: Date.now() - started,
+    }
+  } catch (error) {
+    return {
+      url,
+      status: 0,
+      ok: false,
+      message: error instanceof Error ? error.message : String(error),
+      durationMs: Date.now() - started,
+    }
+  }
+}
+
 async function probeDns(hostname) {
   const [cname, a, aaaa] = await Promise.all([
     dns.resolveCname(hostname).catch(() => []),
@@ -388,6 +423,7 @@ async function main() {
   const releaseApiUrl = new URL("/api/release", recursivUrl).toString()
   const archiveApiUrl = new URL("/api/archive?limit=1000", recursivUrl).toString()
   const documentsApiUrl = new URL("/api/documents", recursivUrl).toString()
+  const pipelineApiUrl = new URL("/api/pipeline?limit=1", recursivUrl).toString()
   const mediaItemPageUrl = new URL(`/media/${MEDIA_PROOF_ID}`, recursivUrl).toString()
   const mediaItemApiUrl = new URL(`/api/media/${MEDIA_PROOF_ID}`, recursivUrl).toString()
   const readinessWarnings = []
@@ -409,6 +445,7 @@ async function main() {
     releaseApi,
     archiveApi,
     documentsApi,
+    pipelineApi,
     mediaItemPage,
     mediaItemApi,
     customHttp,
@@ -438,6 +475,7 @@ async function main() {
       probeReleaseApi(releaseApiUrl),
       probeJson(archiveApiUrl),
       probeDocumentsApi(documentsApiUrl),
+      probePipelineApi(pipelineApiUrl),
       probeHttp(mediaItemPageUrl),
       probeMediaItemApi(mediaItemApiUrl),
       probeHttp(customDomainUrl),
@@ -515,6 +553,13 @@ async function main() {
       Number(documentsApi.topicCount || 0) >= 6 &&
       Number(documentsApi.kindCount || 0) >= 4,
   )
+  const pipelineApiReady = Boolean(
+    pipelineApi.ok &&
+      RECURSIV_BACKED_SOURCE_MODES.has(pipelineApi.sourceMode) &&
+      Number(pipelineApi.count || 0) >= 1 &&
+      pipelineApi.latestJobName === "full-pipeline" &&
+      pipelineApi.latestStatus === "succeeded",
+  )
   const mediaItemPageReady = Boolean(mediaItemPage.ok && mediaItemPage.contentSignals?.hasMediaLibraryProof)
   const mediaItemApiReady = Boolean(
     mediaItemApi.ok &&
@@ -536,6 +581,7 @@ async function main() {
     releaseProofReady &&
     recursivArchiveDataReady &&
     documentsApiReady &&
+    pipelineApiReady &&
     mediaItemPageReady &&
     mediaItemApiReady &&
     scheduledJobsReady &&
@@ -555,6 +601,7 @@ async function main() {
     recursivArchiveLiveDatabase: statusText(recursivArchiveLiveDatabaseReady),
     recursivArchiveSnapshot: statusText(recursivArchiveSnapshotReady),
     documentsApi: statusText(documentsApiReady),
+    pipelineApi: statusText(pipelineApiReady),
     mediaItemPage: statusText(mediaItemPageReady),
     mediaItemApi: statusText(mediaItemApiReady),
     providerHealthFresh: providerHealthAvailable ? statusText(providerHealthFresh) : "unknown",
@@ -584,6 +631,9 @@ async function main() {
     nextActions.push("Public archive data is Recursiv-backed through an exported snapshot while the runtime database key is unhealthy; fix the Recursiv runtime key before calling the full product live-database ready.")
   }
   if (!documentsApiReady) nextActions.push("Do not touch DNS until /api/documents returns the machine-readable source shelf with topic and kind coverage.")
+  if (!pipelineApiReady) {
+    nextActions.push("Do not touch DNS until /api/pipeline returns the latest full-pipeline status from Recursiv database or Recursiv snapshot data.")
+  }
   if (!mediaItemPageReady || !mediaItemApiReady) {
     nextActions.push(`Do not touch DNS until the Recursiv hosted media library proves /media/${MEDIA_PROOF_ID} and /api/media/${MEDIA_PROOF_ID}.`)
   }
@@ -628,6 +678,7 @@ async function main() {
           recursivArchiveDataReady,
           recursivArchiveLiveDatabaseReady,
           recursivArchiveSnapshotReady,
+          pipelineApiReady,
           mediaItemPageReady,
           mediaItemApiReady,
           publicHostingReady,
@@ -645,6 +696,8 @@ async function main() {
         recursivArchiveDataSource: dataSourceStatus(archiveApi.sourceMode),
         documentsApi,
         documentsDataSource: dataSourceStatus(documentsApi.sourceMode),
+        pipelineApi,
+        pipelineDataSource: dataSourceStatus(pipelineApi.sourceMode),
         mediaItemPage,
         mediaItemApi,
         mediaItemDataSource: dataSourceStatus(mediaItemApi.sourceMode),

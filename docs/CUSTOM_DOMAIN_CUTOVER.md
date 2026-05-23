@@ -32,6 +32,7 @@ The command prints a redacted JSON report with:
 - If `recursivHostedUrl` passes but `recursivDeploymentCompleted` is `unknown`, HTTP proof is good but deployment proof is incomplete. Do not treat that as a DNS-ready state.
 - `recursivArchiveDataReady` must be `true`. This can be live `recursiv-database` or `recursiv-snapshot`, but it must not be `seed`, `static`, RSS, YouTube API, or direct provider fallback data.
 - `documentsApi` must pass, proving the source shelf is available as machine-readable JSON from live `recursiv-database` or `recursiv-snapshot` data.
+- `pipelineApi` must pass, proving `/api/pipeline` exposes the latest full-pipeline status from live Recursiv database rows or the committed Recursiv snapshot fallback.
 - `mediaItemPage` and `mediaItemApi` must pass, proving the hosted build includes shareable media pages and machine-readable item data for the official UAP PDF.
 - `publicHostingReady` must be `true`.
 - Recursiv custom-domain binding must be created and proven before changing DNS or removing the Vercel domain binding.
