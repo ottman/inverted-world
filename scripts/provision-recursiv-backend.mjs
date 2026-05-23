@@ -284,7 +284,7 @@ const JOBS = [
   {
     name: "inverted-world-worldwire",
     cron: "*/10 * * * *",
-    endpoint: "/api/recursiv/jobs/worldwire?limitPerLane=16&async=1",
+    endpoint: "/api/recursiv/jobs/worldwire?limitPerLane=8&async=1",
   },
   {
     name: "inverted-world-article-generation",
