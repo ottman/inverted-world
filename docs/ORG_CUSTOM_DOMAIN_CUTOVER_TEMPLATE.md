@@ -18,6 +18,7 @@ Legacy deployment provider:
 Rollback owner:
 Rollback DNS value:
 Monitoring owner:
+Proof artifact:
 ```
 
 ## Required Gates
@@ -25,7 +26,12 @@ Monitoring owner:
 ### 1. Hosted URL
 
 ```bash
-pnpm recursiv:domain:preflight -- --slug=<slug>.on.recursiv.io --custom-domain=www.example.com --expected-text="Product name"
+pnpm recursiv:domain:preflight -- \
+  --slug=<slug>.on.recursiv.io \
+  --custom-domain=www.example.com \
+  --expected-text="Product name" \
+  --output=/private/tmp/<org>-custom-domain-preflight.json \
+  --require=hosted
 ```
 
 The Recursiv slug host must return the expected app over HTTPS. If it does not, stop. Fix deployment, routing, app boot, or content before custom-domain work.
@@ -50,7 +56,13 @@ pnpm recursiv:deploy -- --custom-domain=www.example.com
 Then run the project-specific readiness command, or rerun:
 
 ```bash
-pnpm recursiv:domain:preflight -- --slug=<slug>.on.recursiv.io --custom-domain=www.example.com --expected-text="Product name" --binding-proven
+pnpm recursiv:domain:preflight -- \
+  --slug=<slug>.on.recursiv.io \
+  --custom-domain=www.example.com \
+  --expected-text="Product name" \
+  --binding-proven \
+  --output=/private/tmp/<org>-custom-domain-binding-proof.json \
+  --require=dns-change
 ```
 
 Do not treat `--binding-proven` as proof by itself. It is a local assertion that must be backed by Recursiv project/domain evidence.
@@ -83,7 +95,13 @@ Cut over `www` first. Handle the apex only after `www` is green and the DNS prov
 Run live proof:
 
 ```bash
-pnpm recursiv:domain:preflight -- --slug=<slug>.on.recursiv.io --custom-domain=www.example.com --expected-text="Product name" --binding-proven
+pnpm recursiv:domain:preflight -- \
+  --slug=<slug>.on.recursiv.io \
+  --custom-domain=www.example.com \
+  --expected-text="Product name" \
+  --binding-proven \
+  --output=/private/tmp/<org>-custom-domain-cutover-proof.json \
+  --require=cutover
 curl -I -sS https://www.example.com
 ```
 
@@ -105,12 +123,27 @@ After a monitoring window:
 - confirm traffic no longer reaches the legacy host for the custom hostname;
 - keep the rollback values in the cutover packet.
 
+## Recursiv Product Requirement
+
+Every Recursiv org/site should expose this flow through the platform, not only through local scripts:
+
+- Domains tab on each project with the slug host, requested custom hosts, verification records, serving target, and TLS status.
+- A pre-DNS gate that refuses to mark a domain ready until the project has a healthy hosted deployment and the custom-domain binding exists.
+- A post-DNS gate that checks HTTPS, expected content, no legacy host headers, and app health/data endpoints.
+- A final cleanup gate for removing the legacy host binding and legacy provider secrets after a monitoring window.
+- Downloadable no-secret proof artifacts for support handoff and customer confidence.
+
 ## Inverted World Example
 
 Current command:
 
 ```bash
-pnpm recursiv:domain:preflight -- --slug=invertedworld.on.recursiv.io --custom-domain=www.inverted.world --expected-text="Inverted World"
+pnpm recursiv:domain:preflight -- \
+  --slug=invertedworld.on.recursiv.io \
+  --custom-domain=www.inverted.world \
+  --expected-text="Inverted World" \
+  --output=/private/tmp/inverted-world-domain-preflight.json \
+  --require=hosted
 ```
 
-As of May 23, 2026 at `13:56Z`, the Recursiv slug host returned HTTP 200, while `www.inverted.world` still returned Vercel headers. DNS should remain unchanged until the Recursiv custom-domain binding for `www.inverted.world` is created and proven.
+As of May 23, 2026 at `15:34Z`, the Recursiv slug host returned HTTP 200, while `www.inverted.world` still returned Vercel headers. DNS should remain unchanged until the Recursiv custom-domain binding for `www.inverted.world` is created and proven.

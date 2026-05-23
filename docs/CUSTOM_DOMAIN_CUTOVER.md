@@ -103,7 +103,7 @@ This still does not change DNS. The `:wait` variant polls deployment status unti
 
 ## Current Expected State
 
-As of the latest public-only proof on May 23, 2026 at `14:48Z`, `invertedworld.on.recursiv.io` is live but the hosted build has not yet caught up to the latest pushed repo commit. Treat the Recursiv slug as available, not DNS-ready.
+As of the latest public-only proof on May 23, 2026 at `15:31Z`, `invertedworld.on.recursiv.io` is live but the hosted build has not yet caught up to the latest pushed repo commit. Treat the Recursiv slug as available, not DNS-ready.
 
 Current live proof:
 
@@ -128,7 +128,7 @@ The known full-product blockers are provider/account-side, not DNS fixes. A fres
 
 ## Current Decision
 
-As of the latest public-only proof on May 23, 2026 at `14:48Z`:
+As of the latest public-only proof on May 23, 2026 at `15:31Z`:
 
 - `publicHostingReady: false`
 - `fullAiProductReady: false`
@@ -147,10 +147,15 @@ Use this sequence for every Recursiv-hosted org site. The goal is a repeatable c
 For new orgs, copy the operator packet in [ORG_CUSTOM_DOMAIN_CUTOVER_TEMPLATE.md](./ORG_CUSTOM_DOMAIN_CUTOVER_TEMPLATE.md) and attach the final command output to the customer or internal handoff. The no-secret preflight command is:
 
 ```bash
-pnpm recursiv:domain:preflight -- --slug=<slug>.on.recursiv.io --custom-domain=www.customer.com --expected-text="Customer"
+pnpm recursiv:domain:preflight -- \
+  --slug=<slug>.on.recursiv.io \
+  --custom-domain=www.customer.com \
+  --expected-text="Customer" \
+  --output=/private/tmp/<org>-custom-domain-preflight.json \
+  --require=hosted
 ```
 
-That command proves the current HTTP/DNS posture without calling Recursiv deploy/status APIs. It does not replace the Recursiv custom-domain binding proof.
+That command proves the current HTTP/DNS posture without calling Recursiv deploy/status APIs. It does not replace the Recursiv custom-domain binding proof. Use `--require=dns-change` after the binding is proven and `--require=cutover` after DNS is changed to make the same proof suitable for CI or support handoff.
 
 ### 1. Intake
 
@@ -195,7 +200,7 @@ For projects using the Recursiv deploy API, the desired production bind step is:
 pnpm recursiv:deploy -- --custom-domain=www.customer.com
 ```
 
-Do not paste the API key into logs or docs. The deploy helper reads the protected local key file or environment and prints only the key source. After the deploy completes, the latest deployment metadata should include both `<slug>.on.recursiv.io` and `www.customer.com`; that is the pre-DNS custom-domain binding proof.
+Do not paste the API key into logs or docs. The deploy helper reads the protected local key file or environment and prints only the key source. After the deploy completes, the latest deployment metadata should include both `<slug>.on.recursiv.io` and `www.customer.com`; that is the pre-DNS custom-domain binding proof. Save the proof artifact with `--output` and keep it with the cutover packet.
 
 ### 4. DNS Preflight
 
@@ -225,8 +230,14 @@ If the DNS provider uses an alias UI, use the equivalent DNS-only target. Do not
 Run live proof from outside assumptions:
 
 ```bash
+pnpm recursiv:domain:preflight -- \
+  --slug=<slug>.on.recursiv.io \
+  --custom-domain=www.customer.com \
+  --expected-text="Customer" \
+  --binding-proven \
+  --output=/private/tmp/<org>-custom-domain-cutover-proof.json \
+  --require=cutover
 curl -I -sS https://www.customer.com
-curl -sS https://www.customer.com | head
 ```
 
 Required proof:
@@ -266,9 +277,10 @@ If Recursiv TLS, routing, or app health fails after DNS cutover:
 
 ## Inverted World Status
 
-As of a live check on May 23, 2026:
+As of a live check on May 23, 2026 at `15:34Z`:
 
-- `https://www.inverted.world` returns `server: Vercel` and `x-vercel-id`, so the custom domain is still on Vercel.
-- `https://invertedworld.on.recursiv.io` returns the Recursiv-hosted app.
+- `https://www.inverted.world` returns HTTP 200 with `server: Vercel` and `x-vercel-id`, so the custom domain is still on Vercel.
+- `https://www.inverted.world` currently resolves to legacy Vercel IPs `64.29.17.1` and `64.29.17.65`.
+- `https://invertedworld.on.recursiv.io` returns HTTP 200 with the Recursiv-hosted Inverted World app.
 - The next platform step is a Recursiv custom-domain binding for `www.inverted.world`.
 - DNS should stay unchanged until that binding is created and proven.
