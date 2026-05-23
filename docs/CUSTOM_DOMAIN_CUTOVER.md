@@ -88,3 +88,120 @@ As of the May 23, 2026 readiness run:
 - `keepDnsOnVercel: true`
 
 Next step is not a DNS change. Create and prove the Recursiv custom-domain binding for `www.inverted.world`, then rerun `pnpm recursiv:cutover`. Only after `customDomainRecursivProven` and `dnsCutoverReady` are true should the DNS host change be planned.
+
+## Reusable Org Custom-Domain Process
+
+Use this sequence for every Recursiv-hosted org site. The goal is a repeatable cutover with proof at each step, not a one-off DNS guess.
+
+### 1. Intake
+
+Capture the site owner, Recursiv organization, Recursiv project, canonical host, apex host, current host, DNS provider, registrar, current deployment provider, and rollback owner.
+
+For most customer sites, cut over `www` first. Only cut over the apex after the `www` host is proven and the DNS provider supports the required apex behavior, such as ALIAS, ANAME, or CNAME flattening.
+
+### 2. Recursiv Hosted URL Proof
+
+Create or verify the Recursiv project slug, then prove the platform URL:
+
+```bash
+curl -I -sS https://<slug>.on.recursiv.io
+```
+
+Required proof:
+
+- HTTP 200 or expected redirect;
+- correct page title or core product text;
+- deployment status is `completed`;
+- production app reads Recursiv-backed data or a Recursiv export snapshot;
+- scheduled jobs needed for the public experience are active;
+- no third-party provider secrets are required in the legacy host.
+
+Do not continue to DNS if the hosted URL is still using direct legacy provider keys, seeded-only data, or a failed/stale deployment.
+
+### 3. Custom-Domain Binding
+
+Create the custom-domain binding in Recursiv for the project before changing DNS. If the API/UI does not expose custom-domain binding yet, the required platform work is:
+
+- project-scoped domain record, such as `www.customer.com`;
+- ownership verification value, usually a TXT record or equivalent;
+- serving target, usually the project slug host;
+- TLS certificate provisioning status;
+- binding status exposed through a project/domains API or admin UI.
+
+Until that binding exists and returns a verifiable target, DNS cutover is blocked.
+
+### 4. DNS Preflight
+
+Before changing records:
+
+- export the current DNS records;
+- identify existing `A`, `AAAA`, or `CNAME` records for the host;
+- lower TTL if the provider supports it;
+- keep Cloudflare proxying disabled until Recursiv TLS is green unless Recursiv explicitly supports proxied setup;
+- preserve MX, TXT, verification, email, and unrelated app records;
+- document rollback values.
+
+Do not switch nameservers as part of an app cutover unless the task is specifically a nameserver migration. For normal custom-domain cutover, change only the target host record.
+
+### 5. Cutover
+
+After Recursiv provides the exact target, update only the intended host record. Typical shape:
+
+```text
+www.customer.com CNAME <slug>.on.recursiv.io
+```
+
+If the DNS provider uses an alias UI, use the equivalent DNS-only target. Do not remove the legacy provider binding yet.
+
+### 6. Post-Cutover Proof
+
+Run live proof from outside assumptions:
+
+```bash
+curl -I -sS https://www.customer.com
+curl -sS https://www.customer.com | head
+```
+
+Required proof:
+
+- HTTP 200 or intended redirect;
+- no legacy host headers, such as `server: Vercel`, when the target should be Recursiv;
+- TLS certificate is valid for the custom domain;
+- page content matches the Recursiv-hosted app;
+- app health endpoints return Recursiv-backed data;
+- canonical links and sitemap do not point users back to the legacy host unless intentional.
+
+For Inverted World, rerun:
+
+```bash
+pnpm recursiv:cutover
+```
+
+Only call the cutover successful when `customDomainRecursivProven` and `dnsCutoverReady` are both true.
+
+### 7. Legacy Cleanup
+
+Wait until the custom domain has served the Recursiv app cleanly for a monitoring window, then:
+
+- remove the domain binding from the legacy host;
+- remove provider keys from the legacy host;
+- keep the rollback record values in the cutover artifact;
+- confirm the legacy host no longer receives traffic for the custom domain.
+
+### 8. Rollback
+
+If Recursiv TLS, routing, or app health fails after DNS cutover:
+
+1. restore the previous DNS record;
+2. verify the legacy host returns the app;
+3. leave the Recursiv binding in place for debugging unless it is actively harming traffic;
+4. document the failure and rerun hosted URL proof before attempting again.
+
+## Inverted World Status
+
+As of a live check on May 23, 2026:
+
+- `https://www.inverted.world` returns `server: Vercel` and `x-vercel-id`, so the custom domain is still on Vercel.
+- `https://invertedworld.on.recursiv.io` returns the Recursiv-hosted app.
+- The next platform step is a Recursiv custom-domain binding for `www.inverted.world`.
+- DNS should stay unchanged until that binding is created and proven.
