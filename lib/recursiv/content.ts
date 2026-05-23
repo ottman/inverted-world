@@ -726,17 +726,18 @@ function snapshotChannelArchive({
   safeLimit: number
 }) {
   const rows = snapshotChannelRows()
-  const videos = rows.slice(safeOffset, safeOffset + safeLimit).map(channelRowToVideo)
+  const allVideos = dedupeChannelVideos(rows.map(channelRowToVideo))
+  const videos = allVideos.slice(safeOffset, safeOffset + safeLimit)
   if (!videos.length) return null
 
   return {
     generatedAt: new Date().toISOString(),
     sourceMode: "recursiv-snapshot" as const,
     videos,
-    totalCount: rows.length,
+    totalCount: allVideos.length,
     offset: safeOffset,
     limit: safeLimit,
-    hasMore: safeOffset + safeLimit < rows.length,
+    hasMore: safeOffset + safeLimit < allVideos.length,
   }
 }
 
