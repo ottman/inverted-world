@@ -235,6 +235,11 @@ export type PipelineRunStatus = {
   metadata: Record<string, unknown>
 }
 
+export type PipelineRunsResult = {
+  sourceMode: "recursiv-database" | "recursiv-snapshot"
+  runs: PipelineRunStatus[]
+}
+
 export type ClaimChatMessage = {
   id: string
   dossierSlug: string
@@ -1534,7 +1539,9 @@ export async function getLatestRecursivFrontPageEdition() {
   return rows?.[0] ? frontPageEditionRowToEdition(rows[0]) : snapshotFrontPageRows().map(frontPageEditionRowToEdition)[0] ?? null
 }
 
-export async function fetchRecursivPipelineRuns(options: { limit?: number; jobName?: string; allowSnapshotFallback?: boolean } = {}) {
+export async function fetchRecursivPipelineRunsWithSource(
+  options: { limit?: number; jobName?: string; allowSnapshotFallback?: boolean } = {},
+): Promise<PipelineRunsResult | null> {
   const limit = Math.max(1, Math.min(Math.trunc(options.limit || 5), 20))
   const where = options.jobName ? "WHERE job_name = $2" : ""
   const params = options.jobName ? [limit, options.jobName] : [limit]
@@ -1557,12 +1564,27 @@ export async function fetchRecursivPipelineRuns(options: { limit?: number; jobNa
   )
 
   if (!rows && options.allowSnapshotFallback === false) return null
-  const sourceRows = rows?.length
-    ? rows
-    : options.allowSnapshotFallback === false
-      ? []
-      : snapshotPipelineRows().filter((row) => !options.jobName || row.job_name === options.jobName).slice(0, limit)
-  return sourceRows.length ? sourceRows.map(pipelineRunRowToStatus) : rows ? [] : null
+  if (rows) {
+    return {
+      sourceMode: "recursiv-database",
+      runs: rows.map(pipelineRunRowToStatus),
+    }
+  }
+
+  const snapshotRows = snapshotPipelineRows()
+    .filter((row) => !options.jobName || row.job_name === options.jobName)
+    .slice(0, limit)
+  if (!snapshotRows.length) return null
+
+  return {
+    sourceMode: "recursiv-snapshot",
+    runs: snapshotRows.map(pipelineRunRowToStatus),
+  }
+}
+
+export async function fetchRecursivPipelineRuns(options: { limit?: number; jobName?: string; allowSnapshotFallback?: boolean } = {}) {
+  const result = await fetchRecursivPipelineRunsWithSource(options)
+  return result?.runs ?? null
 }
 
 export async function getLatestRecursivPipelineRun(jobName = "full-pipeline") {

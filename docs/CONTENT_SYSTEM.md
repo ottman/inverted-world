@@ -215,6 +215,8 @@ Run `npm run recursiv:snapshot -- --dry-run` to validate the export path and row
 
 The public snapshot feeds the archive, worldwire/news desk, X velocity, front-page edition, media library, and source document shelf. It is Recursiv-backed persisted data, but it is still a fallback: production is fully healthy only when hosted reads return `sourceMode: "recursiv-database"`.
 
+`/api/pipeline` also falls back to the committed Recursiv snapshot while live database reads are rate-limited, so users can still see the latest exported pipeline run and the non-secret `readHealth` backoff state at the same time.
+
 The media-library importer reads the WAR.GOV PURSUE CSV manifest when available, splits each official row into direct PDF/video/audio/image media entries, preserves record-page anchors, and writes source briefs into Recursiv `media_items.metadata.extraction`. Curated static records stay in the library as a fallback when the government CSV is temporarily blocked or unavailable.
 
 `recursiv:backfill:x` is a local/proof ingestion path for widening stored X coverage without exposing provider keys to public requests. It reads the protected local provider env file when present, filters X results through topic terms and trusted source accounts, and upserts only normalized rows into Recursiv `x_signals`. By default it only replaces previous local-backfill rows after the new fetch has accepted rows; pass `--keep-existing` to append/refresh without clearing previous local-backfill rows.
