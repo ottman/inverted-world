@@ -406,7 +406,8 @@ async function main() {
   loadEnvFile(".env")
   loadEnvFile(".env.local")
 
-  const withJobs = process.argv.includes("--with-jobs")
+  const jobsOnly = process.argv.includes("--jobs-only")
+  const withJobs = process.argv.includes("--with-jobs") || jobsOnly
   const withAgent = process.argv.includes("--with-agent")
   const baseUrl = process.env.RECURSIV_BASE_URL || DEFAULT_BASE_URL
   const apiKey =
@@ -426,16 +427,24 @@ async function main() {
   const { data: project } = await sdk.projects.get(projectId)
   console.log(`Project: ${project.name || projectId} (${project.id || projectId})`)
 
-  await sdk.databases.ensure({ project_id: projectId, name: databaseName })
-  for (const sql of SCHEMA_SQL) {
-    await sdk.databases.query({ project_id: projectId, database_name: databaseName, sql })
+  if (!jobsOnly) {
+    await sdk.databases.ensure({ project_id: projectId, name: databaseName })
+    for (const sql of SCHEMA_SQL) {
+      await sdk.databases.query({ project_id: projectId, database_name: databaseName, sql })
+    }
+    console.log(`Database ready: ${databaseName} (${SCHEMA_SQL.length} schema statements)`)
+  } else {
+    console.log("Skipped database/schema setup for --jobs-only")
   }
-  console.log(`Database ready: ${databaseName} (${SCHEMA_SQL.length} schema statements)`)
 
-  await sdk.storage.ensureBucket({ project_id: projectId, name: bucketName })
-  console.log(`Storage bucket ready: ${bucketName}`)
+  if (!jobsOnly) {
+    await sdk.storage.ensureBucket({ project_id: projectId, name: bucketName })
+    console.log(`Storage bucket ready: ${bucketName}`)
+  } else {
+    console.log("Skipped storage setup for --jobs-only")
+  }
 
-  if (withAgent) {
+  if (withAgent && !jobsOnly) {
     if (!organizationId) throw new Error("RECURSIV_ORG_ID is required for --with-agent")
     if (process.env.RECURSIV_AGENT_ID) {
       const { data: agent } = await sdk.agents.get(process.env.RECURSIV_AGENT_ID)
@@ -455,6 +464,8 @@ async function main() {
       })
       console.log(`Agent created: ${agent.name} (${agent.id})`)
     }
+  } else if (withAgent && jobsOnly) {
+    console.log("Skipped agent setup for --jobs-only")
   }
 
   if (withJobs) {

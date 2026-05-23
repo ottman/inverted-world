@@ -47,6 +47,16 @@ Server-side Recursiv calls use `RECURSIV_SERVER_API_KEY`. Local proof may use a 
 - `/api/dossiers/[slug]/chat`: Recursiv-agent chat over one dossier context.
 - `/api/recursiv/jobs/*`: authenticated scheduled job targets for archive sync, topic pulse, worldwire crawling, article generation, claim dossier generation, image generation, publishing, front-page editions, bounded pipeline refresh, and pipeline maintenance. Add `?async=1` for Recursiv cron triggers; omit it for manual proof runs that should wait for the full result.
 
+The worldwire job keeps persisted rows compact: each stored item keeps the source URL, source label, score, title, section, and timestamp, while long excerpts are dropped before database write. The `items` and `metadata` JSONB payloads are embedded as safely dollar-quoted SQL literals instead of oversized Recursiv `params` entries, because the Recursiv API validates request bodies before PostgreSQL sees the query. Keep scalar params small for scheduled jobs.
+
+If only scheduled job endpoints need repair, run:
+
+```bash
+pnpm recursiv:provision -- --jobs-only
+```
+
+That path skips database/schema/storage setup and updates the Recursiv cron jobs only. Use it after a deployment when the schema is already established or when the full provision path is blocked by database API rate limits.
+
 ## First Tables
 
 ```sql
