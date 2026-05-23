@@ -1,7 +1,9 @@
+import { spawn } from "node:child_process"
 import fs from "node:fs"
 
 const DEFAULT_BASE_URL = "https://api.recursiv.io/api/v1"
 const DEFAULT_DATABASE_NAME = "inverted_world_research"
+const DEFAULT_DATABASE_URL_FILE = "/private/tmp/inverted-world-database-url"
 const LOCAL_PROVIDER_ENV = "/private/tmp/inverted-world-api-keys.env"
 const LOCAL_RECURSIV_KEY = "/private/tmp/inverted-world-recursiv-key"
 const X_EPOCH_MS = BigInt(1_288_834_974_657)
@@ -136,6 +138,11 @@ function shouldDryRun() {
   return process.argv.includes("--dry-run")
 }
 
+function requestedWriteMode() {
+  const value = process.argv.find((arg) => arg.startsWith("--write="))?.split("=")[1] || "auto"
+  return ["auto", "recursiv-api", "direct-db"].includes(value) ? value : "auto"
+}
+
 function providerMode() {
   const value = process.argv.find((arg) => arg.startsWith("--provider="))?.split("=")[1] || "all"
   return ["all", "x", "exa", "profile"].includes(value) ? value : "all"
@@ -164,6 +171,128 @@ function recursivTimeoutMs() {
   const parsed = Number(process.env.RECURSIV_BACKFILL_TIMEOUT_MS || "")
   if (Number.isFinite(parsed) && parsed > 0) return Math.min(Math.trunc(parsed), 120000)
   return DEFAULT_RECURSIV_TIMEOUT_MS
+}
+
+function readOptionalFile(file) {
+  if (!file || !fs.existsSync(file)) return ""
+  return fs.readFileSync(file, "utf8").trim()
+}
+
+function readDatabaseUrlOptional() {
+  const explicitEnvCandidates = [
+    ["RECURSIV_DATABASE_URL", process.env.RECURSIV_DATABASE_URL],
+    ["RECURSIV_DIRECT_DATABASE_URL", process.env.RECURSIV_DIRECT_DATABASE_URL],
+    ["INVERTED_WORLD_DATABASE_URL", process.env.INVERTED_WORLD_DATABASE_URL],
+  ]
+  for (const [source, value] of explicitEnvCandidates) {
+    if (value) return { value, source }
+  }
+
+  const fileCandidates = [
+    ["RECURSIV_DATABASE_URL_FILE", process.env.RECURSIV_DATABASE_URL_FILE],
+    ["DATABASE_URL_FILE", process.env.DATABASE_URL_FILE],
+    ["default database URL file", DEFAULT_DATABASE_URL_FILE],
+  ]
+  for (const [source, file] of fileCandidates) {
+    const value = readOptionalFile(file)
+    if (value) return { value, source }
+  }
+
+  const genericEnvCandidates = [
+    ["DATABASE_URL", process.env.DATABASE_URL],
+    ["POSTGRES_URL", process.env.POSTGRES_URL],
+    ["RECURSIV_POSTGRES_URL", process.env.RECURSIV_POSTGRES_URL],
+  ]
+  for (const [source, value] of genericEnvCandidates) {
+    if (value) return { value, source }
+  }
+
+  return undefined
+}
+
+function safeDecode(value) {
+  try {
+    return decodeURIComponent(value)
+  } catch {
+    return value
+  }
+}
+
+function databaseConnectionEnv(databaseUrl) {
+  const parsed = new URL(databaseUrl)
+  if (!["postgres:", "postgresql:"].includes(parsed.protocol)) {
+    throw new Error("Recursiv database URL must use postgres:// or postgresql://")
+  }
+
+  const host = parsed.hostname
+  const localHost = host === "localhost" || host === "127.0.0.1" || host === "::1"
+  const sslMode = process.env.RECURSIV_DATABASE_SSLMODE || parsed.searchParams.get("sslmode") || (localHost ? "" : "require")
+  const env = {
+    ...process.env,
+    PGHOST: host,
+    PGPORT: parsed.port || "5432",
+    PGDATABASE: safeDecode(parsed.pathname.replace(/^\//, "")),
+    PGUSER: safeDecode(parsed.username),
+    PGPASSWORD: safeDecode(parsed.password),
+  }
+  if (sslMode) env.PGSSLMODE = sslMode
+  return env
+}
+
+function redactDatabaseError(value, databaseUrl) {
+  let text = String(value || "")
+  if (!databaseUrl) return text
+  text = text.replaceAll(databaseUrl, "[redacted-database-url]")
+  try {
+    const parsed = new URL(databaseUrl)
+    const password = safeDecode(parsed.password)
+    const encodedPassword = parsed.password
+    if (password) text = text.replaceAll(password, "[redacted]")
+    if (encodedPassword) text = text.replaceAll(encodedPassword, "[redacted]")
+  } catch {
+    // The database URL parser reports malformed URLs elsewhere.
+  }
+  return text
+}
+
+function runPsql(sql, databaseUrl) {
+  const env = databaseConnectionEnv(databaseUrl)
+  return new Promise((resolve, reject) => {
+    const child = spawn("psql", ["-X", "--no-psqlrc", "-v", "ON_ERROR_STOP=1", "-qAt"], {
+      env,
+      stdio: ["pipe", "pipe", "pipe"],
+    })
+
+    let stdout = ""
+    let stderr = ""
+    child.stdout.setEncoding("utf8")
+    child.stderr.setEncoding("utf8")
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk
+    })
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk
+    })
+    child.on("error", (error) => {
+      if (error.code === "ENOENT") {
+        reject(new Error("psql is required for --write=direct-db. Install PostgreSQL client tools first."))
+        return
+      }
+      reject(error)
+    })
+    child.on("close", (code) => {
+      if (code === 0) {
+        resolve(stdout)
+        return
+      }
+      reject(new Error(redactDatabaseError(stderr || stdout || `psql exited with code ${code}`, databaseUrl)))
+    })
+    child.stdin.end(sql)
+  })
+}
+
+function sqlJsonLiteral(value) {
+  return `'${String(value).replace(/'/g, "''")}'::jsonb`
 }
 
 async function recursivQuery(client, input) {
@@ -492,10 +621,9 @@ async function profilePostsForTopic(topicId, limit) {
     .slice(0, limit)
 }
 
-async function upsertPosts(client, projectId, databaseName, posts) {
-  if (!posts.length) return
+function xSignalRows(posts) {
   const backfilledAt = new Date().toISOString()
-  const rows = posts.map((post) => ({
+  return posts.map((post) => ({
     topic_id: post.topicId,
     x_id: post.id,
     url: post.url,
@@ -508,13 +636,12 @@ async function upsertPosts(client, projectId, databaseName, posts) {
     metrics: post.metrics || {},
     metadata: { ingestion: "local-x-backfill", backfilledAt },
   }))
+}
 
-  await recursivQuery(client, {
-    project_id: projectId,
-    database_name: databaseName,
-    sql: `WITH input AS (
+function xSignalUpsertSql(inputExpression) {
+  return `WITH input AS (
         SELECT *
-        FROM jsonb_to_recordset($1::jsonb) AS row(
+        FROM jsonb_to_recordset(${inputExpression}) AS row(
           topic_id text,
           x_id text,
           url text,
@@ -565,17 +692,37 @@ async function upsertPosts(client, projectId, databaseName, posts) {
         score = EXCLUDED.score,
         metrics = EXCLUDED.metrics,
         metadata = x_signals.metadata || EXCLUDED.metadata,
-        captured_at = now()`,
+        captured_at = now()`
+}
+
+async function upsertPostsViaRecursivApi(client, projectId, databaseName, posts) {
+  if (!posts.length) return
+  const rows = xSignalRows(posts)
+
+  await recursivQuery(client, {
+    project_id: projectId,
+    database_name: databaseName,
+    sql: xSignalUpsertSql("$1::jsonb"),
     params: [JSON.stringify(rows)],
   })
 }
 
-async function clearLocalBackfillRows(client, projectId, databaseName) {
+async function upsertPostsViaDirectDatabase(databaseUrl, posts) {
+  if (!posts.length) return
+  const rows = xSignalRows(posts)
+  await runPsql(xSignalUpsertSql(sqlJsonLiteral(JSON.stringify(rows))), databaseUrl)
+}
+
+async function clearLocalBackfillRowsViaRecursivApi(client, projectId, databaseName) {
   await recursivQuery(client, {
     project_id: projectId,
     database_name: databaseName,
     sql: "DELETE FROM x_signals WHERE metadata->>'ingestion' = 'local-x-backfill'",
   })
+}
+
+async function clearLocalBackfillRowsViaDirectDatabase(databaseUrl) {
+  await runPsql("DELETE FROM x_signals WHERE metadata->>'ingestion' = 'local-x-backfill';", databaseUrl)
 }
 
 async function main() {
@@ -601,19 +748,30 @@ async function main() {
     throw new Error(`Missing X bearer token or EXA_API_KEY. Expected ${LOCAL_PROVIDER_ENV} or server env.`)
   }
 
-  const apiKey = dryRun ? "" : readRecursivKey()
-  if (!dryRun && !apiKey) throw new Error("Missing Recursiv API key")
+  const databaseUrlInfo = dryRun ? undefined : readDatabaseUrlOptional()
+  const requestedWriter = requestedWriteMode()
+  const writer = dryRun
+    ? "dry-run"
+    : requestedWriter === "direct-db" || (requestedWriter === "auto" && databaseUrlInfo)
+      ? "direct-db"
+      : "recursiv-api"
+  if (!dryRun && requestedWriter === "direct-db" && !databaseUrlInfo) {
+    throw new Error(`Missing Recursiv database URL for --write=direct-db. Set RECURSIV_DATABASE_URL, RECURSIV_DATABASE_URL_FILE, or ${DEFAULT_DATABASE_URL_FILE}.`)
+  }
+
+  const apiKey = writer === "recursiv-api" ? readRecursivKey() : ""
+  if (writer === "recursiv-api" && !apiKey) throw new Error("Missing Recursiv API key")
 
   const projectId = process.env.RECURSIV_PROJECT_ID
   const databaseName = process.env.RECURSIV_DATABASE_NAME || DEFAULT_DATABASE_NAME
-  if (!dryRun && (!projectId || !databaseName)) throw new Error("Missing RECURSIV_PROJECT_ID or RECURSIV_DATABASE_NAME")
+  if (writer === "recursiv-api" && (!projectId || !databaseName)) throw new Error("Missing RECURSIV_PROJECT_ID or RECURSIV_DATABASE_NAME")
 
   const limit = parseLimit()
-  const client = dryRun ? undefined : {
+  const client = writer === "recursiv-api" ? {
     apiKey,
     baseUrl: (process.env.RECURSIV_BASE_URL || DEFAULT_BASE_URL).replace(/\/+$/, ""),
     timeoutMs: recursivTimeoutMs(),
-  }
+  } : undefined
 
   const summary = {}
   const acceptedByTopic = {}
@@ -639,11 +797,19 @@ async function main() {
 
   const totalAccepted = Object.values(acceptedByTopic).reduce((sum, posts) => sum + posts.length, 0)
   if (!dryRun && !shouldKeepExisting() && totalAccepted > 0) {
-    await clearLocalBackfillRows(client, projectId, databaseName)
+    if (writer === "direct-db") {
+      await clearLocalBackfillRowsViaDirectDatabase(databaseUrlInfo.value)
+    } else {
+      await clearLocalBackfillRowsViaRecursivApi(client, projectId, databaseName)
+    }
   }
 
   if (!dryRun) {
-    await upsertPosts(client, projectId, databaseName, Object.values(acceptedByTopic).flat())
+    if (writer === "direct-db") {
+      await upsertPostsViaDirectDatabase(databaseUrlInfo.value, Object.values(acceptedByTopic).flat())
+    } else {
+      await upsertPostsViaRecursivApi(client, projectId, databaseName, Object.values(acceptedByTopic).flat())
+    }
   }
 
   console.log(
@@ -652,6 +818,8 @@ async function main() {
         ok: true,
         provider,
         dryRun,
+        writer,
+        databaseUrlSource: writer === "direct-db" ? databaseUrlInfo.source : undefined,
         limit,
         totalAccepted,
         replacedExisting: !dryRun && !shouldKeepExisting() && totalAccepted > 0,

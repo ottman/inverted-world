@@ -211,6 +211,8 @@ When X API credits are blocked, run the profile-reader lane first as a dry run:
 pnpm recursiv:backfill:x -- --provider=profile --limit=8 --dry-run
 ```
 
-If the accepted counts look useful, rerun with `--keep-existing` to bulk upsert the accepted rows. The script also accepts `--topic=uap-disclosure,secret-programs` for smaller proof runs. If Recursiv returns an API-key per-hour rate limit, do not rotate or paste keys into the repo; wait for the limit window or run the hosted topic-pulse job once the server-side key budget is healthy.
+If the accepted counts look useful, rerun with `--keep-existing` to bulk upsert the accepted rows. The script also accepts `--topic=uap-disclosure,secret-programs` for smaller proof runs. By default it writes through the Recursiv API unless a protected direct database URL is available; pass `--write=recursiv-api` or `--write=direct-db` to force either path. The direct database path follows the snapshot exporter convention and reads `RECURSIV_DATABASE_URL`, `RECURSIV_DATABASE_URL_FILE`, or `/private/tmp/inverted-world-database-url`, then passes credentials to `psql` through environment variables rather than command arguments.
+
+If Recursiv returns an API-key per-hour rate limit and no direct database URL is available, do not rotate or paste keys into the repo; wait for the limit window or run the hosted topic-pulse job once the server-side key budget is healthy.
 
 `recursiv:health` prints a non-secret provider health report for local proof. The authenticated hosted job `/api/recursiv/jobs/provider-health` runs the same class of checks inside the Recursiv-hosted app and persists the redacted result into `pipeline_runs` under `job_name = 'provider-health'`. It reports whether provider paths are missing, live, or errored without returning API keys or secret values.
