@@ -16,6 +16,7 @@ import { fetchWorldwireItems } from "@/lib/worldwire-crawler"
 import { WORLDWIRE_LANES, type WorldwireItem } from "@/lib/worldwire"
 import { fetchViralXPostsForTopic, type ViralXPost } from "@/lib/x-posts"
 import { getYouTubeApiKey } from "@/lib/youtube-config"
+import { fetchYouTubePublicChannelVideos } from "@/lib/youtube-public-archive"
 
 type YouTubePlaylistItem = {
   snippet?: {
@@ -828,6 +829,18 @@ export async function syncYouTubeArchiveToRecursiv() {
       sourceMode = "rss-plus-seed"
     } catch (error) {
       warnings.push(error instanceof Error ? error.message : "YouTube RSS archive failed")
+    }
+  }
+
+  if (!videos.length) {
+    try {
+      const publicVideos = await fetchYouTubePublicChannelVideos({ limit: 60 })
+      if (publicVideos.length) {
+        videos = dedupeVideos([...publicVideos, ...seeded])
+        sourceMode = "youtube-public-channel"
+      }
+    } catch (error) {
+      warnings.push(error instanceof Error ? error.message : "YouTube public channel archive failed")
     }
   }
 

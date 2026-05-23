@@ -6,6 +6,7 @@ const LOCAL_CRON_SECRET = "/private/tmp/inverted-world-cron-secret"
 const DEFAULT_BASE_URL = "https://api.recursiv.io/api/v1"
 const DEFAULT_DATABASE_NAME = "inverted_world_research"
 const YOUTUBE_RSS_URL = "https://www.youtube.com/feeds/videos.xml?channel_id=UC7qGeFv85Oyct3xlKq-pedw"
+const YOUTUBE_PUBLIC_CHANNEL_VIDEOS_URL = "https://www.youtube.com/@TalesfromtheInvertedWorld/videos"
 const YOUTUBE_UPLOADS_PLAYLIST_ID = "UU7qGeFv85Oyct3xlKq-pedw"
 const YOUTUBE_API_KEY_ENV_NAMES = ["YOUTUBE_API_KEY", "YOUTUBE_DATA_API_KEY", "GOOGLE_YOUTUBE_API_KEY", "GOOGLE_API_KEY"]
 
@@ -262,6 +263,27 @@ async function checkYouTubeRss() {
   }
 }
 
+async function checkYouTubePublicChannel() {
+  try {
+    const response = await fetch(YOUTUBE_PUBLIC_CHANNEL_VIDEOS_URL, {
+      headers: { "user-agent": "Mozilla/5.0 InvertedWorldProviderHealth/1.0" },
+      signal: AbortSignal.timeout(10000),
+    })
+    const text = await response.text()
+    const videoIds = new Set(response.ok ? [...text.matchAll(/"videoId":"([A-Za-z0-9_-]+)"/g)].map((match) => match[1]) : [])
+    return result("youtube-public-channel", {
+      status: response.ok && videoIds.size ? "ok" : "error",
+      configured: true,
+      httpStatus: response.status,
+      count: videoIds.size,
+      mode: "live",
+      message: response.ok && videoIds.size ? undefined : `YouTube public channel page returned ${response.status}`,
+    })
+  } catch (error) {
+    return result("youtube-public-channel", { status: "error", configured: true, mode: "live", message: safeMessage(error) })
+  }
+}
+
 async function checkYouTubeData() {
   const key = getYouTubeApiKey()
   if (!key) return missing("youtube-data-api")
@@ -300,6 +322,7 @@ async function main() {
       checkExa(),
       checkBrave(),
       checkYouTubeRss(),
+      checkYouTubePublicChannel(),
       checkYouTubeData(),
     ])),
     configuredOnly("firecrawl", Boolean(process.env.FIRECRAWL_API_KEY)),

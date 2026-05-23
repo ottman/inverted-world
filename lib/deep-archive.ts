@@ -3,6 +3,7 @@ import { allowProviderFallbacks, type ProviderFallbackOptions } from "@/lib/prov
 import { getRecursivChannelArchive, getRecursivChannelVideo } from "@/lib/recursiv/content"
 import { classifyInvertedWorldTopic } from "@/lib/topic-classifier"
 import { getYouTubeApiKey } from "@/lib/youtube-config"
+import { fetchYouTubePublicChannelVideos } from "@/lib/youtube-public-archive"
 
 type YouTubePlaylistItem = {
   snippet?: {
@@ -22,7 +23,7 @@ type YouTubePlaylistResponse = {
 
 export type DeepArchiveResponse = {
   generatedAt: string
-  sourceMode: "recursiv-database" | "recursiv-snapshot" | "youtube-data-api" | "rss-plus-seed" | "seed"
+  sourceMode: "recursiv-database" | "recursiv-snapshot" | "youtube-data-api" | "rss-plus-seed" | "youtube-public-channel" | "seed"
   completeHistoryAvailable: boolean
   videos: ChannelVideo[]
   totalCount: number
@@ -197,6 +198,18 @@ export async function getDeepArchive(options: {
     ])
   } catch (error) {
     warnings.push(error instanceof Error ? error.message : "YouTube RSS archive failed")
+  }
+
+  try {
+    const publicVideos = await fetchYouTubePublicChannelVideos({ limit: 60 })
+    if (publicVideos.length) {
+      return sliceArchive(dedupeVideos([...publicVideos, ...seeded]), "youtube-public-channel", false, [
+        ...warnings,
+        "Public YouTube channel page fallback is limited to recent uploads. Set YOUTUBE_API_KEY or YOUTUBE_DATA_API_KEY to paginate the complete uploads playlist.",
+      ])
+    }
+  } catch (error) {
+    warnings.push(error instanceof Error ? error.message : "YouTube public channel archive failed")
   }
 
   return sliceArchive(dedupeVideos(seeded), "seed", false, [

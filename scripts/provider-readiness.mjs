@@ -47,6 +47,12 @@ const PROVIDERS = [
       "Treat YouTube RSS as an opportunistic public fallback. If it returns 404 for the valid channel ID, rely on YouTube Data API and persisted Recursiv archive rows.",
   },
   {
+    provider: "youtube-public-channel",
+    required: false,
+    aliases: [],
+    action: "Keep the public YouTube channel page fallback healthy so recent uploads can sync while YouTube Data API quota is blocked.",
+  },
+  {
     provider: "youtube-data-api",
     required: true,
     aliases: ["YOUTUBE_API_KEY", "YOUTUBE_DATA_API_KEY", "GOOGLE_YOUTUBE_API_KEY", "GOOGLE_API_KEY"],
@@ -254,7 +260,10 @@ async function main() {
     const localProtectedFilePresent = protectedLocalFilePresent(template.provider)
     const localConfigured = template.aliases.length
       ? aliasesPresent.length > 0 || localProtectedFilePresent
-      : template.provider === "youtube-rss" || template.provider === "x-profile-reader" || localProtectedFilePresent
+      : template.provider === "youtube-rss" ||
+          template.provider === "youtube-public-channel" ||
+          template.provider === "x-profile-reader" ||
+          localProtectedFilePresent
     return {
       provider: template.provider,
       required: template.required,

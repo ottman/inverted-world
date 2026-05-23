@@ -2,6 +2,7 @@ import { channelProfile } from "@/data/inverted-world"
 import { createRecursivServerClient } from "@/lib/recursiv/client"
 import { getRecursivRuntimeConfig } from "@/lib/recursiv/config"
 import { getYouTubeApiKey } from "@/lib/youtube-config"
+import { fetchYouTubePublicChannelVideos } from "@/lib/youtube-public-archive"
 
 type ProviderStatus = "ok" | "missing" | "error"
 
@@ -334,6 +335,31 @@ async function checkYouTubeRss(): Promise<ProviderHealthResult> {
   }
 }
 
+async function checkYouTubePublicChannel(): Promise<ProviderHealthResult> {
+  try {
+    const videos = await fetchYouTubePublicChannelVideos({ limit: 12 })
+
+    return {
+      provider: "youtube-public-channel",
+      status: videos.length ? "ok" : "error",
+      configured: true,
+      checkedAt: now(),
+      count: videos.length,
+      mode: "live",
+      message: videos.length ? undefined : "YouTube public channel page returned no parseable uploads",
+    }
+  } catch (error) {
+    return {
+      provider: "youtube-public-channel",
+      status: "error",
+      configured: true,
+      checkedAt: now(),
+      mode: "live",
+      message: safeMessage(error),
+    }
+  }
+}
+
 async function checkYouTubeData(): Promise<ProviderHealthResult> {
   const key = getYouTubeApiKey()
   if (!key) return missing("youtube-data-api")
@@ -398,6 +424,7 @@ export async function runProviderHealthCheck(options: { persist?: boolean } = {}
       checkExa(),
       checkBrave(),
       checkYouTubeRss(),
+      checkYouTubePublicChannel(),
       checkYouTubeData(),
     ])),
     ...checkConfiguredProviders(),
