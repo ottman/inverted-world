@@ -20,6 +20,17 @@ const X_SIGNAL_PROOF_TOPIC = "secret-programs"
 const X_SIGNAL_MIN_POSTS = Number(process.env.CUTOVER_X_SIGNAL_MIN_POSTS || "12")
 const X_SIGNAL_MAX_AGE_HOURS = Number(process.env.CUTOVER_X_SIGNAL_MAX_AGE_HOURS || "192")
 const PIPELINE_MAX_AGE_HOURS = Number(process.env.CUTOVER_PIPELINE_MAX_AGE_HOURS || "36")
+const ARCHIVE_REQUIRED_TOPIC_IDS = [
+  "uap-disclosure",
+  "secret-programs",
+  "epstein-networks",
+  "cryptids-paranormal",
+  "ai-technocracy",
+  "space-anomalies",
+]
+const ARCHIVE_MIN_TOTAL_COUNT = Number(process.env.CUTOVER_ARCHIVE_MIN_TOTAL_COUNT || "100")
+const ARCHIVE_MIN_TOPIC_COUNT = Number(process.env.CUTOVER_ARCHIVE_MIN_TOPIC_COUNT || "12")
+const ARCHIVE_MAX_DOMINANT_TOPIC_SHARE = Number(process.env.CUTOVER_ARCHIVE_MAX_DOMINANT_TOPIC_SHARE || "0.7")
 
 const EXPECTED_JOBS = [
   "inverted-world-youtube-archive-sync",
@@ -443,6 +454,68 @@ async function probeJson(url) {
   }
 }
 
+async function probeArchiveApi(url) {
+  const started = Date.now()
+  try {
+    const response = await fetch(url, {
+      headers: { accept: "application/json", "user-agent": "InvertedWorldCutoverReadiness/1.0" },
+      signal: AbortSignal.timeout(20000),
+    })
+    const body = await response.json().catch(() => ({}))
+    const videos = Array.isArray(body.videos) ? body.videos : []
+    const topicCounts = {}
+    for (const video of videos) {
+      const topicId = typeof video?.topicId === "string" ? video.topicId : typeof video?.topic_id === "string" ? video.topic_id : ""
+      if (!topicId) continue
+      topicCounts[topicId] = (topicCounts[topicId] || 0) + 1
+    }
+    const totalCount = Number(body.totalCount || videos.length || 0)
+    const topicCount = Object.keys(topicCounts).length
+    const requiredTopicCounts = Object.fromEntries(
+      ARCHIVE_REQUIRED_TOPIC_IDS.map((topicId) => [topicId, Number(topicCounts[topicId] || 0)]),
+    )
+    const requiredTopicsBelowMinimum = ARCHIVE_REQUIRED_TOPIC_IDS.filter(
+      (topicId) => Number(topicCounts[topicId] || 0) < ARCHIVE_MIN_TOPIC_COUNT,
+    )
+    const dominantTopic = Object.entries(topicCounts).sort((left, right) => Number(right[1]) - Number(left[1]))[0]
+    const dominantTopicShare = totalCount > 0 && dominantTopic ? Number(dominantTopic[1]) / totalCount : 0
+
+    return {
+      url,
+      status: response.status,
+      ok: response.ok,
+      sourceMode: body.sourceMode,
+      totalCount,
+      returnedVideoCount: videos.length,
+      hasMore: Boolean(body.hasMore),
+      warningCount: Array.isArray(body.warnings) ? body.warnings.length : 0,
+      topicCount,
+      topicCounts,
+      requiredTopicCounts,
+      requiredTopicsBelowMinimum,
+      minRequiredTopicCount: Math.min(...Object.values(requiredTopicCounts)),
+      dominantTopicId: dominantTopic?.[0],
+      dominantTopicCount: Number(dominantTopic?.[1] || 0),
+      dominantTopicShare: Number(dominantTopicShare.toFixed(3)),
+      coverageThresholds: {
+        requiredTopicIds: ARCHIVE_REQUIRED_TOPIC_IDS,
+        minTotalCount: ARCHIVE_MIN_TOTAL_COUNT,
+        minTopicCount: ARCHIVE_MIN_TOPIC_COUNT,
+        maxDominantTopicShare: ARCHIVE_MAX_DOMINANT_TOPIC_SHARE,
+      },
+      durationMs: Date.now() - started,
+    }
+  } catch (error) {
+    return {
+      url,
+      status: 0,
+      ok: false,
+      message: error instanceof Error ? error.message : String(error),
+      durationMs: Date.now() - started,
+    }
+  }
+}
+
 async function probeMediaItemApi(url) {
   const started = Date.now()
   try {
@@ -829,7 +902,7 @@ async function main() {
       probeXSignalPage(xSignalPageUrl),
       probeXSignalApi(xSignalApiUrl),
       probeReleaseApi(releaseApiUrl),
-      probeJson(archiveApiUrl),
+      probeArchiveApi(archiveApiUrl),
       probeDocumentsApi(documentsApiUrl),
       probePipelineApi(pipelineApiUrl),
       probeFrontPageApi(frontPageApiUrl),
@@ -931,11 +1004,18 @@ async function main() {
   const publicProviderFallbackAuditReady = Boolean(publicProviderAudit.ok)
   const recursivDeploymentCompleted = Boolean(latestDeployment?.status === "completed")
   const recursivHostingProven = Boolean(recursivHostedUrlProven && recursivDeploymentCompleted)
+  const archiveTopicCoverageReady = Boolean(
+    archiveApi.ok &&
+      Number(archiveApi.topicCount || 0) >= ARCHIVE_REQUIRED_TOPIC_IDS.length &&
+      Number(archiveApi.minRequiredTopicCount || 0) >= ARCHIVE_MIN_TOPIC_COUNT &&
+      Number(archiveApi.dominantTopicShare || 0) <= ARCHIVE_MAX_DOMINANT_TOPIC_SHARE,
+  )
   const recursivArchiveDataReady = Boolean(
     archiveApi.ok &&
       RECURSIV_BACKED_SOURCE_MODES.has(archiveApi.sourceMode) &&
-      Number(archiveApi.totalCount || 0) >= 100 &&
-      Number(archiveApi.warningCount || 0) === 0,
+      Number(archiveApi.totalCount || 0) >= ARCHIVE_MIN_TOTAL_COUNT &&
+      Number(archiveApi.warningCount || 0) === 0 &&
+      archiveTopicCoverageReady,
   )
   const recursivArchiveLiveDatabaseReady = Boolean(archiveApi.ok && archiveApi.sourceMode === "recursiv-database")
   const recursivArchiveSnapshotReady = Boolean(archiveApi.ok && archiveApi.sourceMode === "recursiv-snapshot")
@@ -1028,6 +1108,7 @@ async function main() {
     releaseCommit: releaseCommitMatch === null ? "unknown" : statusText(releaseCommitMatch),
     publicProviderFallbackAudit: statusText(publicProviderFallbackAuditReady),
     recursivArchiveData: statusText(recursivArchiveDataReady),
+    recursivArchiveTopicCoverage: statusText(archiveTopicCoverageReady),
     recursivArchiveLiveDatabase: statusText(recursivArchiveLiveDatabaseReady),
     recursivArchiveSnapshot: statusText(recursivArchiveSnapshotReady),
     documentsApi: statusText(documentsApiReady),
@@ -1081,6 +1162,13 @@ async function main() {
   }
   if (!recursivArchiveDataReady) {
     nextActions.push("Do not touch DNS until /api/archive is reading Recursiv-backed data, either live database or Recursiv-exported snapshot, with a complete-enough archive and no warnings.")
+  }
+  if (archiveApi.ok && !archiveTopicCoverageReady) {
+    nextActions.push(
+      `Do not touch DNS until /api/archive has at least ${ARCHIVE_MIN_TOPIC_COUNT} videos in each core topic and no topic above ${Math.round(
+        ARCHIVE_MAX_DOMINANT_TOPIC_SHARE * 100,
+      )}% of the archive.`,
+    )
   }
   if (recursivArchiveSnapshotReady && !recursivArchiveLiveDatabaseReady) {
     nextActions.push("Public archive data is Recursiv-backed through an exported snapshot while the runtime database key is unhealthy; fix the Recursiv runtime key before calling the full product live-database ready.")
@@ -1149,6 +1237,7 @@ async function main() {
       releaseCommitReady,
       publicProviderFallbackAuditReady,
       recursivArchiveDataReady,
+      archiveTopicCoverageReady,
       recursivArchiveLiveDatabaseReady,
       recursivArchiveSnapshotReady,
       pipelineApiFresh,

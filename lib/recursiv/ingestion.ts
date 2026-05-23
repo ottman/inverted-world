@@ -12,7 +12,7 @@ import { generatedSvgThumbnail } from "@/lib/generated-thumbnail"
 import { createRecursivServerClient } from "@/lib/recursiv/client"
 import { INVERTED_WORLD_SCHEMA_SQL } from "@/lib/recursiv/schema"
 import { extractSourceText } from "@/lib/source-extraction"
-import { classifyInvertedWorldTopic } from "@/lib/topic-classifier"
+import { classifyInvertedWorldTopic, classifyInvertedWorldTopicMatch } from "@/lib/topic-classifier"
 import { fetchWorldwireItems } from "@/lib/worldwire-crawler"
 import { WORLDWIRE_LANES, type WorldwireItem } from "@/lib/worldwire"
 import { fetchViralXPostsForTopic, type ViralXPost } from "@/lib/x-posts"
@@ -908,7 +908,11 @@ export async function reclassifyYouTubeArchiveInRecursiv() {
   for (const row of rows) {
     const id = textField(row.id)
     const current = textField(row.topic_id) || "secret-programs"
-    const next = classifyInvertedWorldTopic(textField(row.title), textField(row.description))
+    const classification = classifyInvertedWorldTopicMatch(textField(row.title), textField(row.description))
+    const next =
+      classification.matched && (current === "secret-programs" || classification.topicId === "epstein-networks")
+        ? classification.topicId
+        : current
     before[current] = (before[current] || 0) + 1
     after[next] = (after[next] || 0) + 1
     if (id && next !== current) changes.push({ id, topicId: next })

@@ -3,6 +3,7 @@ import recursivPublicSnapshot from "@/data/generated/recursiv-public-snapshot.js
 import recursivNewsSnapshot from "@/data/generated/recursiv-news-snapshot.json"
 import type { IntelligenceArticle } from "@/data/intelligence-articles"
 import { generatedSvgThumbnail, isGeneratedSvgThumbnailUrl } from "@/lib/generated-thumbnail"
+import { classifyInvertedWorldTopicMatch } from "@/lib/topic-classifier"
 import type { ViralXPost } from "@/lib/x-posts"
 import { queryInvertedWorldDatabase, type RecursivRow } from "@/lib/recursiv/database"
 import {
@@ -449,6 +450,18 @@ function articleImageUrl(row: ArticleDraftRow, title: string, topicId: string) {
   return assetUrl
 }
 
+function channelTopicId(row: ChannelItemRow) {
+  const persistedTopicId = row.topic_id || "secret-programs"
+  const classification = classifyInvertedWorldTopicMatch(row.title || "", row.description || "")
+  const shouldUseClassification =
+    classification.matched &&
+    (persistedTopicId === "secret-programs" || classification.topicId === "epstein-networks")
+  if (shouldUseClassification) {
+    return classification.topicId
+  }
+  return persistedTopicId
+}
+
 function channelRowToVideo(row: ChannelItemRow): ChannelVideo {
   const metadata = jsonObject(row.metadata)
   const videoId = row.source_id || (typeof metadata.videoId === "string" ? metadata.videoId : undefined)
@@ -457,7 +470,7 @@ function channelRowToVideo(row: ChannelItemRow): ChannelVideo {
     title: row.title || "Untitled upload",
     date: safeDate(row.published_at),
     href: row.source_url || (videoId ? `https://www.youtube.com/watch?v=${videoId}` : "#"),
-    topicId: row.topic_id || "secret-programs",
+    topicId: channelTopicId(row),
     source: "YouTube",
     videoId,
     embedUrl: row.embed_url || (videoId ? `https://www.youtube.com/embed/${videoId}?rel=0` : undefined),

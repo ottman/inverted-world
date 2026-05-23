@@ -38,7 +38,7 @@ pnpm recursiv:domain:preflight -- \
 
 The Recursiv slug host must return the expected app over HTTPS, and each required product route must return its expected text. If it does not, stop. Fix deployment, routing, app boot, or content before custom-domain work.
 
-Use `--path=/route::expected text` for app-specific proof points. Good routes are health endpoints, public data APIs, logged-out dashboards, content pages, freshness/status endpoints, or other surfaces that prove the production app is more than a placeholder homepage.
+Use `--path=/route::expected text` for app-specific proof points. Good routes are health endpoints, public data APIs, logged-out dashboards, content pages, freshness/status endpoints, archive/category coverage endpoints, or other surfaces that prove the production app is more than a placeholder homepage.
 
 ### 2. Recursiv Project Binding
 
@@ -121,6 +121,7 @@ Required result:
 - TLS certificate is valid for the custom hostname;
 - app health/data endpoints return the expected Recursiv-backed state;
 - freshness/status endpoints prove the public data is current enough for the product promise;
+- archive/category endpoints prove the public product has enough breadth and no dead-end categories;
 - canonical URLs and sitemap point to the desired production host.
 
 ### 6. Legacy Cleanup
@@ -158,4 +159,4 @@ pnpm recursiv:domain:preflight -- \
   --require=hosted
 ```
 
-As of May 23, 2026 at `16:09Z`, the route-aware preflight proved the Recursiv slug host and product routes, while `www.inverted.world` still returned Vercel headers. DNS should remain unchanged until the Recursiv custom-domain binding for `www.inverted.world` is created and proven.
+As of May 23, 2026 at `16:24Z`, the route-aware preflight proved the Recursiv slug host and product routes, while `www.inverted.world` still returned Vercel headers. DNS should remain unchanged until the Recursiv custom-domain binding for `www.inverted.world` is created and proven.

@@ -11,12 +11,63 @@ const DEFAULT_RECURSIV_BASE_URL = "https://api.recursiv.io/api/v1"
 const DEFAULT_RECURSIV_DATABASE_NAME = "inverted_world_research"
 
 const TOPIC_KEYWORDS = [
-  { topicId: "uap-disclosure", words: ["ufo", "uap", "alien", "retrieval", "aaro", "pentagon", "disclosure"] },
-  { topicId: "secret-programs", words: ["mkultra", "cia", "fbi", "psyop", "coverup", "classified", "hearing"] },
-  { topicId: "epstein-networks", words: ["epstein", "maxwell", "island", "sealed", "client list", "court"] },
-  { topicId: "cryptids-paranormal", words: ["cryptid", "bigfoot", "ghost", "paranormal", "haunted", "demon"] },
-  { topicId: "ai-technocracy", words: ["ai", "data center", "surveillance", "technocracy", "algorithm", "machine"] },
-  { topicId: "space-anomalies", words: ["bermuda", "nasa", "moon", "mars", "meteor", "space", "solar"] },
+  {
+    topicId: "epstein-networks",
+    words: [
+      "epstein",
+      "maxwell",
+      "ghislaine",
+      "zorro ranch",
+      "wexner",
+      "client list",
+      "flight log",
+      "flight logs",
+      "blackmail",
+      "donor class",
+      "power network",
+      "powerful people",
+      "davos",
+      "wef",
+      "world economic forum",
+      "bilderberg",
+      "blackrock",
+      "vanguard",
+      "diddy",
+      "mossad",
+      "rothschild",
+      "royal",
+    ],
+    weakWords: ["institution", "institutions", "politics", "political", "sealed", "court"],
+    priority: 0,
+  },
+  {
+    topicId: "uap-disclosure",
+    words: ["ufo", "uap", "alien", "retrieval", "aaro", "pentagon", "disclosure", "grusch"],
+    weakWords: ["hearing", "congressional hearing", "whistleblower"],
+    priority: 1,
+  },
+  {
+    topicId: "ai-technocracy",
+    words: ["ai", "data center", "data centers", "surveillance", "technocracy", "algorithm", "machine", "synthetic", "robot", "palantir", "digital id", "transhuman"],
+    priority: 2,
+  },
+  {
+    topicId: "cryptids-paranormal",
+    words: ["cryptid", "bigfoot", "sasquatch", "ghost", "paranormal", "apocalyptic", "haunted", "demon", "folklore", "pterodactyl", "skinwalker", "baba vanga"],
+    priority: 3,
+  },
+  {
+    topicId: "space-anomalies",
+    words: ["bermuda", "nasa", "moon", "mars", "meteor", "space", "satellite", "solar", "asteroid", "comet", "geomagnetic"],
+    weakWords: ["ocean", "atmosphere"],
+    priority: 4,
+  },
+  {
+    topicId: "secret-programs",
+    words: ["mkultra", "cia", "fbi", "psyop", "psyops", "coverup", "cover-up", "classified", "declassified", "covid", "foia"],
+    weakWords: ["hearing", "records", "documents", "files"],
+    priority: 5,
+  },
 ]
 
 function loadEnvFile(file) {
@@ -44,9 +95,31 @@ function decodeXml(value) {
     .replaceAll("&gt;", ">")
 }
 
+function termMatches(haystack, term) {
+  const normalizedTerm = String(term || "").toLowerCase()
+  if (!normalizedTerm) return false
+  if (/^[a-z0-9]+$/.test(normalizedTerm)) {
+    return new RegExp(`\\b${normalizedTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(haystack)
+  }
+  return haystack.includes(normalizedTerm)
+}
+
+function scoreTopic(haystack, topic) {
+  const strong = topic.words.filter((word) => termMatches(haystack, word)).length
+  const weak = (topic.weakWords || []).filter((word) => termMatches(haystack, word)).length
+  return strong * 3 + weak
+}
+
 function classifyTopic(title, description = "") {
   const haystack = `${title} ${description}`.toLowerCase()
-  return TOPIC_KEYWORDS.find((topic) => topic.words.some((word) => haystack.includes(word)))?.topicId || "secret-programs"
+  const scored = TOPIC_KEYWORDS.map((topic) => ({
+    topicId: topic.topicId,
+    score: scoreTopic(haystack, topic),
+    priority: topic.priority,
+  }))
+    .filter((topic) => topic.score > 0)
+    .sort((left, right) => right.score - left.score || left.priority - right.priority)
+  return scored[0]?.topicId || "secret-programs"
 }
 
 function readApiKeyFromFile() {
