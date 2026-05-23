@@ -40,7 +40,10 @@ export function InvertedPageShell({
   heroDescription?: string
 }) {
   const [liveStatus, setLiveStatus] = useState<LiveStatus>({ isLive: false })
+  const [siteBreakingItems, setSiteBreakingItems] = useState<BreakingItem[]>([])
   const longHeroTitle = heroTitle.length > 56
+  const suppliedBreakingItems = breakingItems?.length ? breakingItems : undefined
+  const tickerItems = suppliedBreakingItems || siteBreakingItems
 
   useEffect(() => {
     let active = true
@@ -63,6 +66,30 @@ export function InvertedPageShell({
       window.clearInterval(interval)
     }
   }, [])
+
+  useEffect(() => {
+    if (suppliedBreakingItems?.length) return
+    let active = true
+
+    async function loadSiteBreakingItems() {
+      try {
+        const response = await fetch("/api/front-page", { cache: "no-store" })
+        if (!response.ok) return
+        const data = (await response.json()) as { breakingItems?: BreakingItem[] }
+        const nextItems = (data.breakingItems || [])
+          .filter((item) => item?.title && item?.href)
+          .slice(0, 32)
+        if (active && nextItems.length) setSiteBreakingItems(nextItems)
+      } catch {
+        // The static fallback below keeps navigation available.
+      }
+    }
+
+    void loadSiteBreakingItems()
+    return () => {
+      active = false
+    }
+  }, [suppliedBreakingItems])
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-[#070706] text-[#f4efe2]">
@@ -90,7 +117,7 @@ export function InvertedPageShell({
             liveStatus.isLive && "bg-[#180404]/46 shadow-[0_1px_0_rgba(223,47,47,0.42)]",
           )}
         >
-          <BreakingTicker items={breakingItems} />
+          <BreakingTicker items={tickerItems} />
           <div className="mx-auto grid max-w-7xl gap-3 px-3 py-3 sm:px-6 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-center lg:px-8">
             <a className="flex min-w-0 items-center justify-center gap-3 justify-self-center lg:justify-self-auto" href="/" aria-label="inverted.world home">
               <Image
@@ -146,11 +173,12 @@ export function InvertedPageShell({
 }
 
 function BreakingTicker({ items }: { items?: BreakingItem[] }) {
-  const fallbackItems = topics.map((topic) => ({
-    title: topic.signal,
-    href: `/#topic-${topic.id}`,
-    source: topic.title,
-  }))
+  const fallbackItems = [
+    { title: "Latest ranked source board", href: "/news", source: "News" },
+    { title: "Full Tales video archive", href: "/archive", source: "Archive" },
+    { title: "Documents, videos, audio, and official releases", href: "/media", source: "Media" },
+    { title: "Primary source index", href: "/documents", source: "Sources" },
+  ]
   const visibleItems = (items?.length ? items : fallbackItems)
     .slice(0, 32)
     .map((item) => ({ ...item, title: cleanTickerTitle(item.title) }))
