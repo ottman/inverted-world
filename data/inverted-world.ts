@@ -43,6 +43,17 @@ export type MediaLibraryItem = {
   fileType?: string
   agency?: string
   collection?: string
+  extraction?: {
+    status: "indexed" | "extracted" | "needs-ocr"
+    brief: string
+    highlights: string[]
+    sourceChain: Array<{
+      label: string
+      value: string
+      url?: string
+    }>
+    researchQuestions: string[]
+  }
 }
 
 export type NewsCoverageItem = {
@@ -636,6 +647,38 @@ export const curatedMediaItems: MediaLibraryItem[] = [
     fileType: "PDF",
     agency: "ODNI",
     collection: "PURSUE Release 02",
+    extraction: {
+      status: "indexed",
+      brief:
+        "Official UAP release document from the second PURSUE tranche. Treat it as a primary-source anchor: read the original file first, then connect any claims to the release hub, ODNI attribution, dates, and related Tales coverage.",
+      highlights: [
+        "Release 02 was published on May 22, 2026 as part of PURSUE, the government-wide UAP release effort.",
+        "The item is attributed to Department of War / ODNI and sits in the official Release 02 document package.",
+        "The filename marks it as an ODNI UAP document tied to a senior U.S. intelligence community narrative.",
+        "Use this document to separate what the source record says from secondhand social-media claims about the release.",
+      ],
+      sourceChain: [
+        {
+          label: "Release hub",
+          value: "Department of War PURSUE Release 02",
+          url: "https://www.war.gov/UFO/?releaseDate=Release+02",
+        },
+        {
+          label: "Agency attribution",
+          value: "Department of War / ODNI",
+        },
+        {
+          label: "Source file",
+          value: "ODNI-UAP-D001_USPER_Narrative_Senior_USIC.pdf",
+          url: "https://www.war.gov/medialink/ufo/052226/release_02/documents/ODNI-UAP-D001_USPER_Narrative_Senior_USIC.pdf",
+        },
+      ],
+      researchQuestions: [
+        "What specific assertions in the narrative are direct witness testimony, official finding, or redacted context?",
+        "Which earlier UAP files or congressional records does this narrative corroborate or contradict?",
+        "What parts of the story can be checked against related videos, images, and release metadata?",
+      ],
+    },
   },
   {
     id: "war-uap-release-02-index",
@@ -651,6 +694,32 @@ export const curatedMediaItems: MediaLibraryItem[] = [
     fileType: "Release hub",
     agency: "Department of War",
     collection: "PURSUE",
+    extraction: {
+      status: "indexed",
+      brief:
+        "Official release index for the second PURSUE tranche. This is the source shelf for documents, videos, images, release metadata, and future additions tied to the May 22, 2026 UAP release.",
+      highlights: [
+        "Release 02 is the second public tranche under the PURSUE UAP file release program.",
+        "The hub separates document and video downloads, which makes it the best source for expanding the media library.",
+        "The release page says additional UAP files will continue to be published on a rolling basis.",
+      ],
+      sourceChain: [
+        {
+          label: "Primary index",
+          value: "WAR.GOV/UFO Release 02",
+          url: "https://www.war.gov/UFO/?releaseDate=Release+02",
+        },
+        {
+          label: "Collection",
+          value: "Presidential Unsealing and Reporting System for UAP Encounters",
+        },
+      ],
+      researchQuestions: [
+        "Which Release 02 videos have corresponding documents, dates, locations, or agency owners?",
+        "Which records should become standalone media pages with transcripts and source briefs?",
+        "What changed between Release 01 and Release 02 in agencies, geography, and document type?",
+      ],
+    },
   },
   {
     id: "nsa-mkultra-gottlieb-testimony",
@@ -666,6 +735,32 @@ export const curatedMediaItems: MediaLibraryItem[] = [
     fileType: "Archive briefing",
     agency: "National Security Archive",
     collection: "MKULTRA",
+    extraction: {
+      status: "indexed",
+      brief:
+        "Primary archive landing page for the MKULTRA testimony story. It should be paired with a plain-language news brief, the document trail, and clear labeling of historical fact versus modern inference.",
+      highlights: [
+        "The story is a source-backed archive item, not a speculative claim by itself.",
+        "It belongs in Declassified coverage because the value is the document trail and historical context.",
+        "Use this as the canonical source page when generating related article summaries.",
+      ],
+      sourceChain: [
+        {
+          label: "Archive source",
+          value: "National Security Archive",
+          url: "https://nsarchive.gwu.edu/briefing-book/intelligence/2025-09-04/top-secret-testimony-cias-mkultra-chief-50-years-later",
+        },
+        {
+          label: "Coverage lane",
+          value: "Declassified",
+        },
+      ],
+      researchQuestions: [
+        "What did the testimony establish as fact, and what remains unresolved?",
+        "Which CIA Reading Room records should be linked beside the article?",
+        "How should the headline distinguish archival publication from a new allegation?",
+      ],
+    },
   },
 ]
 

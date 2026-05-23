@@ -1,6 +1,6 @@
 import { channelProfile, featuredVideos, researchDocuments, topics, type ChannelVideo } from "@/data/inverted-world"
 import { fetchLiveArticlesForTopic } from "@/lib/live-articles"
-import { fetchMediaSeedItemsForSync } from "@/lib/media-library"
+import { fetchMediaSeedItemsForSync, mediaItemMetadata } from "@/lib/media-library"
 import { createRecursivServerClient } from "@/lib/recursiv/client"
 import { INVERTED_WORLD_SCHEMA_SQL } from "@/lib/recursiv/schema"
 import { extractSourceText } from "@/lib/source-extraction"
@@ -732,7 +732,7 @@ export async function syncMediaLibraryToRecursiv() {
         item.fileType || "",
         item.agency || "",
         item.collection || "",
-        JSON.stringify({ generatedBy: "inverted-world-media-library-v1" }),
+        JSON.stringify(mediaItemMetadata(item)),
       ],
     })
     synced += 1

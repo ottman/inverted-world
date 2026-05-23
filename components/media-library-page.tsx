@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { Archive, ArrowUpRight, Download, FileText, Film, ImageIcon, Play } from "lucide-react"
+import { Archive, ArrowUpRight, Download, FileText, Film, ImageIcon, ListChecks, Play } from "lucide-react"
 import { MediaViewer } from "@/components/media-viewer"
 import { topics, type MediaLibraryItem } from "@/data/inverted-world"
 import { archiveSurface } from "@/components/inverted-page-shell"
@@ -106,6 +106,25 @@ export function MediaLibraryPage({
               </div>
               <h2 className="iw-serif mt-3 text-4xl leading-none text-[#fff8e6]">{activeItem.title}</h2>
               <p className="mt-4 text-sm leading-6 text-[#f4efe2]/68">{activeItem.summary}</p>
+              {activeItem.extraction ? (
+                <div className="mt-4 border-l border-[#df2f2f]/45 pl-3">
+                  <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#df2f2f]">
+                    <ListChecks className="h-3.5 w-3.5" />
+                    Source brief
+                  </div>
+                  <p className="mt-2 text-sm leading-6 text-[#f4efe2]/66">{activeItem.extraction.brief}</p>
+                  {activeItem.extraction.highlights.length ? (
+                    <ul className="mt-3 grid gap-2 text-xs leading-5 text-[#f4efe2]/58">
+                      {activeItem.extraction.highlights.slice(0, 2).map((highlight) => (
+                        <li key={highlight} className="flex gap-2">
+                          <span className="mt-2 h-1 w-1 shrink-0 bg-[#df2f2f]" />
+                          <span>{highlight}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+              ) : null}
               <div className="mt-4 flex flex-wrap gap-2">
                 {activeItem.topicIds.map((topicId) => (
                   <a

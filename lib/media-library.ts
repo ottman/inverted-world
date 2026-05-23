@@ -32,6 +32,8 @@ type MediaLibraryRow = RecursivRow & {
   metadata?: unknown
 }
 
+type MediaExtraction = NonNullable<MediaLibraryItem["extraction"]>
+
 export type MediaLibraryResult = {
   sourceMode: "recursiv-database" | "recursiv-snapshot" | "static"
   items: MediaLibraryItem[]
@@ -68,11 +70,77 @@ function jsonArray(value: unknown): unknown[] {
   return []
 }
 
+function jsonObject(value: unknown): Record<string, unknown> {
+  if (!value) return {}
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value)
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : {}
+    } catch {
+      return {}
+    }
+  }
+  return typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {}
+}
+
 function hostName(url: string) {
   try {
     return new URL(url).hostname.replace(/^www\./, "")
   } catch {
     return ""
+  }
+}
+
+function textArray(value: unknown) {
+  return jsonArray(value).map(String).filter(Boolean)
+}
+
+function mediaExtractionFromMetadata(value: unknown): MediaExtraction | undefined {
+  const metadata = jsonObject(value)
+  const raw = jsonObject(metadata.extraction)
+  const brief = typeof raw.brief === "string" ? raw.brief.trim() : ""
+  if (!brief) return undefined
+
+  const sourceChain: MediaExtraction["sourceChain"] = []
+  for (const item of jsonArray(raw.sourceChain)) {
+    const source = jsonObject(item)
+    const label = typeof source.label === "string" ? source.label.trim() : ""
+    const chainValue = typeof source.value === "string" ? source.value.trim() : ""
+    const url = typeof source.url === "string" ? source.url.trim() : ""
+    if (label && chainValue) {
+      sourceChain.push(url ? { label, value: chainValue, url } : { label, value: chainValue })
+    }
+  }
+
+  const status = raw.status === "extracted" || raw.status === "needs-ocr" ? raw.status : "indexed"
+  return {
+    status,
+    brief,
+    highlights: textArray(raw.highlights),
+    sourceChain,
+    researchQuestions: textArray(raw.researchQuestions),
+  }
+}
+
+export function mediaItemMetadata(item: MediaLibraryItem) {
+  return {
+    generatedBy: "inverted-world-media-library-v2",
+    ...extractionMetadata(item),
+  }
+}
+
+function extractionMetadata(item: MediaLibraryItem) {
+  return item.extraction ? { extraction: item.extraction } : {}
+}
+
+const curatedMediaById = new Map(curatedMediaItems.map((item) => [item.id, item]))
+
+function enrichMediaItem(item: MediaLibraryItem): MediaLibraryItem {
+  const curated = curatedMediaById.get(item.id)
+  if (!curated) return item
+  return {
+    ...item,
+    extraction: item.extraction || curated.extraction,
   }
 }
 
@@ -158,7 +226,7 @@ function rowToMediaItem(row: MediaLibraryRow): MediaLibraryItem {
   const url = row.source_url || "#"
   const viewer = row.viewer || viewerForUrl(url)
   const topicIds = jsonArray(row.topic_ids).map(String).filter(Boolean)
-  return {
+  return enrichMediaItem({
     id: row.slug || slugify(`${row.source || hostName(url)}-${row.title || url}`),
     title: row.title || "Untitled media",
     source: row.source || hostName(url) || "Source",
@@ -173,7 +241,8 @@ function rowToMediaItem(row: MediaLibraryRow): MediaLibraryItem {
     fileType: row.file_type || undefined,
     agency: row.agency || undefined,
     collection: row.collection || undefined,
-  }
+    extraction: mediaExtractionFromMetadata(row.metadata),
+  })
 }
 
 export function dedupeMediaItems(items: MediaLibraryItem[]) {

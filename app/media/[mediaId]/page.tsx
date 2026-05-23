@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
-import { ArrowLeft, ArrowUpRight, Download, FileText, Play } from "lucide-react"
+import { ArrowLeft, ArrowUpRight, Download, FileText, ListChecks, Network, Play, Search } from "lucide-react"
 import { archiveSurface, InvertedPageShell } from "@/components/inverted-page-shell"
 import { MediaViewer } from "@/components/media-viewer"
 import { topics, type MediaLibraryItem } from "@/data/inverted-world"
@@ -187,6 +187,82 @@ export default async function MediaItemPage({ params }: PageProps) {
           </aside>
         </div>
       </section>
+
+      {item.extraction ? (
+        <section className={cn("mt-5 grid gap-5 p-3 sm:p-4 lg:grid-cols-[minmax(0,1fr)_360px]", archiveSurface)}>
+          <div className="grid content-start gap-4">
+            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-[#df2f2f]">
+              <ListChecks className="h-4 w-4" />
+              Source Brief
+            </div>
+            <p className="max-w-4xl text-base leading-7 text-[#f4efe2]/76">{item.extraction.brief}</p>
+            {item.extraction.highlights.length ? (
+              <div className="grid gap-2 sm:grid-cols-2">
+                {item.extraction.highlights.map((highlight) => (
+                  <p key={highlight} className="border-l border-[#df2f2f]/45 bg-black/18 px-3 py-2 text-sm leading-6 text-[#f4efe2]/66">
+                    {highlight}
+                  </p>
+                ))}
+              </div>
+            ) : null}
+          </div>
+
+          <aside className="grid content-start gap-4">
+            {item.extraction.sourceChain.length ? (
+              <div className="grid gap-3 bg-[#050504]/30 p-3">
+                <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-[#df2f2f]">
+                  <Network className="h-4 w-4" />
+                  Source chain
+                </div>
+                <div className="grid gap-2">
+                  {item.extraction.sourceChain.map((source) => {
+                    const content = (
+                      <>
+                        <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/42">
+                          {source.label}
+                        </span>
+                        <span className="iw-serif text-xl leading-none text-[#fff8e6]">{source.value}</span>
+                      </>
+                    )
+                    return source.url ? (
+                      <a
+                        key={`${source.label}-${source.value}`}
+                        href={source.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="grid gap-1 bg-black/24 p-2 transition hover:bg-black/42"
+                      >
+                        {content}
+                      </a>
+                    ) : (
+                      <div key={`${source.label}-${source.value}`} className="grid gap-1 bg-black/24 p-2">
+                        {content}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ) : null}
+
+            {item.extraction.researchQuestions.length ? (
+              <div className="grid gap-3 bg-[#050504]/30 p-3">
+                <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-[#df2f2f]">
+                  <Search className="h-4 w-4" />
+                  Research questions
+                </div>
+                <ul className="grid gap-2 text-sm leading-6 text-[#f4efe2]/66">
+                  {item.extraction.researchQuestions.map((question) => (
+                    <li key={question} className="flex gap-2">
+                      <span className="mt-2.5 h-1 w-1 shrink-0 bg-[#df2f2f]" />
+                      <span>{question}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </aside>
+        </section>
+      ) : null}
 
       {related.length ? (
         <section className={cn("mt-5 p-3 sm:p-4", archiveSurface)}>
