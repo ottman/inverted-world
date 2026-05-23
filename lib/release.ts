@@ -6,6 +6,7 @@ export const INVERTED_WORLD_RELEASE = {
     worldwireJsonbPayloads: "dollar-quoted-sql-literals",
     publicDataFallback: "recursiv-snapshot",
     pipelineSnapshotFallback: true,
+    articleChatFallback: true,
     dnsCutoverRequiresCustomDomainProof: true,
   },
 } as const

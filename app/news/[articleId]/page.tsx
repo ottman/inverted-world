@@ -182,6 +182,7 @@ export default async function NewsArticlePage({ params }: PageProps) {
   const topic = article?.topic || dossier?.topic || "INVERTED WORLD"
   const publishedAt = formatDate(article?.publishedAt || dossier?.publishedAt)
   const articleFirst = Boolean(article)
+  const chatEndpoint = dossier ? `/api/dossiers/${dossier.slug}/chat` : article ? `/api/articles/${article.id}/chat` : ""
 
   const breakingItems: BreakingItem[] = dossier ? [
     ...dossier.xSignals.slice(0, 8).map((post) => ({
@@ -365,9 +366,13 @@ export default async function NewsArticlePage({ params }: PageProps) {
         </aside>
       </section>
 
-      {dossier ? (
+      {chatEndpoint ? (
         <div className="mt-6">
-          <DossierChat slug={dossier.slug} />
+          <DossierChat
+            slug={dossier?.slug || article?.id || params.articleId}
+            endpoint={chatEndpoint}
+            emptyText="Ask what is documented, which sources matter most, what is missing, or how the Tales archive changes the read."
+          />
         </div>
       ) : null}
     </InvertedPageShell>

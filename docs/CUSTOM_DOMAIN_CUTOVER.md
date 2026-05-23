@@ -33,7 +33,7 @@ The command prints a redacted JSON report with:
 - published article API proof from `/api/articles`, including Recursiv-backed source mode, direct external source links, generated thumbnails, topic spread, and clean non-templated full-story bodies;
 - source-document API proof for `https://invertedworld.on.recursiv.io/api/documents`;
 - media-library detail proof for the UAP PDF route and JSON item route;
-- Ask This Story proof from `/api/dossiers/[slug]/chat`, requiring no-write sourced Markdown with source and archive links;
+- Ask This Story proof from `/api/dossiers/[slug]/chat` and `/api/articles/[articleId]/chat`, requiring no-write sourced Markdown with source and archive links;
 - latest full-pipeline status and `sourceMode` from `/api/pipeline`, including a completion timestamp inside 36 hours;
 - front-page edition and site ticker proof from `/api/front-page`, including direct news, X, archive targets, and an edition or pipeline timestamp inside 36 hours;
 - HTTP and DNS proof for `https://www.inverted.world`;
@@ -67,7 +67,7 @@ The output file contains the same no-secret report printed to stdout.
 - `pipelineApi` and `pipelineFreshness` must pass, proving `/api/pipeline` exposes a succeeded full-pipeline run from live Recursiv database rows or the committed Recursiv snapshot fallback completed inside 36 hours.
 - `frontPageApi` and `frontPageFreshness` must pass, proving `/api/front-page` exposes a Recursiv-backed edition tied to an edition or pipeline timestamp inside 36 hours and direct ticker targets into stories, X signals, and archive items.
 - `mediaItemPage` and `mediaItemApi` must pass, proving the hosted build includes shareable media pages and machine-readable item data for the official UAP PDF.
-- `dossierChatApi` must pass, proving Ask This Story can return sourced Markdown without requiring a writable agent conversation.
+- `dossierChatApi` and `articleChatApi` must pass, proving Ask This Story can return sourced Markdown without requiring a writable agent conversation on dossier-backed or article-only story pages.
 - `publicHostingReady` must be `true`.
 - Recursiv custom-domain binding must be created and proven before changing DNS or removing the Vercel domain binding.
 - `customDomainBindingConfigured` must be `true` before any DNS record is changed. It proves the latest Recursiv deployment advertises both the slug host and the requested custom hostname.
@@ -135,7 +135,7 @@ Current live proof:
 
 Earlier full readiness runs proved the Recursiv database, scheduled jobs, provider-health row, and successful full-pipeline run, but those authenticated checks are not current while the Recursiv key is under a per-day deploy/status cooldown. Use them as historical context only; rerun full `pnpm recursiv:cutover` after API health returns.
 
-The current local build includes the expected `/api/release` marker, `/api/pipeline` snapshot fallback, sourced Markdown Ask This Story route, and Recursiv-backed article API. The next required platform step is to deploy the latest repo commit to Recursiv, create the custom-domain binding for `www.inverted.world`, and rerun full cutover proof.
+The current local build includes the expected `/api/release` marker, `/api/pipeline` snapshot fallback, sourced Markdown Ask This Story routes for dossiers and article-only stories, and Recursiv-backed article API. The next required platform step is to deploy the latest repo commit to Recursiv, create the custom-domain binding for `www.inverted.world`, and rerun full cutover proof.
 
 The direct custom-domain binding attempt on May 23, 2026 at `13:44Z` used `pnpm recursiv:deploy:custom-domain` and returned `429 rate_limit_exceeded` with the API message `per-day`. The deploy helper normalizes that to a daily guard from the recorded time. Do not retry the binding path with the same key until a healthy Recursiv key is installed or the actual daily limit is known to have reset.
 

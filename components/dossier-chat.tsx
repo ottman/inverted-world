@@ -15,7 +15,14 @@ type StoredChatMessage = {
   response?: string
 }
 
-export function DossierChat({ slug }: { slug: string }) {
+type DossierChatProps = {
+  slug: string
+  endpoint?: string
+  emptyText?: string
+}
+
+export function DossierChat({ slug, endpoint, emptyText }: DossierChatProps) {
+  const chatEndpoint = endpoint || `/api/dossiers/${slug}/chat`
   const [message, setMessage] = useState("")
   const [conversationId, setConversationId] = useState<string | undefined>()
   const [messages, setMessages] = useState<Message[]>([])
@@ -27,7 +34,8 @@ export function DossierChat({ slug }: { slug: string }) {
 
     async function loadMessages() {
       try {
-        const response = await fetch(`/api/dossiers/${slug}/chat?limit=6`, {
+        const historyUrl = chatEndpoint.includes("?") ? `${chatEndpoint}&limit=6` : `${chatEndpoint}?limit=6`
+        const response = await fetch(historyUrl, {
           headers: { accept: "application/json" },
         })
         if (!response.ok) return
@@ -52,7 +60,7 @@ export function DossierChat({ slug }: { slug: string }) {
     return () => {
       active = false
     }
-  }, [slug])
+  }, [chatEndpoint])
 
   async function submit() {
     const value = message.replace(/\s+/g, " ").trim()
@@ -64,7 +72,7 @@ export function DossierChat({ slug }: { slug: string }) {
     setMessages((current) => [...current, { role: "user", text: value }])
 
     try {
-      const response = await fetch(`/api/dossiers/${slug}/chat`, {
+      const response = await fetch(chatEndpoint, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ message: value, conversationId }),
@@ -104,7 +112,7 @@ export function DossierChat({ slug }: { slug: string }) {
           ))
         ) : (
           <div className="grid place-items-center bg-black/28 p-4 text-center text-sm leading-6 text-[#f4efe2]/54">
-            Ask what is documented, what is alleged, what is missing, or which sources matter most.
+            {emptyText || "Ask what is documented, what is alleged, what is missing, or which sources matter most."}
           </div>
         )}
       </div>
