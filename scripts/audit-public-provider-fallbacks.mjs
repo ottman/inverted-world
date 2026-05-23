@@ -10,6 +10,7 @@ const PROVIDER_CAPABLE_CALLS = new Map([
   ["getRecommendedArchiveVideos", 2],
   ["fetchLiveArticles", 0],
   ["fetchLiveArticlesForTopic", 2],
+  ["getArticleById", 1],
   ["fetchViralXPostsForTopic", 1],
   ["fetchViralXPostsByTopic", 0],
   ["getYouTubeLiveStatus", 0],

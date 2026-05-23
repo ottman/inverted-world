@@ -143,7 +143,7 @@ function fallbackArticleAnswer(article: IntelligenceArticle, message: string) {
 }
 
 export async function GET(_request: Request, { params }: RouteContext) {
-  const article = await getArticleById(params.articleId)
+  const article = await getArticleById(params.articleId, { allowProviderFallbacks: false })
   if (!article) {
     return NextResponse.json({ error: "Article not found" }, { status: 404 })
   }
@@ -157,7 +157,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
 }
 
 export async function POST(request: Request, { params }: RouteContext) {
-  const article = await getArticleById(params.articleId)
+  const article = await getArticleById(params.articleId, { allowProviderFallbacks: false })
   if (!article) {
     return NextResponse.json({ error: "Article not found" }, { status: 404 })
   }

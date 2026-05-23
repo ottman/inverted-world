@@ -305,12 +305,13 @@ export async function fetchLiveArticles(options: ProviderFallbackOptions = {}) {
   return { articles: merged, warnings }
 }
 
-export async function getArticleById(articleId: string) {
+export async function getArticleById(articleId: string, options: ProviderFallbackOptions = {}) {
   const staticArticle = staticArticleOverride(articleId)
   if (staticArticle) return staticArticle
 
   const recursivArticle = await getRecursivPublishedArticle(articleId)
   if (recursivArticle) return recursivArticle
+  if (!allowProviderFallbacks(options)) return null
 
   const liveMatch = articleId.match(/^live-(.+)-(\d+)$/)
   if (!liveMatch) return null
@@ -320,7 +321,7 @@ export async function getArticleById(articleId: string) {
   if (!topic) return null
 
   try {
-    const liveArticles = await fetchLiveArticlesForTopic(topic.id, topic.query.replaceAll('"', ""), { allowProviderFallbacks: true })
+    const liveArticles = await fetchLiveArticlesForTopic(topic.id, topic.query.replaceAll('"', ""), options)
     return liveArticles[Number(rawIndex)] ?? null
   } catch {
     return null

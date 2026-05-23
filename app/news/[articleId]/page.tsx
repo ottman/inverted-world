@@ -29,7 +29,7 @@ export const revalidate = 300
 
 const getStoryData = cache(async (articleId: string) => {
   const [article, dossier] = await Promise.all([
-    getArticleById(articleId),
+    getArticleById(articleId, { allowProviderFallbacks: false }),
     getRecursivClaimDossier(articleId),
   ])
 
