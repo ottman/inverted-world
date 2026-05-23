@@ -99,9 +99,12 @@ The deploy command uses bounded direct Recursiv API calls and prints the selecte
 Preview the deployment payload without calling Recursiv:
 
 ```bash
+pnpm recursiv:deploy:window
 pnpm recursiv:deploy:dry-run
 pnpm recursiv:deploy:dry-run -- --custom-domain=www.inverted.world
 ```
+
+`recursiv:deploy:window` is the fastest operator check during cooldowns. It does not call Recursiv; it prints whether the local deploy guard is ready, the exact current commit payload for `www.inverted.world`, the next allowed retry time, and the next command to run.
 
 Create the pre-DNS custom-domain binding after public hosting and Recursiv API health are green:
 

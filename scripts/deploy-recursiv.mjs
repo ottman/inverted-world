@@ -213,24 +213,51 @@ function cooldownAdvice(cooldown) {
   }
 }
 
-function assertNotInCooldown(action) {
-  if (cooldownBypassEnabled()) return
+function cooldownState() {
   const cooldown = readCooldown()
-  if (!cooldown?.expiresAt) return
+  if (!cooldown?.expiresAt) {
+    return {
+      active: false,
+      cooldown: null,
+      remainingSeconds: 0,
+    }
+  }
 
   const expiresAtMs = new Date(cooldown.expiresAt).getTime()
   if (!Number.isFinite(expiresAtMs) || expiresAtMs <= Date.now()) {
     clearCooldownFile()
-    return
+    return {
+      active: false,
+      cooldown: null,
+      remainingSeconds: 0,
+    }
   }
 
-  const error = new Error(`Recursiv deployment API cooldown is active until ${cooldown.expiresAt}`)
+  return {
+    active: true,
+    cooldown,
+    remainingSeconds: Math.ceil((expiresAtMs - Date.now()) / 1000),
+  }
+}
+
+function deployCommandFor({ action, customDomain, wait }) {
+  if (action === "status") return wait ? "pnpm recursiv:deploy:status -- --wait" : "pnpm recursiv:deploy:status"
+  if (customDomain) return wait ? "pnpm recursiv:deploy:custom-domain:wait" : "pnpm recursiv:deploy:custom-domain"
+  return wait ? "pnpm recursiv:deploy -- --wait" : "pnpm recursiv:deploy"
+}
+
+function assertNotInCooldown(action) {
+  if (cooldownBypassEnabled()) return
+  const state = cooldownState()
+  if (!state.active) return
+
+  const error = new Error(`Recursiv deployment API cooldown is active until ${state.cooldown.expiresAt}`)
   error.status = 429
   error.code = "rate_limit_cooldown"
   error.cooldown = {
-    ...cooldown,
+    ...state.cooldown,
     action,
-    remainingSeconds: Math.ceil((expiresAtMs - Date.now()) / 1000),
+    remainingSeconds: state.remainingSeconds,
   }
   throw error
 }
@@ -413,21 +440,28 @@ async function main() {
     ...(customDomain ? { custom_domain: customDomain } : {}),
   }
 
-  if (process.argv.includes("--dry-run")) {
-    const cooldown = readCooldown()
+  if (process.argv.includes("--dry-run") || process.argv.includes("--ready")) {
+    const state = cooldownState()
+    const command = deployCommandFor({ action, customDomain, wait: waitEnabled() || Boolean(customDomain) })
+    const requireReady = process.argv.includes("--require-ready")
     console.log(
       JSON.stringify(
         {
           ok: true,
-          action: "dry-run",
+          action: process.argv.includes("--ready") ? "deploy-window" : "dry-run",
+          ready: !state.active,
           wouldRun: action,
           endpoint: action === "deploy" ? "/deployments" : action,
           branch,
           commitHash,
           customDomain,
           deploymentPayload,
-          cooldown,
-          cooldownAdvice: cooldownAdvice(cooldown),
+          cooldownActive: state.active,
+          cooldown: state.cooldown,
+          cooldownAdvice: cooldownAdvice(state.cooldown),
+          nextAllowedAt: state.cooldown?.expiresAt,
+          nextCommand: command,
+          requireReady,
           wait: waitEnabled()
             ? {
                 timeoutMs: waitTimeoutMs(),
@@ -439,6 +473,7 @@ async function main() {
         2,
       ),
     )
+    if (requireReady && state.active) process.exit(1)
     return
   }
 
