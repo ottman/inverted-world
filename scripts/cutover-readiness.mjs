@@ -227,6 +227,39 @@ async function probeMediaItemApi(url) {
   }
 }
 
+async function probeReleaseApi(url) {
+  const started = Date.now()
+  try {
+    const response = await fetch(url, {
+      headers: { accept: "application/json", "user-agent": "InvertedWorldCutoverReadiness/1.0" },
+      signal: AbortSignal.timeout(20000),
+    })
+    const body = await response.json().catch(() => ({}))
+
+    return {
+      url,
+      status: response.status,
+      ok: response.ok,
+      name: typeof body.name === "string" ? body.name : undefined,
+      release: typeof body.release === "string" ? body.release : undefined,
+      worldwireJsonbPayloads:
+        body.features && typeof body.features.worldwireJsonbPayloads === "string"
+          ? body.features.worldwireJsonbPayloads
+          : undefined,
+      dnsCutoverRequiresCustomDomainProof: Boolean(body.features?.dnsCutoverRequiresCustomDomainProof),
+      durationMs: Date.now() - started,
+    }
+  } catch (error) {
+    return {
+      url,
+      status: 0,
+      ok: false,
+      message: error instanceof Error ? error.message : String(error),
+      durationMs: Date.now() - started,
+    }
+  }
+}
+
 async function probeDocumentsApi(url) {
   const started = Date.now()
   try {
@@ -322,6 +355,7 @@ async function main() {
   const recursivUrl = process.env.INVERTED_WORLD_SITE_URL || DEFAULT_SITE_URL
   const customDomainUrl = process.env.INVERTED_WORLD_CUSTOM_DOMAIN || DEFAULT_CUSTOM_DOMAIN
   const customHostname = new URL(customDomainUrl).hostname
+  const releaseApiUrl = new URL("/api/release", recursivUrl).toString()
   const archiveApiUrl = new URL("/api/archive?limit=1000", recursivUrl).toString()
   const documentsApiUrl = new URL("/api/documents", recursivUrl).toString()
   const mediaItemPageUrl = new URL(`/media/${MEDIA_PROOF_ID}`, recursivUrl).toString()
@@ -342,6 +376,7 @@ async function main() {
     deploymentsResponse,
     jobsResponse,
     recursivHttp,
+    releaseApi,
     archiveApi,
     documentsApi,
     mediaItemPage,
@@ -370,6 +405,7 @@ async function main() {
         readinessWarnings,
       ),
       probeHttp(recursivUrl),
+      probeReleaseApi(releaseApiUrl),
       probeJson(archiveApiUrl),
       probeDocumentsApi(documentsApiUrl),
       probeHttp(mediaItemPageUrl),
@@ -424,6 +460,13 @@ async function main() {
   const recursivHostedUrlProven = Boolean(
     recursivHttp.ok && recursivHttp.contentSignals?.hasInvertedWorld && recursivHttp.contentSignals?.hasCoreProductCopy,
   )
+  const releaseProofReady = Boolean(
+    releaseApi.ok &&
+      releaseApi.name === "inverted-world" &&
+      releaseApi.release === "worldwire-persistence-v2" &&
+      releaseApi.worldwireJsonbPayloads === "dollar-quoted-sql-literals" &&
+      releaseApi.dnsCutoverRequiresCustomDomainProof,
+  )
   const recursivDeploymentCompleted = Boolean(latestDeployment?.status === "completed")
   const recursivHostingProven = Boolean(recursivHostedUrlProven && recursivDeploymentCompleted)
   const recursivArchiveDataReady = Boolean(
@@ -456,6 +499,7 @@ async function main() {
   const scheduledJobsReady = jobsLookupAvailable && missingJobs.length === 0
   const publicHostingReady =
     recursivHostingProven &&
+    releaseProofReady &&
     recursivArchiveDataReady &&
     documentsApiReady &&
     mediaItemPageReady &&
@@ -471,6 +515,7 @@ async function main() {
     recursivHostedUrl: statusText(recursivHostedUrlProven),
     recursivDeploymentCompleted: deploymentLookupAvailable ? statusText(recursivDeploymentCompleted) : "unknown",
     recursivHosting: statusText(recursivHostingProven),
+    releaseProof: statusText(releaseProofReady),
     recursivArchiveData: statusText(recursivArchiveDataReady),
     recursivArchiveLiveDatabase: statusText(recursivArchiveLiveDatabaseReady),
     recursivArchiveSnapshot: statusText(recursivArchiveSnapshotReady),
@@ -488,6 +533,9 @@ async function main() {
 
   const nextActions = []
   if (!recursivHostedUrlProven) nextActions.push("Do not touch DNS until invertedworld.on.recursiv.io returns the expected app.")
+  if (!releaseProofReady) {
+    nextActions.push("Do not touch DNS until /api/release returns the current Recursiv feature marker for the deployed backend.")
+  }
   if (recursivHostedUrlProven && !recursivDeploymentCompleted) {
     nextActions.push("HTTP proof for invertedworld.on.recursiv.io is green, but Recursiv deployment completion could not be proven; rerun cutover after the Recursiv API key is healthy.")
   }
@@ -536,6 +584,7 @@ async function main() {
           recursivHostingProven,
           recursivHostedUrlProven,
           recursivDeploymentCompleted,
+          releaseProofReady,
           recursivArchiveDataReady,
           recursivArchiveLiveDatabaseReady,
           recursivArchiveSnapshotReady,
@@ -548,6 +597,7 @@ async function main() {
           keepDnsOnVercel,
         },
         recursivUrl: recursivHttp,
+        releaseApi,
         recursivArchiveApi: archiveApi,
         recursivArchiveDataSource: dataSourceStatus(archiveApi.sourceMode),
         documentsApi,
