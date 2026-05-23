@@ -30,11 +30,15 @@ pnpm recursiv:domain:preflight -- \
   --slug=<slug>.on.recursiv.io \
   --custom-domain=www.example.com \
   --expected-text="Product name" \
+  --path=/health::ok \
+  --path=/dashboard::"Product name" \
   --output=/private/tmp/<org>-custom-domain-preflight.json \
   --require=hosted
 ```
 
-The Recursiv slug host must return the expected app over HTTPS. If it does not, stop. Fix deployment, routing, app boot, or content before custom-domain work.
+The Recursiv slug host must return the expected app over HTTPS, and each required product route must return its expected text. If it does not, stop. Fix deployment, routing, app boot, or content before custom-domain work.
+
+Use `--path=/route::expected text` for app-specific proof points. Good routes are health endpoints, public data APIs, logged-out dashboards, content pages, or other surfaces that prove the production app is more than a placeholder homepage.
 
 ### 2. Recursiv Project Binding
 
@@ -60,6 +64,8 @@ pnpm recursiv:domain:preflight -- \
   --slug=<slug>.on.recursiv.io \
   --custom-domain=www.example.com \
   --expected-text="Product name" \
+  --path=/health::ok \
+  --path=/dashboard::"Product name" \
   --binding-proven \
   --output=/private/tmp/<org>-custom-domain-binding-proof.json \
   --require=dns-change
@@ -99,6 +105,8 @@ pnpm recursiv:domain:preflight -- \
   --slug=<slug>.on.recursiv.io \
   --custom-domain=www.example.com \
   --expected-text="Product name" \
+  --path=/health::ok \
+  --path=/dashboard::"Product name" \
   --binding-proven \
   --output=/private/tmp/<org>-custom-domain-cutover-proof.json \
   --require=cutover
@@ -142,8 +150,11 @@ pnpm recursiv:domain:preflight -- \
   --slug=invertedworld.on.recursiv.io \
   --custom-domain=www.inverted.world \
   --expected-text="Inverted World" \
+  --path=/news::"source sheet" \
+  --path=/x/secret-programs::"Live X Stream" \
+  --path=/api/release::"worldwire-persistence-v2" \
   --output=/private/tmp/inverted-world-domain-preflight.json \
   --require=hosted
 ```
 
-As of May 23, 2026 at `15:34Z`, the Recursiv slug host returned HTTP 200, while `www.inverted.world` still returned Vercel headers. DNS should remain unchanged until the Recursiv custom-domain binding for `www.inverted.world` is created and proven.
+As of May 23, 2026 at `16:09Z`, the route-aware preflight proved the Recursiv slug host and product routes, while `www.inverted.world` still returned Vercel headers. DNS should remain unchanged until the Recursiv custom-domain binding for `www.inverted.world` is created and proven.

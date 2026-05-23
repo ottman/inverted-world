@@ -58,6 +58,31 @@ function lowerIncludes(value, needle) {
   return String(value || "").toLowerCase().includes(String(needle || "").toLowerCase())
 }
 
+function normalizeRoutePath(value) {
+  const raw = String(value || "").trim()
+  if (!raw) return "/"
+  if (/^https?:\/\//i.test(raw)) {
+    const parsed = new URL(raw)
+    return `${parsed.pathname || "/"}${parsed.search || ""}`
+  }
+  return raw.startsWith("/") ? raw : `/${raw}`
+}
+
+function parseRouteSpec(value, defaultExpectedText) {
+  const [rawPath, ...expectedParts] = String(value || "").split("::")
+  const routePath = normalizeRoutePath(rawPath)
+  const expectedText = expectedParts.join("::").trim() || defaultExpectedText
+  return { path: routePath, expectedText }
+}
+
+function productRouteSpecs(defaultExpectedText) {
+  const envRoutes = String(process.env.CUSTOM_DOMAIN_PREFLIGHT_PATHS || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean)
+  return [...envRoutes, ...argValues("--path")].map((value) => parseRouteSpec(value, defaultExpectedText))
+}
+
 async function probeHttp(url, expectedText, legacyProvider) {
   const started = Date.now()
   try {
@@ -67,9 +92,9 @@ async function probeHttp(url, expectedText, legacyProvider) {
       signal: AbortSignal.timeout(TIMEOUT_MS),
     })
     const contentType = response.headers.get("content-type") || ""
-    const isHtml = contentType.includes("text/html")
-    const html = isHtml ? await response.text() : ""
-    const title = html.match(/<title>(.*?)<\/title>/i)?.[1]?.trim()
+    const shouldReadBody = /text\/html|text\/plain|application\/json|application\/ld\+json/i.test(contentType)
+    const bodyText = shouldReadBody ? await response.text() : ""
+    const title = bodyText.match(/<title>(.*?)<\/title>/i)?.[1]?.trim()
     const server = response.headers.get("server") || ""
     const xVercelId = response.headers.get("x-vercel-id") || ""
     const providerSignals = [server, xVercelId, response.headers.get("x-matched-path") || ""].filter(Boolean)
@@ -83,7 +108,7 @@ async function probeHttp(url, expectedText, legacyProvider) {
       server: server || undefined,
       xVercelId: xVercelId || undefined,
       title,
-      containsExpectedText: expectedText ? html.toLowerCase().includes(expectedText.toLowerCase()) : undefined,
+      containsExpectedText: expectedText ? bodyText.toLowerCase().includes(expectedText.toLowerCase()) : undefined,
       looksLikeLegacyProvider: providerSignals.some((value) => lowerIncludes(value, legacyProvider)),
       durationMs: Date.now() - started,
     }
@@ -96,6 +121,20 @@ async function probeHttp(url, expectedText, legacyProvider) {
       durationMs: Date.now() - started,
     }
   }
+}
+
+async function probeProductRoutes(baseUrl, routes, legacyProvider) {
+  return Promise.all(
+    routes.map(async (route) => ({
+      path: route.path,
+      expectedText: route.expectedText,
+      ...(await probeHttp(new URL(route.path, baseUrl).toString(), route.expectedText, legacyProvider)),
+    })),
+  )
+}
+
+function productRoutesReady(routes) {
+  return routes.every((route) => route.ok && (route.expectedText ? route.containsExpectedText : true))
 }
 
 async function probeDns(hostname, legacyProvider, legacyIps) {
@@ -127,6 +166,7 @@ Options:
   --expected-text            Text that should appear on the Recursiv-hosted app. Defaults to ${DEFAULT_EXPECTED_TEXT}.
   --legacy-provider          Header/DNS provider string to flag as legacy. Defaults to ${DEFAULT_LEGACY_PROVIDER}.
   --legacy-ip                Legacy provider IP to flag. Repeatable. Defaults to known Vercel IPs when provider is Vercel.
+  --path                     Product route to prove on the slug host and custom domain. Repeatable. Use /path::expected text to override expected text.
   --binding-proven           Set only after the Recursiv project/domain binding has been proven.
   --output                   Write the redacted JSON proof packet to a file.
   --require=hosted           Exit nonzero unless the Recursiv slug host is proven.
@@ -169,26 +209,40 @@ async function main() {
   const outputPath = argValue("--output") || process.env.CUSTOM_DOMAIN_PREFLIGHT_OUTPUT
   const requireMode = argValue("--require") || process.env.CUSTOM_DOMAIN_PREFLIGHT_REQUIRE || "none"
   const customHostname = normalizeHostname(customDomainUrl)
+  const routes = productRouteSpecs(expectedText)
 
-  const [recursivHttp, customHttp, customDns] = await Promise.all([
+  const [recursivHttp, customHttp, customDns, recursivProductRoutes, customDomainProductRoutes] = await Promise.all([
     probeHttp(recursivUrl, expectedText, legacyProvider),
     probeHttp(customDomainUrl, expectedText, legacyProvider),
     probeDns(customHostname, legacyProvider, legacyIps),
+    probeProductRoutes(recursivUrl, routes, legacyProvider),
+    probeProductRoutes(customDomainUrl, routes, legacyProvider),
   ])
 
-  const recursivHostedUrlProven = Boolean(recursivHttp.ok && (expectedText ? recursivHttp.containsExpectedText : true))
+  const recursivProductRoutesReady = productRoutesReady(recursivProductRoutes)
+  const customDomainProductRoutesReady = productRoutesReady(customDomainProductRoutes)
+  const recursivHostedUrlProven = Boolean(
+    recursivHttp.ok && (expectedText ? recursivHttp.containsExpectedText : true) && recursivProductRoutesReady,
+  )
   const customDomainLooksLegacy = Boolean(customHttp.looksLikeLegacyProvider || customDns.looksLikeLegacyProvider)
-  const customDomainAlreadyOnRecursiv = Boolean(customHttp.ok && !customDomainLooksLegacy && (expectedText ? customHttp.containsExpectedText : true))
+  const customDomainAlreadyOnRecursiv = Boolean(
+    customHttp.ok &&
+      !customDomainLooksLegacy &&
+      (expectedText ? customHttp.containsExpectedText : true) &&
+      customDomainProductRoutesReady,
+  )
   const dnsChangeReady = Boolean(recursivHostedUrlProven && bindingProven)
   const legacyCleanupReady = Boolean(bindingProven && customDomainAlreadyOnRecursiv)
 
   const nextActions = []
   if (!recursivHostedUrlProven) {
     nextActions.push("Do not create or change custom-domain DNS until the Recursiv-hosted URL returns the expected app.")
+    if (!recursivProductRoutesReady) nextActions.push("Fix the failing Recursiv-hosted product route checks before domain work.")
   } else if (!bindingProven) {
     nextActions.push("Create and prove the Recursiv custom-domain binding before changing DNS.")
   } else if (!customDomainAlreadyOnRecursiv) {
     nextActions.push(`Change only ${customHostname} to the Recursiv target, then rerun this proof.`)
+    if (!customDomainProductRoutesReady) nextActions.push("After DNS propagation, rerun proof until the custom domain product routes match the Recursiv app.")
   } else {
     nextActions.push("Custom domain appears to serve the Recursiv app; monitor before removing the legacy host binding.")
   }
@@ -202,17 +256,22 @@ async function main() {
       expectedText,
       legacyProvider,
       legacyIps,
+      productRoutes: routes,
       bindingProven,
       requireMode,
     },
     recursivHttp,
+    recursivProductRoutes,
     customDomain: {
       http: customHttp,
       dns: customDns,
+      productRoutes: customDomainProductRoutes,
     },
     decision: {
       recursivHostedUrlProven,
+      recursivProductRoutesReady,
       customDomainLooksLegacy,
+      customDomainProductRoutesReady,
       customDomainAlreadyOnRecursiv,
       dnsChangeReady,
       legacyCleanupReady,

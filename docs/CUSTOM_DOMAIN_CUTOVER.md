@@ -158,11 +158,13 @@ pnpm recursiv:domain:preflight -- \
   --slug=<slug>.on.recursiv.io \
   --custom-domain=www.customer.com \
   --expected-text="Customer" \
+  --path=/health::ok \
+  --path=/dashboard::"Customer" \
   --output=/private/tmp/<org>-custom-domain-preflight.json \
   --require=hosted
 ```
 
-That command proves the current HTTP/DNS posture without calling Recursiv deploy/status APIs. It does not replace the Recursiv custom-domain binding proof. Use `--require=dns-change` after the binding is proven and `--require=cutover` after DNS is changed to make the same proof suitable for CI or support handoff.
+That command proves the current HTTP/DNS posture and required product routes without calling Recursiv deploy/status APIs. It does not replace the Recursiv custom-domain binding proof. Use `--path=/route::expected text` for app-specific health, API, dashboard, content, or data-readiness routes. Use `--require=dns-change` after the binding is proven and `--require=cutover` after DNS is changed to make the same proof suitable for CI or support handoff.
 
 ### 1. Intake
 
@@ -182,6 +184,7 @@ Required proof:
 
 - HTTP 200 or expected redirect;
 - correct page title or core product text;
+- app-specific product routes, APIs, or data surfaces return expected content;
 - deployment status is `completed`;
 - production app reads Recursiv-backed data or a Recursiv export snapshot;
 - scheduled jobs needed for the public experience are active;
@@ -241,6 +244,8 @@ pnpm recursiv:domain:preflight -- \
   --slug=<slug>.on.recursiv.io \
   --custom-domain=www.customer.com \
   --expected-text="Customer" \
+  --path=/health::ok \
+  --path=/dashboard::"Customer" \
   --binding-proven \
   --output=/private/tmp/<org>-custom-domain-cutover-proof.json \
   --require=cutover
@@ -253,7 +258,7 @@ Required proof:
 - no legacy host headers, such as `server: Vercel`, when the target should be Recursiv;
 - TLS certificate is valid for the custom domain;
 - page content matches the Recursiv-hosted app;
-- app health endpoints return Recursiv-backed data;
+- app health endpoints, product routes, and data APIs return Recursiv-backed data;
 - canonical links and sitemap do not point users back to the legacy host unless intentional.
 
 For Inverted World, rerun:
@@ -289,5 +294,6 @@ As of a live check on May 23, 2026 at `16:04Z`:
 - `https://www.inverted.world` returns HTTP 200 with `server: Vercel` and `x-vercel-id`, so the custom domain is still on Vercel.
 - `https://www.inverted.world` currently resolves to legacy Vercel IPs `64.29.17.1` and `216.198.79.65`.
 - `https://invertedworld.on.recursiv.io` returns HTTP 200 with the Recursiv-hosted Inverted World app.
+- Route-aware domain preflight proves the Recursiv slug host serves `/news`, `/x/secret-programs`, and `/api/release`; the custom domain still fails route-aware cutover proof because it is on the legacy host.
 - The next platform step is a Recursiv custom-domain binding for `www.inverted.world`.
 - DNS should stay unchanged until that binding is created and proven.
