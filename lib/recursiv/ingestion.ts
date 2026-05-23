@@ -1083,6 +1083,7 @@ export async function syncWorldwireCoverageToRecursiv(options: { limitPerLane?: 
   for (const lane of lanes) {
     const sourceHosts = Array.from(new Set(lane.items.map((item) => item.source).filter(Boolean))).slice(0, 12)
     const velocityScore = Math.round(lane.items.reduce((sum, item) => sum + (item.score || 0), 0))
+    const safeVelocityScore = Number.isFinite(velocityScore) ? velocityScore : 0
     await sdk.databases.query({
       project_id: config.projectId,
       database_name: config.databaseName,
@@ -1101,7 +1102,7 @@ export async function syncWorldwireCoverageToRecursiv(options: { limitPerLane?: 
         lane.query,
         JSON.stringify(lane.items),
         `${lane.title} worldwire snapshot from Recursiv crawler output.`,
-        velocityScore,
+        String(safeVelocityScore),
         JSON.stringify({
           generatedBy: "recursiv-worldwire-crawler-v1",
           laneTitle: lane.title,
