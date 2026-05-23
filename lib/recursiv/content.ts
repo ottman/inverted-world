@@ -920,7 +920,10 @@ function articleQualityScore(article: IntelligenceArticle) {
 }
 
 function preparePublishedArticles(articles: IntelligenceArticle[]) {
-  return dedupeArticles(articles).sort((left, right) => {
+  const deduped = dedupeArticles(articles)
+  const fullStories = deduped.filter((article) => !articleBodyLooksTemplated(article))
+  const publishable = fullStories.length >= 12 ? fullStories : deduped
+  return publishable.sort((left, right) => {
     const qualityDelta = articleQualityScore(right) - articleQualityScore(left)
     if (qualityDelta) return qualityDelta
     return new Date(right.publishedAt).getTime() - new Date(left.publishedAt).getTime()

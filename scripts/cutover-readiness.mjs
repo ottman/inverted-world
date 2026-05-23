@@ -528,6 +528,12 @@ function hasRepeatedLanePrefix(title) {
   })
 }
 
+function hasTemplatedArticleBody(article) {
+  const body = Array.isArray(article?.body) ? article.body.join("\n") : ""
+  const deck = String(article?.deck || "")
+  return /(^|\n)(Signal|Documented record|Source split|X velocity|Tales context|Viral frame):/i.test(body) || /Latest sourced reporting/i.test(deck)
+}
+
 async function probeArticlesApi(url) {
   const started = Date.now()
   try {
@@ -544,6 +550,7 @@ async function probeArticlesApi(url) {
     const generatedThumbnailCount = thumbnailUrls.filter((value) => /^data:image\/svg\+xml/i.test(value) || /generated|assets|thumbnail/i.test(value)).length
     const externalSourceCount = articles.filter((article) => /^https?:\/\//i.test(String(article?.sourceUrl || ""))).length
     const repeatedLanePrefixCount = articles.filter((article) => hasRepeatedLanePrefix(article?.title)).length
+    const templatedArticleCount = articles.filter(hasTemplatedArticleBody).length
 
     return {
       url,
@@ -557,6 +564,7 @@ async function probeArticlesApi(url) {
       generatedThumbnailCount,
       externalSourceCount,
       repeatedLanePrefixCount,
+      templatedArticleCount,
       firstArticleId: typeof articles[0]?.id === "string" ? articles[0].id : undefined,
       firstArticleTitle: typeof articles[0]?.title === "string" ? articles[0].title : undefined,
       warningCount: Array.isArray(body.warnings) ? body.warnings.length : 0,
@@ -1093,6 +1101,7 @@ async function main() {
       Number(articlesApi.thumbnailCount || 0) >= ARTICLE_MIN_THUMBNAILS &&
       Number(articlesApi.externalSourceCount || 0) >= ARTICLE_MIN_EXTERNAL_SOURCES &&
       Number(articlesApi.repeatedLanePrefixCount || 0) === 0 &&
+      Number(articlesApi.templatedArticleCount || 0) === 0 &&
       Number(articlesApi.warningCount || 0) === 0,
   )
   const documentsApiReady = Boolean(
@@ -1253,7 +1262,7 @@ async function main() {
   }
   if (!articlesApiReady) {
     nextActions.push(
-      `Do not touch DNS until /api/articles returns at least ${ARTICLE_MIN_COUNT} Recursiv-backed published articles across ${ARTICLE_MIN_TOPICS} topics with generated thumbnails, ${ARTICLE_MIN_EXTERNAL_SOURCES} direct external source links, and clean titles.`,
+      `Do not touch DNS until /api/articles returns at least ${ARTICLE_MIN_COUNT} Recursiv-backed full-story articles across ${ARTICLE_MIN_TOPICS} topics with generated thumbnails, ${ARTICLE_MIN_EXTERNAL_SOURCES} direct external source links, and clean non-templated titles and bodies.`,
     )
   }
   if (!documentsApiReady) nextActions.push("Do not touch DNS until /api/documents returns the machine-readable source shelf with topic and kind coverage.")
