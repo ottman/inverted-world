@@ -12,6 +12,8 @@ import { createRecursivServerClient } from "@/lib/recursiv/client"
 import { INVERTED_WORLD_SCHEMA_SQL } from "@/lib/recursiv/schema"
 import { extractSourceText } from "@/lib/source-extraction"
 import { classifyInvertedWorldTopic } from "@/lib/topic-classifier"
+import { fetchWorldwireItems } from "@/lib/worldwire-crawler"
+import { WORLDWIRE_LANES, type WorldwireItem } from "@/lib/worldwire"
 import { fetchViralXPostsForTopic, type ViralXPost } from "@/lib/x-posts"
 import { getYouTubeApiKey } from "@/lib/youtube-config"
 
@@ -985,6 +987,74 @@ export async function syncTopicPulseToRecursiv(options: { limit?: number; profil
   }
 }
 
+function groupWorldwireByLane(items: WorldwireItem[]) {
+  const grouped = new Map<string, WorldwireItem[]>()
+  for (const item of items) {
+    const laneId = item.sectionId || "world"
+    const current = grouped.get(laneId) || []
+    current.push(item)
+    grouped.set(laneId, current)
+  }
+  return grouped
+}
+
+export async function syncWorldwireCoverageToRecursiv(options: { limitPerLane?: number } = {}) {
+  const { sdk, config } = getInvertedWorldDatabase()
+  const limitPerLane = Math.max(1, Math.min(Math.trunc(options.limitPerLane || 12), 24))
+  const items = await fetchWorldwireItems()
+  const grouped = groupWorldwireByLane(items)
+  const lanes: Array<{ laneId: string; title: string; query: string; items: WorldwireItem[] }> = WORLDWIRE_LANES.map((lane) => ({
+    laneId: lane.id,
+    title: lane.title,
+    query: lane.query,
+    items: (grouped.get(lane.id) || [])
+      .sort((left, right) => right.score - left.score)
+      .slice(0, limitPerLane),
+  })).filter((lane) => lane.items.length > 0)
+
+  let snapshots = 0
+  for (const lane of lanes) {
+    const sourceHosts = Array.from(new Set(lane.items.map((item) => item.source).filter(Boolean))).slice(0, 12)
+    const velocityScore = Math.round(lane.items.reduce((sum, item) => sum + (item.score || 0), 0))
+    await sdk.databases.query({
+      project_id: config.projectId,
+      database_name: config.databaseName,
+      sql: `INSERT INTO coverage_snapshots (
+          topic_id,
+          query,
+          source,
+          items,
+          summary,
+          velocity_score,
+          metadata
+        )
+        VALUES ($1, $2, 'worldwire', $3::jsonb, $4, $5, $6::jsonb)`,
+      params: [
+        lane.laneId,
+        lane.query,
+        JSON.stringify(lane.items),
+        `${lane.title} worldwire snapshot from Recursiv crawler output.`,
+        velocityScore,
+        JSON.stringify({
+          generatedBy: "recursiv-worldwire-crawler-v1",
+          laneTitle: lane.title,
+          itemCount: lane.items.length,
+          sourceHosts,
+        }),
+      ],
+    })
+    snapshots += 1
+  }
+
+  return {
+    snapshots,
+    crawledItems: items.length,
+    storedItems: lanes.reduce((sum, lane) => sum + lane.items.length, 0),
+    limitPerLane,
+    lanes: lanes.map((lane) => ({ id: lane.laneId, title: lane.title, items: lane.items.length })),
+  }
+}
+
 async function clearXProfileReaderSignals(sdk: RecursivServerClient, projectId: string, databaseName: string, topicId: string) {
   await sdk.databases.query({
     project_id: projectId,
@@ -1862,6 +1932,7 @@ export async function runFullPipelineInRecursiv(options: { mode?: string | null;
     ["media-library", syncMediaLibraryToRecursiv],
     ["youtube-archive-sync", syncYouTubeArchiveToRecursiv],
     ["topic-pulse", syncTopicPulseToRecursiv],
+    ["worldwire", syncWorldwireCoverageToRecursiv],
     ["claim-dossiers", generateClaimDossiersInRecursiv],
     ["article-generation", generateArticleDraftsInRecursiv],
     ["image-generation", generateImagesForDraftsInRecursiv],
@@ -1873,6 +1944,7 @@ export async function runFullPipelineInRecursiv(options: { mode?: string | null;
     ["media-library", syncMediaLibraryToRecursiv],
     ["youtube-archive-sync", syncYouTubeArchiveToRecursiv],
     ["topic-pulse", syncTopicPulseToRecursiv],
+    ["worldwire", syncWorldwireCoverageToRecursiv],
     ["publishing", publishReadyDraftsInRecursiv],
     ["front-page-edition", publishFrontPageEditionInRecursiv],
   ]

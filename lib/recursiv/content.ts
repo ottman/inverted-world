@@ -4,6 +4,15 @@ import recursivNewsSnapshot from "@/data/generated/recursiv-news-snapshot.json"
 import type { IntelligenceArticle } from "@/data/intelligence-articles"
 import type { ViralXPost } from "@/lib/x-posts"
 import { queryInvertedWorldDatabase, type RecursivRow } from "@/lib/recursiv/database"
+import {
+  WORLDWIRE_LANES,
+  hostName,
+  isExternalUrl,
+  isGoogleNewsUrl,
+  scoreWorldwireTitle,
+  uniqueWorldwireItems,
+  type WorldwireItem,
+} from "@/lib/worldwire"
 
 type ChannelItemRow = RecursivRow & {
   source_id?: string
@@ -90,6 +99,18 @@ type FrontPageEditionRow = RecursivRow & {
   metadata?: unknown
 }
 
+type CoverageSnapshotRow = RecursivRow & {
+  id?: string
+  topic_id?: string
+  query?: string
+  source?: string
+  captured_at?: string
+  items?: unknown
+  summary?: string
+  velocity_score?: number | string
+  metadata?: unknown
+}
+
 type PipelineRunRow = RecursivRow & {
   id?: string
   job_name?: string
@@ -134,6 +155,7 @@ type SnapshotKey =
   | "articleDrafts"
   | "claimDossiers"
   | "frontPageEditions"
+  | "coverageSnapshots"
   | "pipelineRuns"
 
 type RecursivNewsSnapshot = Partial<Record<SnapshotKey, unknown[]>>
@@ -266,6 +288,15 @@ function jsonArray(value: unknown): unknown[] {
     }
   }
   return []
+}
+
+function textValue(value: unknown) {
+  return typeof value === "string" ? value.trim() : ""
+}
+
+function numberValue(value: unknown) {
+  const number = Number(value)
+  return Number.isFinite(number) ? number : 0
 }
 
 function safeDate(value?: string) {
@@ -725,6 +756,10 @@ function snapshotFrontPageRows() {
   return snapshotRows<FrontPageEditionRow>("frontPageEditions")
 }
 
+function snapshotCoverageRows() {
+  return snapshotRows<CoverageSnapshotRow>("coverageSnapshots")
+}
+
 function snapshotPipelineRows() {
   return snapshotRows<PipelineRunRow>("pipelineRuns")
 }
@@ -883,6 +918,85 @@ function filterSourceDocuments(
     if (options.kind && document.kind !== options.kind) return false
     return true
   })
+}
+
+function laneTitleFor(id?: string, metadata: Record<string, unknown> = {}) {
+  return textValue(metadata.laneTitle) || WORLDWIRE_LANES.find((lane) => lane.id === id)?.title || "Worldwire"
+}
+
+function coverageRowToWorldwireItems(row: CoverageSnapshotRow, limitPerLane: number) {
+  const laneId = row.topic_id || "worldwire"
+  const metadata = jsonObject(row.metadata)
+  const laneTitle = laneTitleFor(laneId, metadata)
+  const rowVelocity = numberValue(row.velocity_score)
+
+  return jsonArray(row.items)
+    .map<WorldwireItem | null>((value, index) => {
+      const item = jsonObject(value)
+      const title = textValue(item.title)
+      const url = textValue(item.url)
+      if (!title || !isExternalUrl(url) || isGoogleNewsUrl(url)) return null
+
+      const score = numberValue(item.score) || scoreWorldwireTitle(title, rowVelocity || 100, index)
+      return {
+        id: textValue(item.id) || `${laneId}-${index}`,
+        title,
+        url,
+        source: textValue(item.source) || hostName(url) || laneTitle,
+        sectionId: textValue(item.sectionId) || textValue(item.section_id) || laneId,
+        sectionTitle: textValue(item.sectionTitle) || textValue(item.section_title) || laneTitle,
+        score,
+        publishedAt: textValue(item.publishedAt) || textValue(item.published_at) || row.captured_at,
+        excerpt: textValue(item.excerpt) || row.summary,
+      }
+    })
+    .filter((item): item is WorldwireItem => Boolean(item))
+    .sort((left, right) => right.score - left.score)
+    .slice(0, limitPerLane)
+}
+
+export async function fetchRecursivWorldwireItems(options: { limitPerLane?: number } = {}) {
+  const limitPerLane = Math.max(1, Math.min(Math.trunc(options.limitPerLane || 12), 24))
+  const rows = await queryInvertedWorldDatabase<CoverageSnapshotRow>(
+    `WITH ranked AS (
+      SELECT
+        id,
+        topic_id,
+        query,
+        source,
+        captured_at,
+        items,
+        summary,
+        velocity_score,
+        metadata,
+        row_number() OVER (
+          PARTITION BY topic_id
+          ORDER BY captured_at DESC, created_at DESC
+        ) AS lane_rank
+      FROM coverage_snapshots
+      WHERE source = 'worldwire'
+    )
+    SELECT
+      id,
+      topic_id,
+      query,
+      source,
+      captured_at,
+      items,
+      summary,
+      velocity_score,
+      metadata
+    FROM ranked
+    WHERE lane_rank = 1
+    ORDER BY captured_at DESC`,
+  )
+
+  const sourceRows = rows?.length ? rows : snapshotCoverageRows().filter((row) => row.source === "worldwire")
+  if (!sourceRows.length) return rows ? [] : null
+
+  return uniqueWorldwireItems(sourceRows.flatMap((row) => coverageRowToWorldwireItems(row, limitPerLane))).sort(
+    (left, right) => right.score - left.score,
+  )
 }
 
 function staticSourceDocuments(options: { topicId?: string; kind?: string } = {}): SourceDocumentsResult {

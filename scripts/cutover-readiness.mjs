@@ -16,6 +16,7 @@ const MEDIA_PROOF_SOURCE_URL =
 const EXPECTED_JOBS = [
   "inverted-world-youtube-archive-sync",
   "inverted-world-topic-pulse",
+  "inverted-world-worldwire",
   "inverted-world-article-generation",
   "inverted-world-claim-dossiers",
   "inverted-world-source-documents",

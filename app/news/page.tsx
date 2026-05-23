@@ -5,8 +5,15 @@ import { archiveSurface, InvertedPageShell, type BreakingItem } from "@/componen
 import { topics } from "@/data/inverted-world"
 import type { IntelligenceArticle } from "@/data/intelligence-articles"
 import { fetchLiveArticlesByTopic } from "@/lib/live-articles"
-import { fetchRecursivClaimDossiers, getLatestRecursivFrontPageEdition, type ClaimDossier, type ClaimSourceLink } from "@/lib/recursiv/content"
+import {
+  fetchRecursivClaimDossiers,
+  fetchRecursivWorldwireItems,
+  getLatestRecursivFrontPageEdition,
+  type ClaimDossier,
+  type ClaimSourceLink,
+} from "@/lib/recursiv/content"
 import { cn } from "@/lib/utils"
+import { WORLDWIRE_LANES, hostName, isExternalUrl, isGoogleNewsUrl, scoreWorldwireTitle, type WorldwireItem } from "@/lib/worldwire"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 300
@@ -16,145 +23,18 @@ export const metadata: Metadata = {
   description: "A fast outbound source board for world news, institutional shocks, strange science, crime, war, money, AI, and the Inverted World lanes.",
 }
 
-type WorldwireLane = {
-  id: string
-  title: string
-  query: string
-}
-
-type NewsBoardItem = {
-  id: string
-  title: string
-  url: string
-  source: string
-  sectionId: string
-  sectionTitle: string
-  score: number
-  publishedAt?: string
-  excerpt?: string
+type NewsBoardItem = WorldwireItem & {
   contextHref?: string
   contextLabel?: string
 }
-
-const WORLDWIRE_LANES: WorldwireLane[] = [
-  {
-    id: "world",
-    title: "World",
-    query: "breaking world news crisis scandal leak emergency geopolitics",
-  },
-  {
-    id: "war",
-    title: "War",
-    query: "war military attack border missiles intelligence defense escalation",
-  },
-  {
-    id: "america",
-    title: "America",
-    query: "US politics courts congress election corruption investigation breaking",
-  },
-  {
-    id: "money",
-    title: "Money",
-    query: "markets economy banks debt inflation crypto collapse fraud breaking",
-  },
-  {
-    id: "tech-ai",
-    title: "Tech / AI",
-    query: "artificial intelligence surveillance cyberattack robots chips censorship",
-  },
-  {
-    id: "science-space",
-    title: "Science / Space",
-    query: "NASA space anomaly asteroid volcano earthquake disease lab discovery",
-  },
-  {
-    id: "crime-culture",
-    title: "Crime / Culture",
-    query: "crime media scandal culture celebrity police censorship trial",
-  },
-]
-
-const HOT_WORDS = [
-  "alien",
-  "anomaly",
-  "attack",
-  "blackout",
-  "classified",
-  "collapse",
-  "crisis",
-  "emergency",
-  "explosion",
-  "leak",
-  "mystery",
-  "secret",
-  "surveillance",
-  "unprecedented",
-  "warning",
-  "war",
-]
 
 function formatScore(value: number) {
   if (value >= 1000) return `${Math.round(value / 100) / 10}K`
   return String(Math.round(value))
 }
 
-function normalizeText(value: string) {
-  return value.replace(/\s+/g, " ").trim()
-}
-
-function stripTags(value: string) {
-  return value.replace(/<[^>]*>/g, " ")
-}
-
-function decodeEntities(value: string) {
-  return value
-    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
-    .replace(/&amp;/g, "&")
-    .replace(/&quot;/g, "\"")
-    .replace(/&#39;/g, "'")
-    .replace(/&apos;/g, "'")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-}
-
-function readTag(item: string, tag: string) {
-  const match = item.match(new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)</${tag}>`, "i"))
-  return match ? normalizeText(decodeEntities(stripTags(match[1]))) : ""
-}
-
-function readSource(item: string) {
-  const match = item.match(/<source[^>]*url="([^"]*)"[^>]*>([\s\S]*?)<\/source>/i)
-  return {
-    name: match ? normalizeText(decodeEntities(stripTags(match[2]))) : "News wire",
-    url: match ? decodeEntities(match[1]) : undefined,
-  }
-}
-
-function hostName(url: string) {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "")
-  } catch {
-    return ""
-  }
-}
-
-function isExternalUrl(value?: string) {
-  return Boolean(value && /^https?:\/\//i.test(value))
-}
-
-function isGoogleNewsUrl(value: string) {
-  return hostName(value) === "news.google.com"
-}
-
 function isNewsBoardItem(item: NewsBoardItem | null): item is NewsBoardItem {
   return Boolean(item)
-}
-
-function scoreTitle(title: string, baseScore: number, index: number) {
-  const lower = title.toLowerCase()
-  const heat = HOT_WORDS.reduce((total, word) => total + (lower.includes(word) ? 11 : 0), 0)
-  const punctuation = /[?!]/.test(title) ? 6 : 0
-  return baseScore + heat + punctuation - index * 3
 }
 
 function sourceItemFromDossier(dossier: ClaimDossier, source: ClaimSourceLink, index: number): NewsBoardItem | null {
@@ -167,7 +47,7 @@ function sourceItemFromDossier(dossier: ClaimDossier, source: ClaimSourceLink, i
     source: outlet,
     sectionId: "inverted-desk",
     sectionTitle: "Inverted World",
-    score: scoreTitle(source.title || dossier.title, dossier.confidenceScore + Math.min(dossier.xVelocityScore / 20, 70), index),
+    score: scoreWorldwireTitle(source.title || dossier.title, dossier.confidenceScore + Math.min(dossier.xVelocityScore / 20, 70), index),
     publishedAt: source.publishedAt || dossier.publishedAt,
     excerpt: source.excerpt || dossier.summary,
     contextHref: `/news/${dossier.slug}`,
@@ -184,7 +64,7 @@ function sourceItemFromArticle(article: IntelligenceArticle, index: number): New
     source: article.source || hostName(article.sourceUrl) || "source",
     sectionId: `topic-${article.topicId}`,
     sectionTitle: topics.find((topic) => topic.id === article.topicId)?.title || article.topic,
-    score: scoreTitle(article.title, article.heat || 80, index),
+    score: scoreWorldwireTitle(article.title, article.heat || 80, index),
     publishedAt: article.publishedAt,
     excerpt: article.deck,
   }
@@ -198,164 +78,6 @@ function uniqueItems(items: NewsBoardItem[]) {
     seen.add(key)
     return true
   })
-}
-
-async function fetchExaLane(lane: WorldwireLane): Promise<NewsBoardItem[]> {
-  const apiKey = process.env.EXA_API_KEY || process.env.EXA_SEARCH_API_KEY
-  if (!apiKey) return []
-
-  const response = await fetch("https://api.exa.ai/search", {
-    method: "POST",
-    next: { revalidate: 900 },
-    signal: AbortSignal.timeout(4500),
-    headers: {
-      "content-type": "application/json",
-      "user-agent": "InvertedWorldWorldwire/1.0",
-      "x-api-key": apiKey,
-    },
-    body: JSON.stringify({
-      query: `${lane.query} latest high consequence source reporting`,
-      type: "auto",
-      numResults: 10,
-      contents: {
-        highlights: true,
-      },
-    }),
-  })
-
-  if (!response.ok) return []
-  const data = (await response.json()) as {
-    results?: Array<{
-      id?: string
-      title?: string
-      url?: string
-      author?: string
-      publishedDate?: string
-      highlights?: string[]
-    }>
-  }
-
-  return (data.results || [])
-    .filter((result) => result.title && result.url)
-    .map((result, index) => {
-      const url = result.url || ""
-      const title = normalizeText(result.title || "Untitled source")
-      return {
-        id: `exa-${lane.id}-${result.id || index}`,
-        title,
-        url,
-        source: result.author || hostName(url) || lane.title,
-        sectionId: lane.id,
-        sectionTitle: lane.title,
-        score: scoreTitle(title, 118, index),
-        publishedAt: result.publishedDate,
-        excerpt: result.highlights?.find(Boolean),
-      } satisfies NewsBoardItem
-    })
-}
-
-async function fetchBraveLane(lane: WorldwireLane): Promise<NewsBoardItem[]> {
-  const token = process.env.BRAVE_SEARCH_API_KEY || process.env.BRAVE_API_KEY || process.env.BRAVE_SEARCH_KEY
-  if (!token) return []
-
-  const url = new URL("https://api.search.brave.com/res/v1/web/search")
-  url.searchParams.set("q", `${lane.query} latest`)
-  url.searchParams.set("count", "10")
-  url.searchParams.set("freshness", "pd")
-  url.searchParams.set("safesearch", "moderate")
-
-  const response = await fetch(url, {
-    next: { revalidate: 900 },
-    signal: AbortSignal.timeout(4500),
-    headers: {
-      accept: "application/json",
-      "accept-encoding": "gzip",
-      "user-agent": "InvertedWorldWorldwire/1.0",
-      "x-subscription-token": token,
-    },
-  })
-  if (!response.ok) return []
-
-  const data = (await response.json()) as {
-    web?: {
-      results?: Array<{
-        title?: string
-        url?: string
-        description?: string
-        age?: string
-        profile?: {
-          name?: string
-        }
-      }>
-    }
-  }
-
-  return (data.web?.results || [])
-    .filter((result) => result.title && result.url && isExternalUrl(result.url) && !hostName(result.url || "").includes("google."))
-    .map((result, index) => {
-      const url = result.url || ""
-      const title = normalizeText(stripTags(result.title || "Untitled source"))
-      return {
-        id: `brave-${lane.id}-${index}`,
-        title,
-        url,
-        source: result.profile?.name || hostName(url) || lane.title,
-        sectionId: lane.id,
-        sectionTitle: lane.title,
-        score: scoreTitle(title, 108, index),
-        publishedAt: result.age,
-        excerpt: result.description ? normalizeText(stripTags(result.description)) : undefined,
-      } satisfies NewsBoardItem
-    })
-}
-
-async function fetchGoogleLane(lane: WorldwireLane): Promise<NewsBoardItem[]> {
-  const url = new URL("https://news.google.com/rss/search")
-  url.searchParams.set("q", `${lane.query} when:1d`)
-  url.searchParams.set("hl", "en-US")
-  url.searchParams.set("gl", "US")
-  url.searchParams.set("ceid", "US:en")
-
-  const response = await fetch(url, {
-    next: { revalidate: 900 },
-    signal: AbortSignal.timeout(4500),
-    headers: {
-      "user-agent": "InvertedWorldWorldwire/1.0",
-    },
-  })
-  if (!response.ok) return []
-
-  const xml = await response.text()
-  return [...xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)].slice(0, 10).map((match, index) => {
-    const item = match[1]
-    const title = readTag(item, "title")
-    const link = decodeEntities(readTag(item, "link"))
-    const source = readSource(item)
-    return {
-      id: `google-${lane.id}-${index}`,
-      title,
-      url: link || source.url || "https://news.google.com/",
-      source: source.name || hostName(link) || lane.title,
-      sectionId: lane.id,
-      sectionTitle: lane.title,
-      score: scoreTitle(title, 92, index),
-      publishedAt: readTag(item, "pubDate"),
-      excerpt: readTag(item, "description"),
-    } satisfies NewsBoardItem
-  }).filter((item) => !isGoogleNewsUrl(item.url))
-}
-
-async function fetchWorldwireItems() {
-  const results = await Promise.allSettled(
-    WORLDWIRE_LANES.map(async (lane) => {
-      const exaItems = await fetchExaLane(lane).catch(() => [])
-      if (exaItems.length) return exaItems
-      const braveItems = await fetchBraveLane(lane).catch(() => [])
-      return braveItems.length ? braveItems : fetchGoogleLane(lane).catch(() => [])
-    }),
-  )
-
-  return results.flatMap((result) => (result.status === "fulfilled" ? result.value : []))
 }
 
 function groupedSections(items: NewsBoardItem[]) {
@@ -382,8 +104,8 @@ export default async function NewsPage() {
   const [edition, dossiers, topicFeeds, worldwire] = await Promise.all([
     getLatestRecursivFrontPageEdition(),
     fetchRecursivClaimDossiers({ limit: 32 }).then((items) => items || []),
-    fetchLiveArticlesByTopic({ allowProviderFallbacks: true, limitPerTopic: 8 }).catch(() => ({})),
-    fetchWorldwireItems(),
+    fetchLiveArticlesByTopic({ allowProviderFallbacks: false, limitPerTopic: 8 }).catch(() => ({})),
+    fetchRecursivWorldwireItems({ limitPerLane: 12 }).then((items) => items || []),
   ])
 
   const dossierItems = dossiers.flatMap((dossier) =>

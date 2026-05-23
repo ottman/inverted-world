@@ -67,7 +67,7 @@ Current live proof:
 - `/api/documents` returns `sourceMode: "recursiv-database"` with 37 source documents across all six topics.
 - `/media/war-uap-release-02-senior-usic-narrative` returns 200.
 - `/api/media/war-uap-release-02-senior-usic-narrative` returns `sourceMode: "recursiv-database"` with the official UAP PDF item and related media.
-- all 12 expected Recursiv scheduled jobs are active.
+- all 13 expected Recursiv scheduled jobs are active.
 
 The custom domain still reports Vercel headers. Keep it there until the Recursiv custom-domain binding for `www.inverted.world` is created and proven. `dnsCutoverReady` is still `false` because custom-domain proof is missing, not because the Recursiv hosted app is unproven.
 

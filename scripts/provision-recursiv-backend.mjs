@@ -282,6 +282,11 @@ const JOBS = [
     endpoint: "/api/recursiv/jobs/topic-pulse?limit=24&profileReader=1&async=1",
   },
   {
+    name: "inverted-world-worldwire",
+    cron: "*/10 * * * *",
+    endpoint: "/api/recursiv/jobs/worldwire?limitPerLane=12&async=1",
+  },
+  {
     name: "inverted-world-article-generation",
     cron: "5 * * * *",
     endpoint: "/api/recursiv/jobs/article-generation?limit=2&useAgent=0&async=1",

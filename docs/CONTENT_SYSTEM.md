@@ -36,7 +36,7 @@ Server-side Recursiv calls use `RECURSIV_SERVER_API_KEY`. Local proof may use a 
 ## Live Routes
 
 - `/archive`: embedded channel archive. Reads Recursiv `channel_items` first, then falls back to YouTube RSS/API.
-- `/news`: claim-dossier desk backed by published Recursiv `claim_dossiers`.
+- `/news`: Drudge-style source board backed by Recursiv `coverage_snapshots` with `source = 'worldwire'`, published `article_drafts`, and published `claim_dossiers`. The public page links directly to source URLs and does not call Exa, Brave, or RSS providers during render.
 - `/news/[slug]`: source split, evidence grade, X velocity, Tales archive context, viral headlines, and AI chat for one dossier.
 - `/documents`: browsable source database backed by `/api/documents`.
 - `/media`: watch/read media library for Tales clips, official UAP releases, primary-source PDFs, videos, audio, images, archive hubs, source briefs, and research questions.
@@ -45,7 +45,7 @@ Server-side Recursiv calls use `RECURSIV_SERVER_API_KEY`. Local proof may use a 
 - `/api/media/[mediaId]`: machine-readable media item, source-chain brief, and related media.
 - `/api/dossiers`: JSON feed of published claim dossiers.
 - `/api/dossiers/[slug]/chat`: Recursiv-agent chat over one dossier context.
-- `/api/recursiv/jobs/*`: authenticated scheduled job targets for archive sync, topic pulse, article generation, claim dossier generation, image generation, publishing, front-page editions, bounded pipeline refresh, and pipeline maintenance. Add `?async=1` for Recursiv cron triggers; omit it for manual proof runs that should wait for the full result.
+- `/api/recursiv/jobs/*`: authenticated scheduled job targets for archive sync, topic pulse, worldwire crawling, article generation, claim dossier generation, image generation, publishing, front-page editions, bounded pipeline refresh, and pipeline maintenance. Add `?async=1` for Recursiv cron triggers; omit it for manual proof runs that should wait for the full result.
 
 ## First Tables
 
@@ -203,7 +203,7 @@ npm run recursiv:snapshot
 
 Run `npm run recursiv:snapshot -- --dry-run` to validate the export path and row counts without rewriting the committed snapshots.
 
-The public snapshot feeds the archive, news desk, X velocity, front-page edition, media library, and source document shelf. It is Recursiv-backed persisted data, but it is still a fallback: production is fully healthy only when hosted reads return `sourceMode: "recursiv-database"`.
+The public snapshot feeds the archive, worldwire/news desk, X velocity, front-page edition, media library, and source document shelf. It is Recursiv-backed persisted data, but it is still a fallback: production is fully healthy only when hosted reads return `sourceMode: "recursiv-database"`.
 
 The media-library importer reads the WAR.GOV PURSUE CSV manifest when available, splits each official row into direct PDF/video/audio/image media entries, preserves record-page anchors, and writes source briefs into Recursiv `media_items.metadata.extraction`. Curated static records stay in the library as a fallback when the government CSV is temporarily blocked or unavailable.
 
