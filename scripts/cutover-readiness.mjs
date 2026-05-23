@@ -16,6 +16,7 @@ const MEDIA_PROOF_SOURCE_URL =
   "https://www.war.gov/medialink/ufo/052226/release_02/documents/ODNI-UAP-D001_USPER_Narrative_Senior_USIC.pdf"
 const DOSSIER_CHAT_PROOF_SLUG = "secret-programs-the-top-secret-testimony-of-cia-s-mkultra-chief-50-years-later-national-security"
 const DOSSIER_CHAT_PROOF_QUESTION = "What is actually documented here? Link me to the key sources."
+const X_SIGNAL_PROOF_TOPIC = "secret-programs"
 
 const EXPECTED_JOBS = [
   "inverted-world-youtube-archive-sync",
@@ -311,6 +312,45 @@ async function probeNewsPage(url) {
       externalSourceLinks,
       contextLinks,
       sourceLabels,
+      durationMs: Date.now() - started,
+    }
+  } catch (error) {
+    return {
+      url,
+      status: 0,
+      ok: false,
+      message: error instanceof Error ? error.message : String(error),
+      durationMs: Date.now() - started,
+    }
+  }
+}
+
+async function probeXSignalPage(url) {
+  const started = Date.now()
+  try {
+    const response = await fetch(url, {
+      headers: { "user-agent": "InvertedWorldCutoverReadiness/1.0" },
+      redirect: "manual",
+      signal: AbortSignal.timeout(20000),
+    })
+    const contentType = response.headers.get("content-type") || ""
+    const html = contentType.includes("text/html") ? await response.text() : ""
+    const outboundXLinks = (html.match(/href="https?:\/\/(?:www\.)?(?:x\.com|twitter\.com)\//g) || []).length
+    const postAnchors = (html.match(/id="signal-[^"]+"/g) || []).length
+    const tickerAnchorLinks = (html.match(/href="#signal-[^"]+"/g) || []).length
+
+    return {
+      url,
+      status: response.status,
+      ok: response.ok,
+      title: html.match(/<title>(.*?)<\/title>/i)?.[1]?.trim(),
+      hasLiveStream: /Live X Stream/i.test(html),
+      hasRankedPosts: /ranked posts/i.test(html),
+      hasOpenSearch: /Open X search/i.test(html),
+      hasEmptyState: /This lane is waiting for a strong post/i.test(html),
+      outboundXLinks,
+      postAnchors,
+      tickerAnchorLinks,
       durationMs: Date.now() - started,
     }
   } catch (error) {
@@ -653,6 +693,7 @@ async function main() {
   const recursivHostname = new URL(recursivUrl).hostname
   const releaseApiUrl = new URL("/api/release", recursivUrl).toString()
   const newsPageUrl = new URL("/news", recursivUrl).toString()
+  const xSignalPageUrl = new URL(`/x/${X_SIGNAL_PROOF_TOPIC}`, recursivUrl).toString()
   const archiveApiUrl = new URL("/api/archive?limit=1000", recursivUrl).toString()
   const documentsApiUrl = new URL("/api/documents", recursivUrl).toString()
   const pipelineApiUrl = new URL("/api/pipeline?limit=1", recursivUrl).toString()
@@ -684,6 +725,7 @@ async function main() {
     jobsResponse,
     recursivHttp,
     newsPage,
+    xSignalPage,
     releaseApi,
     archiveApi,
     documentsApi,
@@ -723,6 +765,7 @@ async function main() {
           ),
       probeHttp(recursivUrl),
       probeNewsPage(newsPageUrl),
+      probeXSignalPage(xSignalPageUrl),
       probeReleaseApi(releaseApiUrl),
       probeJson(archiveApiUrl),
       probeDocumentsApi(documentsApiUrl),
@@ -801,6 +844,16 @@ async function main() {
       Number(newsPage.externalSourceLinks || 0) >= 20 &&
       Number(newsPage.contextLinks || 0) >= 3,
   )
+  const xSignalPageReady = Boolean(
+    xSignalPage.ok &&
+      xSignalPage.hasLiveStream &&
+      xSignalPage.hasRankedPosts &&
+      xSignalPage.hasOpenSearch &&
+      !xSignalPage.hasEmptyState &&
+      Number(xSignalPage.outboundXLinks || 0) >= 6 &&
+      Number(xSignalPage.postAnchors || 0) >= 6 &&
+      Number(xSignalPage.tickerAnchorLinks || 0) >= 6,
+  )
   const releaseRevision = releaseRevisionProof(releaseApi, latestDeployment, deploymentLookupAvailable)
   const releaseCommitMatch = commitsMatch(releaseRevision.value, expectedReleaseCommit)
   const releaseCommitReady = releaseCommitMatch === true
@@ -867,6 +920,7 @@ async function main() {
   const publicHostingReady =
     recursivHostingProven &&
     newsPageReady &&
+    xSignalPageReady &&
     releaseProofReady &&
     releaseCommitReady &&
     publicProviderFallbackAuditReady &&
@@ -888,6 +942,7 @@ async function main() {
   const checks = {
     recursivHostedUrl: statusText(recursivHostedUrlProven),
     newsPage: statusText(newsPageReady),
+    xSignalPage: statusText(xSignalPageReady),
     recursivDeploymentCompleted: deploymentLookupAvailable ? statusText(recursivDeploymentCompleted) : "unknown",
     recursivHosting: statusText(recursivHostingProven),
     releaseProof: statusText(releaseProofReady),
@@ -918,6 +973,9 @@ async function main() {
   if (!recursivHostedUrlProven) nextActions.push("Do not touch DNS until invertedworld.on.recursiv.io returns the expected app.")
   if (!newsPageReady) {
     nextActions.push("Do not touch DNS until /news renders the source-board page with direct external source links and internal Inverted World context links.")
+  }
+  if (!xSignalPageReady) {
+    nextActions.push(`Do not touch DNS until /x/${X_SIGNAL_PROOF_TOPIC} renders ranked X posts with anchored post cards and outbound X links.`)
   }
   if (!releaseProofReady) {
     nextActions.push("Do not touch DNS until /api/release returns the current Recursiv feature marker for the deployed backend.")
@@ -993,6 +1051,7 @@ async function main() {
       recursivHostingProven,
       recursivHostedUrlProven,
       newsPageReady,
+      xSignalPageReady,
       recursivDeploymentCompleted,
       releaseProofReady,
       releaseCommitReady,
@@ -1016,6 +1075,7 @@ async function main() {
     },
     recursivUrl: recursivHttp,
     newsPage,
+    xSignalPage,
     releaseApi,
     expectedReleaseCommit,
     releaseRevision,

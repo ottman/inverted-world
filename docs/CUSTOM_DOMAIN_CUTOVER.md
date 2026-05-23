@@ -23,6 +23,7 @@ The command prints a redacted JSON report with:
 - latest Recursiv deployment status;
 - HTTP proof for `https://invertedworld.on.recursiv.io`;
 - `/news` source-board proof, including direct external source links and internal Inverted World context links;
+- `/x/secret-programs` signal-page proof, including ranked posts, anchored post cards, and outbound X links;
 - release proof from `https://invertedworld.on.recursiv.io/api/release`, including the deployed feature marker;
 - source-revision proof from `/api/release` when the hosted build exposes `deployment.sourceRevision` from a commit environment variable or the commit-shaped Next build id, or from authenticated Recursiv deployment metadata when the runtime cannot expose either;
 - public provider-fallback audit proof from `pnpm audit:public-providers`;
@@ -53,6 +54,7 @@ The output file contains the same no-secret report printed to stdout.
 - `recursivHostingProven` must be `true`.
 - If `recursivHostedUrl` passes but `recursivDeploymentCompleted` is `unknown`, HTTP proof is good but deployment proof is incomplete. Do not treat that as a DNS-ready state.
 - `newsPage` must pass, proving `/news` renders the source-board page with direct external source links and internal Inverted World context links.
+- `xSignalPage` must pass, proving `/x/secret-programs` renders ranked X posts with anchored cards, outbound X links, and no empty lane state.
 - `releaseCommit` must be `pass`. Full readiness may prove this from `/api/release` or from authenticated Recursiv deployment metadata. `unknown` means neither source exposes a revision yet, and `fail` means the deployed revision is not the expected commit.
 - `publicProviderFallbackAudit` must be `pass`, proving public `app/` routes and pages do not call provider-capable helpers without `allowProviderFallbacks: false`.
 - `recursivArchiveDataReady` must be `true`. This can be live `recursiv-database` or `recursiv-snapshot`, but it must not be `seed`, `static`, RSS, YouTube API, or direct provider fallback data.
@@ -107,12 +109,13 @@ This still does not change DNS. The `:wait` variant polls deployment status unti
 
 ## Current Expected State
 
-As of the latest public-only proof on May 23, 2026 at `15:31Z`, `invertedworld.on.recursiv.io` is live but the hosted build has not yet caught up to the latest pushed repo commit. Treat the Recursiv slug as available, not DNS-ready.
+As of the latest public-only proof on May 23, 2026 at `16:04Z`, `invertedworld.on.recursiv.io` is live but the hosted build has not yet caught up to the latest pushed repo commit. Treat the Recursiv slug as available, not DNS-ready.
 
 Current live proof:
 
 - `https://invertedworld.on.recursiv.io` returns HTTP 200 with the Inverted World app.
 - `https://www.inverted.world` returns HTTP 200 with `server: Vercel` and `x-vercel-id`, so the custom domain is still on the legacy host.
+- `/x/secret-programs` returns HTTP 200 with 26 outbound X links, 19 anchored post cards, and 38 ticker anchor links.
 - `/api/archive?limit=1000` returns `sourceMode: "recursiv-snapshot"`, 437 archive videos, no warnings, and `hasMore: false`.
 - `/api/documents` returns `sourceMode: "recursiv-snapshot"` with 37 source documents across six topics and five media/document kinds.
 - The latest pushed build exposes `/api/front-page` with `sourceMode` and direct Recursiv-backed ticker items, but the hosted build must be redeployed before this can pass publicly.
@@ -132,7 +135,7 @@ The known full-product blockers are provider/account-side, not DNS fixes. A fres
 
 ## Current Decision
 
-As of the latest public-only proof on May 23, 2026 at `15:31Z`:
+As of the latest public-only proof on May 23, 2026 at `16:04Z`:
 
 - `publicHostingReady: false`
 - `fullAiProductReady: false`
@@ -281,10 +284,10 @@ If Recursiv TLS, routing, or app health fails after DNS cutover:
 
 ## Inverted World Status
 
-As of a live check on May 23, 2026 at `15:34Z`:
+As of a live check on May 23, 2026 at `16:04Z`:
 
 - `https://www.inverted.world` returns HTTP 200 with `server: Vercel` and `x-vercel-id`, so the custom domain is still on Vercel.
-- `https://www.inverted.world` currently resolves to legacy Vercel IPs `64.29.17.1` and `64.29.17.65`.
+- `https://www.inverted.world` currently resolves to legacy Vercel IPs `64.29.17.1` and `216.198.79.65`.
 - `https://invertedworld.on.recursiv.io` returns HTTP 200 with the Recursiv-hosted Inverted World app.
 - The next platform step is a Recursiv custom-domain binding for `www.inverted.world`.
 - DNS should stay unchanged until that binding is created and proven.
