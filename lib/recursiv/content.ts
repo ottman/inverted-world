@@ -736,6 +736,44 @@ function dedupeDossiers(dossiers: ClaimDossier[]) {
   })
 }
 
+function normalizedSlugKey(value?: string) {
+  if (!value) return ""
+  const trimmed = value.replace(/^\/news\//, "")
+  try {
+    return slugify(decodeURIComponent(trimmed))
+  } catch {
+    return slugify(trimmed)
+  }
+}
+
+function dossierSlugAliases(dossier: ClaimDossier) {
+  const metadata = jsonObject(dossier.metadata)
+  const rawSlug = typeof metadata.rawSlug === "string" ? metadata.rawSlug : ""
+  return new Set(
+    [
+      dossier.slug,
+      rawSlug,
+      publicDossierSlug(rawSlug || dossier.slug, dossier.title, dossier.topicId),
+      publicDossierSlug(rawSlug || dossier.slug, dossier.claim, dossier.topicId),
+      `${dossier.topicId}-${slugify(dossier.title)}`,
+      `${dossier.topicId}-${slugify(dossier.claim)}`,
+      slugify(dossier.title),
+      slugify(dossier.claim),
+    ]
+      .map(normalizedSlugKey)
+      .filter(Boolean),
+  )
+}
+
+function dossierMatchesSlug(dossier: ClaimDossier, requestedSlug: string) {
+  const requested = normalizedSlugKey(requestedSlug)
+  return Boolean(requested && dossierSlugAliases(dossier).has(requested))
+}
+
+function findMatchingDossier(dossiers: ClaimDossier[], requestedSlug: string) {
+  return dossiers.find((dossier) => dossierMatchesSlug(dossier, requestedSlug))
+}
+
 function articleDedupKey(article: IntelligenceArticle) {
   const textKey = dossierClusterTextKey(article.title)
   if (textKey) return `${article.topicId}:text:${textKey}`
@@ -839,7 +877,13 @@ async function fetchTopicArchiveVideos(topicId: string, limit = DOSSIER_RELATED_
     [topicId, Math.max(1, Math.min(limit * 2, 24))],
   )
 
-  return dedupeChannelVideos(rows?.map(channelRowToVideo) ?? []).slice(0, limit)
+  if (rows?.length) return dedupeChannelVideos(rows.map(channelRowToVideo)).slice(0, limit)
+
+  return dedupeChannelVideos(
+    snapshotChannelRows()
+      .filter((row) => row.topic_id === topicId)
+      .map(channelRowToVideo),
+  ).slice(0, limit)
 }
 
 async function hydrateDossierRelatedVideos(dossiers: ClaimDossier[]) {
@@ -1508,10 +1552,6 @@ export async function fetchRecursivClaimDossiers(options: { limit?: number; topi
 }
 
 export async function getRecursivClaimDossier(slug: string) {
-  const dossiers = await fetchRecursivClaimDossiers({ limit: 50 })
-  const listedDossier = dossiers?.find((dossier) => dossier.slug === slug)
-  if (listedDossier) return listedDossier
-
   const rows = await queryInvertedWorldDatabase<ClaimDossierRow>(
     `SELECT
       id,
@@ -1544,10 +1584,22 @@ export async function getRecursivClaimDossier(slug: string) {
     [slug],
   )
 
-  if (!rows?.[0]) return null
+  if (rows?.[0]) {
+    const [dossier] = await hydrateDossierRelatedVideos([claimDossierRowToDossier(rows[0])])
+    return dossier
+  }
 
-  const [dossier] = await hydrateDossierRelatedVideos([claimDossierRowToDossier(rows[0])])
-  return dossier
+  const snapshotDossier = findMatchingDossier(snapshotClaimDossierRows().map(claimDossierRowToDossier), slug)
+  if (snapshotDossier) {
+    const [dossier] = await hydrateDossierRelatedVideos([snapshotDossier])
+    return dossier
+  }
+
+  const dossiers = await fetchRecursivClaimDossiers({ limit: 50 })
+  const listedDossier = findMatchingDossier(dossiers || [], slug)
+  if (listedDossier) return listedDossier
+
+  return null
 }
 
 export async function getLatestRecursivFrontPageEditionWithSource(): Promise<FrontPageEditionResult | null> {

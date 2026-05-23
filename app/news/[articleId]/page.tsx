@@ -6,6 +6,7 @@ import { archiveSurface, InvertedPageShell, type BreakingItem } from "@/componen
 import type { IntelligenceArticle } from "@/data/intelligence-articles"
 import { getArticleById } from "@/lib/live-articles"
 import { getRecursivClaimDossier, type ClaimDossier, type ClaimSourceLink } from "@/lib/recursiv/content"
+import { xPostInternalHref } from "@/lib/x-links"
 import { cn } from "@/lib/utils"
 
 type PageProps = {
@@ -185,7 +186,7 @@ export default async function NewsArticlePage({ params }: PageProps) {
   const breakingItems: BreakingItem[] = dossier ? [
     ...dossier.xSignals.slice(0, 8).map((post) => ({
       title: post.text,
-      href: post.url,
+      href: xPostInternalHref(post, dossier.topicId),
       source: post.username ? `@${post.username}` : "X",
     })),
     ...dossier.sourceLinks.slice(0, 8).map((source) => ({
