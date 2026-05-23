@@ -43,7 +43,10 @@ export type ExpandedMediaLibraryResult = MediaLibraryResult & {
   archiveSourceMode?: Awaited<ReturnType<typeof getDeepArchive>>["sourceMode"]
 }
 
-const WAR_UAP_CSV_URL = "https://www.war.gov/Portals/1/Interactive/2026/UFO/uap-csv.csv"
+const WAR_UAP_CSV_URLS = [
+  "https://www.war.gov/Portals/1/Interactive/2026/UFO/uap-data.csv",
+  "https://www.war.gov/Portals/1/Interactive/2026/UFO/uap-csv.csv",
+]
 
 function slugify(value: string) {
   return value
@@ -155,6 +158,10 @@ function absoluteWarUrl(value: string) {
   return `https://www.war.gov/${value.replace(/^\/+/, "")}`
 }
 
+function firstPipeValue(value: string) {
+  return value.split("|").map((part) => part.trim()).find(Boolean) || ""
+}
+
 function viewerForUrl(url: string, fallback: MediaLibraryItem["viewer"] = "link"): MediaLibraryItem["viewer"] {
   const normalized = url.toLowerCase().split("?")[0]
   if (normalized.endsWith(".pdf")) return "pdf"
@@ -168,6 +175,52 @@ function kindForViewer(viewer: MediaLibraryItem["viewer"]): MediaLibraryItem["ki
   if (viewer === "pdf") return "document"
   if (viewer === "image") return "image"
   return "archive"
+}
+
+function releaseLabel(value?: string) {
+  if (!value) return "PURSUE"
+  return /release\s*02|5\/22\/26|05\/22\/26|2026-05-22/i.test(value) ? "PURSUE Release 02" : value
+}
+
+function officialUapExtraction(row: Record<string, string>, item: MediaLibraryItem): MediaExtraction {
+  const incidentDate = field(row, ["incidentdate", "date"])
+  const incidentLocation = field(row, ["incidentlocation", "location"])
+  const release = releaseLabel(field(row, ["releasedate", "release"]))
+  const agency = item.agency || item.source
+  const facts = [
+    incidentDate ? `Incident date: ${incidentDate}.` : "",
+    incidentLocation ? `Incident location: ${incidentLocation}.` : "",
+    `Release lane: ${release}.`,
+    `Agency attribution: ${agency}.`,
+  ].filter(Boolean)
+
+  return {
+    status: "indexed",
+    brief:
+      "Official PURSUE record imported from the Department of War UAP release index. Use the original file or record page as the primary source, then compare social claims against the agency, incident date, location, file type, and release metadata.",
+    highlights: facts,
+    sourceChain: [
+      {
+        label: "Primary index",
+        value: "WAR.GOV/UFO",
+        url: "https://www.war.gov/UFO/?releaseDate=Release+02",
+      },
+      {
+        label: "Release",
+        value: release,
+      },
+      {
+        label: "Record",
+        value: item.title,
+        url: item.url,
+      },
+    ],
+    researchQuestions: [
+      "Does the file contain enough sensor, date, location, and platform context to support the claim being made?",
+      "Which related documents, still frames, audio, or video files describe the same incident?",
+      "What does the official record leave unresolved, and what would a skeptical reconstruction require?",
+    ],
+  }
 }
 
 function documentMediaItem(document: ResearchDocument): MediaLibraryItem {
@@ -310,16 +363,24 @@ function field(row: Record<string, string>, keys: string[]) {
 
 export async function fetchOfficialUapReleaseMedia(limit = 24): Promise<MediaLibraryItem[]> {
   try {
-    const response = await fetch(WAR_UAP_CSV_URL, {
-      headers: { "user-agent": "InvertedWorldMediaLibrary/1.0" },
-      signal: AbortSignal.timeout(8000),
-    })
-    if (!response.ok) return []
+    const responses = await Promise.all(
+      WAR_UAP_CSV_URLS.map((url) =>
+        fetch(url, {
+          headers: {
+            referer: "https://www.war.gov/UFO/",
+            "user-agent": "InvertedWorldMediaLibrary/1.0",
+          },
+          signal: AbortSignal.timeout(8000),
+        }).catch(() => null),
+      ),
+    )
+    const response = responses.find((item): item is Response => Boolean(item?.ok))
+    if (!response) return []
     const rows = parseCsv(await response.text())
     return rows
       .map((row) => {
         const url = absoluteWarUrl(
-          field(row, ["url", "downloadurl", "documenturl", "videourl", "imageurl", "mediaurl", "asseturl"]),
+          firstPipeValue(field(row, ["url", "downloadurl", "documenturl", "videourl", "imageurl", "mediaurl", "asseturl"])),
         )
         if (!url || !/^https?:\/\//i.test(url)) return null
         const title = field(row, ["title", "name", "assetfilename", "filename", "description"]) || hostName(url)
@@ -335,13 +396,14 @@ export async function fetchOfficialUapReleaseMedia(limit = 24): Promise<MediaLib
           topicIds: ["uap-disclosure", "secret-programs"],
           summary:
             field(row, ["description", "summary", "caption"]) ||
-            "Official UAP release media pulled from the public release index.",
+            "Official UAP release media pulled from the public Department of War release index.",
           publishedAt,
-          thumbnailUrl: absoluteWarUrl(field(row, ["imageurl", "thumbnailurl", "posterurl"])) || undefined,
+          thumbnailUrl: absoluteWarUrl(firstPipeValue(field(row, ["imageurl", "thumbnailurl", "posterurl"]))) || undefined,
           fileType: field(row, ["filetype", "documenttype", "type"]) || undefined,
           agency: field(row, ["agency"]) || "Department of War",
-          collection: field(row, ["release", "releasedate"]) || "PURSUE",
+          collection: releaseLabel(field(row, ["release", "releasedate"])),
         }
+        item.extraction = officialUapExtraction(row, item)
         return item
       })
       .filter((item): item is MediaLibraryItem => item !== null)
@@ -402,7 +464,7 @@ export async function fetchMediaLibrary(): Promise<MediaLibraryResult> {
   if (rows?.length) {
     return {
       sourceMode: "recursiv-database",
-      items: dedupeMediaItems([...rows.map(rowToMediaItem), ...officialUapItems]),
+      items: dedupeMediaItems([...rows.map(rowToMediaItem), ...curatedMediaItems, ...officialUapItems]),
     }
   }
 
@@ -410,7 +472,7 @@ export async function fetchMediaLibrary(): Promise<MediaLibraryResult> {
   if (snapshotItems.length) {
     return {
       sourceMode: "recursiv-snapshot",
-      items: dedupeMediaItems([...snapshotItems, ...officialUapItems]),
+      items: dedupeMediaItems([...snapshotItems, ...curatedMediaItems, ...officialUapItems]),
     }
   }
 

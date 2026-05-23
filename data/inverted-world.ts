@@ -722,6 +722,241 @@ export const curatedMediaItems: MediaLibraryItem[] = [
     },
   },
   {
+    id: "war-uap-release-02-documents-shelf",
+    title: "Release 02 official document shelf",
+    source: "Department of War",
+    url: "https://www.war.gov/UFO/?releaseDate=Release+02&type=.pdf",
+    kind: "archive",
+    viewer: "link",
+    topicIds: ["uap-disclosure", "secret-programs"],
+    summary:
+      "A filtered official view of the May 22, 2026 Release 02 PDFs, including ODNI, CIA, NASA, Department of War, and related historical UAP records.",
+    publishedAt: "2026-05-22",
+    fileType: "Document shelf",
+    agency: "Department of War",
+    collection: "PURSUE Release 02",
+    extraction: {
+      status: "indexed",
+      brief:
+        "Official Release 02 document shelf. Use this as the first stop for PDF records before quoting screenshots, summaries, or social-media interpretations of the new tranche.",
+      highlights: [
+        "The official page labels Release 02 as cleared for release on May 22, 2026.",
+        "The page advertises a Release 02 document download package and a browsable record database.",
+        "Documents should be treated as primary records; claims about them should cite the exact record title and agency.",
+      ],
+      sourceChain: [
+        {
+          label: "Filtered records",
+          value: "Release 02 PDFs",
+          url: "https://www.war.gov/UFO/?releaseDate=Release+02&type=.pdf",
+        },
+        {
+          label: "Primary index",
+          value: "WAR.GOV/UFO",
+          url: "https://www.war.gov/UFO/?releaseDate=Release+02",
+        },
+      ],
+      researchQuestions: [
+        "Which PDFs have matching videos, images, or audio records in Release 02?",
+        "Which agencies appear for the first time in this tranche?",
+        "What exact passages deserve a sourced article instead of a generic claim page?",
+      ],
+    },
+  },
+  {
+    id: "war-uap-release-02-video-shelf",
+    title: "Release 02 official video shelf",
+    source: "Department of War",
+    url: "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid",
+    kind: "archive",
+    viewer: "link",
+    topicIds: ["uap-disclosure", "secret-programs", "space-anomalies"],
+    summary:
+      "A filtered official view of Release 02 video records. This is the source shelf for the highest-value UAP clips before the media pipeline mirrors individual files.",
+    publishedAt: "2026-05-22",
+    fileType: "Video shelf",
+    agency: "Department of War",
+    collection: "PURSUE Release 02",
+    extraction: {
+      status: "indexed",
+      brief:
+        "Official Release 02 video shelf. The page advertises a multi-gigabyte Release 02 video package and record-level video entries; each clip should be paired with incident metadata before editorializing.",
+      highlights: [
+        "The official page separates Release 02 video records from PDF and image records.",
+        "Video items should be reviewed beside incident date, location, agency, and any companion documents.",
+        "Standalone video pages should avoid overstating identity or intent when the official record remains unresolved.",
+      ],
+      sourceChain: [
+        {
+          label: "Filtered records",
+          value: "Release 02 videos",
+          url: "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid",
+        },
+        {
+          label: "Collection",
+          value: "PURSUE Release 02",
+        },
+      ],
+      researchQuestions: [
+        "Which clips show sensor behavior worth frame-by-frame analysis?",
+        "Which videos have companion PDFs or still images in the same incident set?",
+        "What alternative explanations should be tested before writing a headline?",
+      ],
+    },
+  },
+  {
+    id: "war-uap-pr072-kazakhstan-airport-video",
+    title: "PR072 Kazakhstan airport UAP video record",
+    source: "Department of War",
+    url: "https://www.war.gov/UFO/?type=.vid&releaseDate=Release+02#DOW-UAP-PR072-ADMINISTRATIVE-REVISION-IIR-1777-J0032-22-Kazakhstan-UAP-in-the-vicinity-of-Karaganda-International-Airport",
+    kind: "video",
+    viewer: "link",
+    topicIds: ["uap-disclosure", "space-anomalies"],
+    summary:
+      "Record-level official link for a Release 02 video entry describing UAP activity near Karaganda International Airport in Kazakhstan.",
+    publishedAt: "2026-05-22",
+    fileType: "Official video record",
+    agency: "Department of War",
+    collection: "PURSUE Release 02",
+    extraction: {
+      status: "indexed",
+      brief:
+        "Release 02 video record anchor for the Kazakhstan airport case. Treat the title as a lead into the official modal, not as proof of what the object was.",
+      highlights: [
+        "The record is part of the official Release 02 video filter.",
+        "The title points to Karaganda International Airport in Kazakhstan.",
+        "The useful reporting question is what metadata, sensor context, and companion documents are attached to the record.",
+      ],
+      sourceChain: [
+        {
+          label: "Record anchor",
+          value: "DOW-UAP-PR072",
+          url: "https://www.war.gov/UFO/?type=.vid&releaseDate=Release+02#DOW-UAP-PR072-ADMINISTRATIVE-REVISION-IIR-1777-J0032-22-Kazakhstan-UAP-in-the-vicinity-of-Karaganda-International-Airport",
+        },
+        {
+          label: "Release",
+          value: "PURSUE Release 02",
+        },
+      ],
+      researchQuestions: [
+        "What date, platform, agency, and redactions are shown in the official record modal?",
+        "Is there a PDF, still image, or audio companion record for the same incident?",
+        "What mundane aviation, sensor, or atmospheric explanations need to be checked?",
+      ],
+    },
+  },
+  {
+    id: "war-uap-pr052-uso-formation-video",
+    title: "PR052 UAP/USO formation mission video record",
+    source: "Department of War",
+    url: "https://www.war.gov/UFO/?type=.vid&releaseDate=Release+02#DOW-UAP-PR052-UAP-USO-Formation-CALLSIGN-Mission",
+    kind: "video",
+    viewer: "link",
+    topicIds: ["uap-disclosure", "space-anomalies"],
+    summary:
+      "Record-level official link for a Release 02 video entry labeled as a UAP/USO formation mission.",
+    publishedAt: "2026-05-22",
+    fileType: "Official video record",
+    agency: "Department of War",
+    collection: "PURSUE Release 02",
+    extraction: {
+      status: "indexed",
+      brief:
+        "Release 02 video record anchor for a UAP/USO formation mission. It is high-value media, but the article flow should separate visual description from identification.",
+      highlights: [
+        "The official title labels the record as UAP/USO formation footage.",
+        "The record is part of the Release 02 video shelf, not an independent social upload.",
+        "Formation language should be checked against the video, metadata, and any companion record.",
+      ],
+      sourceChain: [
+        {
+          label: "Record anchor",
+          value: "DOW-UAP-PR052",
+          url: "https://www.war.gov/UFO/?type=.vid&releaseDate=Release+02#DOW-UAP-PR052-UAP-USO-Formation-CALLSIGN-Mission",
+        },
+      ],
+      researchQuestions: [
+        "What exactly is visible frame by frame, and what is inferred from the label?",
+        "Does the official record include location, platform, or sensor details?",
+        "What would a skeptical source need to rule out before calling it anomalous?",
+      ],
+    },
+  },
+  {
+    id: "war-uap-pr086-dec-2019-east-coast-video",
+    title: "PR086 December 2019 East Coast UAP video record",
+    source: "Department of War",
+    url: "https://www.war.gov/UFO/?type=.vid&releaseDate=Release+02#DOW-UAP-PR086-UAP-from-Dec-2019-East-Coast",
+    kind: "video",
+    viewer: "link",
+    topicIds: ["uap-disclosure", "space-anomalies"],
+    summary:
+      "Record-level official link for a Release 02 video entry tied to an East Coast UAP event in December 2019.",
+    publishedAt: "2026-05-22",
+    fileType: "Official video record",
+    agency: "Department of War",
+    collection: "PURSUE Release 02",
+    extraction: {
+      status: "indexed",
+      brief:
+        "Release 02 video record anchor for the December 2019 East Coast case. The title makes it ideal for a short sourced clip brief once the file is mirrored or reliably embeddable.",
+      highlights: [
+        "The official anchor identifies the record as an East Coast UAP video from December 2019.",
+        "It should be connected to any companion incident report before writing a standalone story.",
+        "This is a primary-source video lead, not a social repost.",
+      ],
+      sourceChain: [
+        {
+          label: "Record anchor",
+          value: "DOW-UAP-PR086",
+          url: "https://www.war.gov/UFO/?type=.vid&releaseDate=Release+02#DOW-UAP-PR086-UAP-from-Dec-2019-East-Coast",
+        },
+      ],
+      researchQuestions: [
+        "What platform, sensor, and location fields are visible in the official modal?",
+        "Does the East Coast record overlap with previously public Navy or AARO material?",
+        "What clips or still frames should become thumbnails for the story?",
+      ],
+    },
+  },
+  {
+    id: "war-uap-pr095-gulf-arabia-dual-uap-video",
+    title: "PR095 Gulf of Arabia dual UAP video record",
+    source: "Department of War",
+    url: "https://www.war.gov/UFO/?type=.vid&releaseDate=Release+02#DOW-UAP-PR095-May-05-2020-Gulf-of-Arabia-CALLSIGN-Platform-Dual-UAP",
+    kind: "video",
+    viewer: "link",
+    topicIds: ["uap-disclosure", "space-anomalies"],
+    summary:
+      "Record-level official link for a Release 02 video entry labeled as a May 5, 2020 Gulf of Arabia dual-UAP case.",
+    publishedAt: "2026-05-22",
+    fileType: "Official video record",
+    agency: "Department of War",
+    collection: "PURSUE Release 02",
+    extraction: {
+      status: "indexed",
+      brief:
+        "Release 02 video record anchor for a Gulf of Arabia dual-UAP case. The important workflow is to pair the clip with its incident metadata and then test whether two-object framing is supported by the footage.",
+      highlights: [
+        "The official anchor names a May 5, 2020 Gulf of Arabia event.",
+        "The title labels the record as a dual-UAP case.",
+        "The record should be cross-checked against companion mission reports or stills before being promoted as a major story.",
+      ],
+      sourceChain: [
+        {
+          label: "Record anchor",
+          value: "DOW-UAP-PR095",
+          url: "https://www.war.gov/UFO/?type=.vid&releaseDate=Release+02#DOW-UAP-PR095-May-05-2020-Gulf-of-Arabia-CALLSIGN-Platform-Dual-UAP",
+        },
+      ],
+      researchQuestions: [
+        "Does the official video show two distinct objects, a sensor artifact, or a platform-relative effect?",
+        "Which geographic and mission details can be cited without guessing?",
+        "What counterread should accompany any viral headline?",
+      ],
+    },
+  },
+  {
     id: "nsa-mkultra-gottlieb-testimony",
     title: "CIA MKULTRA chief testimony, 50 years later",
     source: "National Security Archive",
