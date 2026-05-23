@@ -22,9 +22,19 @@ type CachedRead = {
   cachedAt: number
 }
 
+type PublicReadHealth = {
+  status: "ok" | "missing-config" | "rate-limited" | "backoff" | "error"
+  retryAfterSeconds?: number
+  backoffUntil?: string
+  lastErrorStatus?: number
+  lastErrorKind?: string
+  lastErrorAt?: string
+}
+
 const publicReadCache = new Map<string, CachedRead>()
 const publicReadInflight = new Map<string, Promise<RecursivRow[] | null>>()
 let publicReadBackoffUntil = 0
+let publicReadHealth: PublicReadHealth = { status: "ok" }
 
 function publicReadCacheKey(projectId: string, databaseName: string, sql: string, params: unknown[]) {
   return JSON.stringify([projectId, databaseName, sql, params])
@@ -45,9 +55,40 @@ function rateLimitBackoffMs(error: unknown) {
   return 5 * 60 * 1000
 }
 
+function publicReadErrorStatus(error: unknown) {
+  return error instanceof Error ? (error as Error & { status?: number }).status : undefined
+}
+
+function publicReadErrorKind(error: unknown) {
+  const status = publicReadErrorStatus(error)
+  if (status === 429) return "rate_limited"
+  if (status) return `http_${status}`
+  return "request_failed"
+}
+
+export function getRecursivPublicReadHealth(): PublicReadHealth {
+  if (Date.now() < publicReadBackoffUntil) {
+    return {
+      ...publicReadHealth,
+      status: "backoff",
+      retryAfterSeconds: Math.max(1, Math.ceil((publicReadBackoffUntil - Date.now()) / 1000)),
+      backoffUntil: new Date(publicReadBackoffUntil).toISOString(),
+    }
+  }
+  return publicReadHealth
+}
+
 function handlePublicReadError<T extends RecursivRow>(cacheKey: string, error: unknown) {
   const backoffMs = rateLimitBackoffMs(error)
   if (backoffMs > 0) publicReadBackoffUntil = Math.max(publicReadBackoffUntil, Date.now() + backoffMs)
+  publicReadHealth = {
+    status: backoffMs > 0 ? "rate-limited" : "error",
+    retryAfterSeconds: backoffMs > 0 ? Math.ceil(backoffMs / 1000) : undefined,
+    backoffUntil: backoffMs > 0 ? new Date(Date.now() + backoffMs).toISOString() : undefined,
+    lastErrorStatus: publicReadErrorStatus(error),
+    lastErrorKind: publicReadErrorKind(error),
+    lastErrorAt: new Date().toISOString(),
+  }
   const staleRows = getCachedRows(cacheKey, PUBLIC_READ_STALE_MS)
   if (staleRows) return staleRows as T[]
   if (process.env.RECURSIV_STRICT_READS === "1") throw error
@@ -60,7 +101,10 @@ export async function queryInvertedWorldDatabase<T extends RecursivRow = Recursi
   params: unknown[] = [],
 ) {
   const config = getRecursivRuntimeConfig()
-  if (!config.apiKey || !config.projectId) return null
+  if (!config.apiKey || !config.projectId) {
+    publicReadHealth = { status: "missing-config", lastErrorAt: new Date().toISOString() }
+    return null
+  }
   const projectId = config.projectId
   const cacheKey = publicReadCacheKey(projectId, config.databaseName, sql, params)
   const cachedRows = getCachedRows(cacheKey, PUBLIC_READ_CACHE_MS)
@@ -89,6 +133,7 @@ export async function queryInvertedWorldDatabase<T extends RecursivRow = Recursi
     })
     const rows = (data.rows || []) as RecursivRow[]
     if (PUBLIC_READ_CACHE_MS > 0) publicReadCache.set(cacheKey, { rows, cachedAt: Date.now() })
+    publicReadHealth = { status: "ok" }
     return rows
   })()
 

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { getRecursivPublicReadHealth } from "@/lib/recursiv/database"
 import { fetchRecursivPipelineRuns } from "@/lib/recursiv/content"
 
 export const dynamic = "force-dynamic"
@@ -12,6 +13,7 @@ export async function GET(request: Request) {
   return NextResponse.json({
     generatedAt: new Date().toISOString(),
     sourceMode: recent ? "recursiv-database" : "unavailable",
+    readHealth: getRecursivPublicReadHealth(),
     latest: recent?.[0] ?? null,
     count: recent?.length ?? 0,
     recent: recent ?? [],
