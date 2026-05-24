@@ -112,7 +112,7 @@ pnpm recursiv:deploy:dry-run
 pnpm recursiv:deploy:dry-run -- --custom-domain=www.inverted.world
 ```
 
-`recursiv:migration:status` is the fastest operator packet during cooldowns. It does not call Recursiv; it combines the deploy window, snapshot freshness, latest local proof, latest public proof, and DNS decision into one no-secret JSON report. `recursiv:migration:next` turns that status into a guarded resume plan with exact commands for snapshot refresh, build, slug deploy, hosted proof, custom-domain binding, binding proof, and the final manual DNS step. It marks which commands call the Recursiv API and keeps DNS as an explicit last manual action. `recursiv:deploy:window` is the narrower deploy-only check; it prints whether the local deploy guard is ready, the exact current commit payload for `www.inverted.world`, the next allowed retry time, the next command to run, and whether the committed Recursiv snapshot is fresh enough for a deployment proof. The deploy helper refuses an actual deploy when the local snapshot freshness gate is already failed unless an operator deliberately passes `--skip-snapshot-preflight`.
+`recursiv:migration:status` is the fastest operator packet during cooldowns. It does not call Recursiv; it combines the deploy window, snapshot freshness, latest local proof, latest public proof, and DNS decision into one no-secret JSON report. `recursiv:migration:next` turns that status into a guarded resume plan with exact commands for snapshot refresh, build, slug deploy, no-secret hosted-route preflight, full hosted proof, custom-domain binding, no-secret binding preflight, full binding proof, and the final manual DNS step. It marks which commands call the Recursiv API and keeps DNS as an explicit last manual action. `recursiv:deploy:window` is the narrower deploy-only check; it prints whether the local deploy guard is ready, the exact current commit payload for `www.inverted.world`, the next allowed retry time, the next command to run, and whether the committed Recursiv snapshot is fresh enough for a deployment proof. The deploy helper refuses an actual deploy when the local snapshot freshness gate is already failed unless an operator deliberately passes `--skip-snapshot-preflight`.
 
 Create the pre-DNS custom-domain binding after public hosting and Recursiv API health are green:
 
@@ -127,7 +127,7 @@ This still does not change DNS. The `:wait` variant polls deployment status unti
 
 ## Current Expected State
 
-As of the latest public-only proof on May 24, 2026 at `01:40Z`, `invertedworld.on.recursiv.io` is live but the hosted build has not yet caught up to commit `4dfdba793cf0`. Treat the Recursiv slug as available, not DNS-ready.
+As of the latest public-only proof on May 24, 2026 at `01:49Z`, `invertedworld.on.recursiv.io` is live but the hosted build has not yet caught up to commit `712635dd7be0`. Treat the Recursiv slug as available, not DNS-ready.
 
 Current live proof:
 
@@ -137,7 +137,7 @@ Current live proof:
 - `/x/secret-programs` returns HTTP 200 with 26 outbound X links, 19 anchored post cards, and 38 ticker anchor links.
 - `/api/x/secret-programs?limit=24` returns 19 recent Declassified X posts from two source modes, with the latest post age inside the freshness window.
 - `/api/archive?limit=1000` returns `sourceMode: "recursiv-snapshot"`, 437 archive videos, no warnings, all six core topics above the minimum coverage threshold, no topic above the 70% dominance threshold, and `hasMore: false`.
-- `/api/articles` currently returns 8 articles and 8 generated thumbnails on the hosted build, but it does not expose Recursiv `sourceMode`, does not meet the 12-article cutover gate, does not prove direct external source links, and can still surface templated briefs. The local built proof for commit `4dfdba793cf0` returns `sourceMode: "recursiv-snapshot"` with 13 full-story articles, 13 direct external source links, 13 generated thumbnails, six topics, and `templatedArticleCount: 0`; deploy that build before considering the article gate live.
+- `/api/articles` currently returns 8 articles and 8 generated thumbnails on the hosted build, but it does not expose Recursiv `sourceMode`, does not meet the 12-article cutover gate, does not prove direct external source links, and can still surface templated briefs. The local built proof for commit `712635dd7be0` returns `sourceMode: "recursiv-snapshot"` with 13 full-story articles, 13 direct external source links, 13 generated thumbnails, six topics, and `templatedArticleCount: 0`; deploy that build before considering the article gate live.
 - The repo exposes `/api/front-page` with `sourceMode` and direct Recursiv-backed ticker items, but the hosted build must be redeployed before this can pass publicly.
 - The stale hosted build still returns `/documents` and `/api/documents`; the next deploy must make both return 404.
 - `/api/release` still returns `pipelineSnapshotFallback: false` and release `worldwire-persistence-v2` on the hosted app, so the current hosted build is older than the pushed repo.
@@ -155,7 +155,7 @@ The known full-product blockers are provider/account-side, not DNS fixes. A fres
 
 ## Current Decision
 
-As of the latest public-only proof on May 24, 2026 at `01:40Z`:
+As of the latest public-only proof on May 24, 2026 at `01:49Z`:
 
 - `publicHostingReady: false`
 - `fullAiProductReady: false`

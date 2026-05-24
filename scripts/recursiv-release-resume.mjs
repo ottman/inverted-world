@@ -55,6 +55,32 @@ function command({
   return { id, when, run, why, callsRecursivApi, requiresNetwork, touchesDns, manual }
 }
 
+function domainPreflightCommand({ shortCommit, bindingProven = false, requireMode = "hosted", outputLabel = "hosted" }) {
+  return [
+    "pnpm recursiv:domain:preflight --",
+    "--slug=invertedworld.on.recursiv.io",
+    "--custom-domain=www.inverted.world",
+    '--expected-text="Inverted World"',
+    '--path=/news::"source sheet"',
+    '--path=/x/secret-programs::"Live X Stream"',
+    '--path=/api/release::"worldwire-persistence-v2"',
+    "--status-check=/documents::404",
+    "--status-check=/api/documents::404",
+    "--status-check=/media::404",
+    "--status-check=/api/media::404",
+    "--json-check=/api/release::deployment.sourceRevision::exists",
+    "--json-check=/api/articles::sourceMode::contains::recursiv",
+    "--json-check=/api/articles::count::gte::12",
+    "--json-check=/api/front-page::sourceMode::contains::recursiv",
+    "--json-check=/api/front-page::breakingItems.length::gte::8",
+    bindingProven ? "--binding-proven" : "",
+    `--output=/private/tmp/inverted-world-domain-preflight-${outputLabel}-${shortCommit}.json`,
+    `--require=${requireMode}`,
+  ]
+    .filter(Boolean)
+    .join(" ")
+}
+
 function commandPlan(status) {
   const commit = status.commitHash || currentCommitHash()
   const shortCommit = commit.slice(0, 7)
@@ -116,9 +142,16 @@ function commandPlan(status) {
       requiresNetwork: true,
     }),
     command({
+      id: "preflight-slug",
+      run: domainPreflightCommand({ shortCommit }),
+      when: "after deploy-slug",
+      why: "No-secret hosted-route proof should pass before spending Recursiv API budget on the full cutover audit.",
+      requiresNetwork: true,
+    }),
+    command({
       id: "prove-slug",
       run: `CUTOVER_READINESS_OUTPUT=/private/tmp/inverted-world-public-readiness-${shortCommit}.json pnpm recursiv:cutover`,
-      when: "after deploy-slug",
+      when: "after preflight-slug",
       why: "Full proof must show hosted deployment status, release commit, jobs, provider health, Recursiv-backed data, and public routes.",
       callsRecursivApi: true,
       requiresNetwork: true,
@@ -132,9 +165,16 @@ function commandPlan(status) {
       requiresNetwork: true,
     }),
     command({
+      id: "preflight-binding",
+      run: domainPreflightCommand({ shortCommit, bindingProven: true, requireMode: "dns-change", outputLabel: "binding" }),
+      when: "after bind-custom-domain",
+      why: "No-secret proof should show the Recursiv host is ready and the binding is asserted before full binding proof or DNS planning.",
+      requiresNetwork: true,
+    }),
+    command({
       id: "prove-binding",
       run: `pnpm recursiv:cutover -- --output=/private/tmp/inverted-world-cutover-binding-${shortCommit}.json`,
-      when: "after bind-custom-domain",
+      when: "after preflight-binding",
       why: "Require customDomainBindingConfigured and dnsChangeReady before planning the DNS record edit.",
       callsRecursivApi: true,
       requiresNetwork: true,

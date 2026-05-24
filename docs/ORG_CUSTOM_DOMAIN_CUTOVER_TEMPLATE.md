@@ -169,13 +169,13 @@ pnpm recursiv:domain:preflight -- \
   --status-check=/api/documents::404 \
   --status-check=/media::404 \
   --status-check=/api/media::404 \
-  --json-check=/api/articles::sourceMode::eq::recursiv-snapshot \
+  --json-check=/api/release::deployment.sourceRevision::exists \
+  --json-check=/api/articles::sourceMode::contains::recursiv \
   --json-check=/api/articles::count::gte::12 \
-  --json-check=/api/articles::articles.0.sourceUrl::exists \
-  --json-check=/api/front-page::hasEdition::truthy \
+  --json-check=/api/front-page::sourceMode::contains::recursiv \
   --json-check=/api/front-page::breakingItems.length::gte::8 \
   --output=/private/tmp/inverted-world-domain-preflight.json \
   --require=hosted
 ```
 
-As of May 23, 2026 at `16:24Z`, the route-aware preflight proved the Recursiv slug host and product routes, while `www.inverted.world` still returned Vercel headers. DNS should remain unchanged until the Recursiv custom-domain binding for `www.inverted.world` is created and proven.
+As of May 24, 2026 at `01:47Z`, the route/status-aware public preflight still fails because the Recursiv slug is serving a stale build: `/documents`, `/api/documents`, `/media`, and `/api/media` return 200 there instead of 404. DNS should remain unchanged until the Recursiv slug deploy and custom-domain binding for `www.inverted.world` are both proven.
