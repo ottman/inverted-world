@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { ArrowUpRight, Play, RefreshCw, Youtube } from "lucide-react"
-import Script from "next/script"
 import { archiveSurface, InvertedPageShell, XIcon, type BreakingItem } from "@/components/inverted-page-shell"
 import { channelProfile, topics, type ChannelVideo, type ContentTopic } from "@/data/inverted-world"
 import type { IntelligenceArticle } from "@/data/intelligence-articles"
@@ -77,10 +76,6 @@ function postMetricLabel(post: ViralXPost) {
   if (parts.length) return parts.slice(0, 3).join(" / ")
   if (typeof post.score === "number" && post.score > 0) return `${formatMetricCount(post.score)} signal`
   return "curated signal"
-}
-
-function topicTitle(topicId?: string) {
-  return topics.find((topic) => topic.id === topicId)?.title || "Live"
 }
 
 function topicById(topicId?: string) {
@@ -270,12 +265,6 @@ export function ArchiveOnlyPage({
 
       <TopicIndex summaries={topicSummaries} />
 
-      <XEmbedStrip
-        posts={Object.values(initialTopicXPosts ?? {})
-          .map((posts) => posts[0])
-          .filter((post): post is ViralXPost => Boolean(post))}
-      />
-
       <div className="mt-6 grid gap-6">
         {topics.map((topic) => {
           const topicVideos = videosByTopic.get(topic.id) ?? []
@@ -309,7 +298,6 @@ export function ArchiveOnlyPage({
           )
         })}
       </div>
-      <Script src="https://platform.twitter.com/widgets.js" strategy="lazyOnload" />
     </InvertedPageShell>
   )
 }
@@ -429,59 +417,6 @@ function EmbeddedTweetGrid({ posts, topicId }: { posts: ViralXPost[]; topicId: s
         </article>
       ))}
     </div>
-  )
-}
-
-function XEmbedStrip({ posts }: { posts: ViralXPost[] }) {
-  const visiblePosts = posts.slice(0, 3)
-
-  return (
-    <section className="mt-4 grid gap-4 lg:grid-cols-3">
-      {visiblePosts.map((post) => (
-        <div key={post.id || post.url} className={cn("min-h-[210px] overflow-hidden p-3", archiveSurface)}>
-          <div className="mb-2 flex items-center justify-between gap-3">
-            <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#fff8e6]">
-              <XIcon className="h-4 w-4 text-[#df2f2f]" />
-              {topicTitle(post.topicId)} X
-            </h2>
-            <a
-              href={`/x/${post.topicId || "uap-disclosure"}`}
-              className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#dff7ff] transition hover:text-[#df2f2f]"
-            >
-              Stream
-              <ArrowUpRight className="h-3.5 w-3.5" />
-            </a>
-          </div>
-          <div
-            role="link"
-            tabIndex={0}
-            onClick={() => openInAppPostSignal(post, "uap-disclosure")}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault()
-                openInAppPostSignal(post, "uap-disclosure")
-              }
-            }}
-            className="iw-compact-tweet iw-compact-tweet--strip cursor-pointer"
-          >
-            <blockquote
-              className="twitter-tweet iw-tweet-blockquote"
-              data-theme="dark"
-              data-dnt="true"
-              data-cards="hidden"
-              data-conversation="none"
-              data-width="280"
-            >
-              <a href={post.url}>{post.text}</a>
-            </blockquote>
-          </div>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-[#f4efe2]/44">
-            {post.username && <span>@{post.username}</span>}
-            <span>{postMetricLabel(post)}</span>
-          </div>
-        </div>
-      ))}
-    </section>
   )
 }
 

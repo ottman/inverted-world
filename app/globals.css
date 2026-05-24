@@ -84,44 +84,6 @@ body {
   background: rgba(223, 47, 47, 0.65);
 }
 
-.iw-compact-tweet {
-  height: clamp(156px, 24vw, 214px);
-  overflow: hidden;
-  background: #000;
-}
-
-.iw-compact-tweet--strip {
-  height: clamp(176px, 20vw, 232px);
-}
-
-.iw-compact-tweet .twitter-tweet,
-.iw-compact-tweet .twitter-tweet-rendered {
-  margin: 0 !important;
-}
-
-.iw-compact-tweet iframe {
-  width: 380px !important;
-  max-width: none !important;
-  background: #000 !important;
-  transform: scale(0.68);
-  transform-origin: top left;
-}
-
-@media (max-width: 640px) {
-  .iw-compact-tweet {
-    height: 170px;
-  }
-
-  .iw-compact-tweet--strip {
-    height: 190px;
-  }
-
-  .iw-compact-tweet iframe {
-    width: 360px !important;
-    transform: scale(0.72);
-  }
-}
-
 a {
   color: inherit;
   text-decoration: none;
