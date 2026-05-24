@@ -71,6 +71,7 @@ function readProof(file) {
         articlesApi: proof.checks?.articlesApi,
         pipelineApi: proof.checks?.pipelineApi,
         frontPageApi: proof.checks?.frontPageApi,
+        autopostApi: proof.checks?.autopostApi,
         dossierChatApi: proof.checks?.dossierChatApi,
         articleChatApi: proof.checks?.articleChatApi,
         publicHostingReady: proof.checks?.publicHostingReady,
