@@ -236,6 +236,8 @@ The media-library importer reads the WAR.GOV PURSUE CSV manifest when available,
 
 The profile-reader fallback keeps the default account window small for Skywatch, but widens weaker non-Skywatch lanes such as Declassified, Power Web, High Strangeness, Machine State, and Off-World Signals to eight topic-priority accounts so they are not dominated by the same few generic show accounts. Keep source accounts ordered by editorial value: primary-source/archive/legal accounts first, then show/velocity accounts.
 
+The profile-reader lane reads the full configured account window before slicing results. It caps each account by default so a topic cannot look "full" just because one source produced enough posts; remaining slots are then backfilled by score. Override with `X_PROFILE_READER_MAX_PER_ACCOUNT` only for narrow provider tests.
+
 Profile-reader refreshes are failure-preserving. If a public reader rate limit blocks one topic, local backfill replaces only topics that accepted new rows, and the scheduled Recursiv topic-pulse job clears old `x-profile-reader` rows only after it has rows to reinsert for that topic.
 
 When X API credits are blocked, run the profile-reader lane first as a dry run:

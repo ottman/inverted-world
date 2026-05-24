@@ -266,6 +266,44 @@ function profileReaderAccountLimit(topicId) {
   return TOPICS[topicId]?.profileLimit || DEFAULT_PROFILE_READER_ACCOUNT_LIMIT
 }
 
+function profileReaderMaxPerAccount(limit) {
+  const parsed = Number(process.env.X_PROFILE_READER_MAX_PER_ACCOUNT || "")
+  if (Number.isFinite(parsed) && parsed > 0) return Math.min(Math.trunc(parsed), 12)
+  return Math.max(2, Math.ceil(limit / 6))
+}
+
+function postAccountKey(post) {
+  return String(post.username || post.authorName || "unknown").toLowerCase()
+}
+
+function diversifyPostsByAccount(posts, limit, maxPerAccount = profileReaderMaxPerAccount(limit)) {
+  const ranked = dedupe(posts).sort((left, right) => (right.score || 0) - (left.score || 0))
+  const selected = []
+  const selectedKeys = new Set()
+  const accountCounts = new Map()
+
+  for (const post of ranked) {
+    const key = post.id || post.url
+    const account = postAccountKey(post)
+    if (!key || selectedKeys.has(key)) continue
+    if ((accountCounts.get(account) || 0) >= maxPerAccount) continue
+    selected.push(post)
+    selectedKeys.add(key)
+    accountCounts.set(account, (accountCounts.get(account) || 0) + 1)
+    if (selected.length >= limit) return selected
+  }
+
+  for (const post of ranked) {
+    const key = post.id || post.url
+    if (!key || selectedKeys.has(key)) continue
+    selected.push(post)
+    selectedKeys.add(key)
+    if (selected.length >= limit) return selected
+  }
+
+  return selected
+}
+
 function recursivTimeoutMs() {
   const parsed = Number(process.env.RECURSIV_BACKFILL_TIMEOUT_MS || "")
   if (Number.isFinite(parsed) && parsed > 0) return Math.min(Math.trunc(parsed), 120000)
@@ -718,12 +756,9 @@ async function profilePostsForTopic(topicId, limit) {
   for (const account of profileReaderAccounts(topicId)) {
     const markdown = await fetchProfileMarkdown(account)
     if (markdown) posts.push(...parseProfilePosts(topicId, account, markdown, limit))
-    if (dedupe(posts).length >= limit) break
   }
 
-  return dedupe(posts)
-    .sort((left, right) => (right.score || 0) - (left.score || 0))
-    .slice(0, limit)
+  return diversifyPostsByAccount(posts, limit)
 }
 
 function xSignalRows(posts) {
@@ -904,9 +939,7 @@ async function main() {
       exaKey && provider !== "x" && provider !== "profile" ? exaPostsForTopic(topicId, exaKey, limit).catch(() => []) : [],
       provider === "all" || provider === "profile" ? profilePostsForTopic(topicId, limit).catch(() => []) : [],
     ])
-    const posts = dedupe([...xPosts, ...exaPosts, ...profilePosts])
-      .sort((left, right) => (right.score || 0) - (left.score || 0))
-      .slice(0, limit)
+    const posts = diversifyPostsByAccount([...xPosts, ...exaPosts, ...profilePosts], limit)
     acceptedByTopic[topicId] = posts
     summary[topicId] = {
       upserted: posts.length,

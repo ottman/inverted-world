@@ -434,7 +434,7 @@ export function isFreshXPost(post: ViralXPost, maxAgeHours = X_FRESHNESS_WINDOW_
 
 function mergeWithSeededPosts(topicId: string, posts: ViralXPost[], limit: number) {
   const seen = new Set<string>()
-  return [...posts, ...seededPostsForTopic(topicId)]
+  const ranked = [...posts, ...seededPostsForTopic(topicId)]
     .map((post) => ({ ...post, topicId: post.topicId || topicId }))
     .filter((post) => isFreshXPost(post))
     .filter((post) => isQualityTopicPost(topicId, post))
@@ -444,7 +444,8 @@ function mergeWithSeededPosts(topicId: string, posts: ViralXPost[], limit: numbe
       seen.add(key)
       return true
     })
-    .slice(0, limit)
+
+  return diversifyXPosts(ranked, limit)
 }
 
 function dedupePosts(posts: ViralXPost[]) {
@@ -455,6 +456,44 @@ function dedupePosts(posts: ViralXPost[]) {
     seen.add(key)
     return true
   })
+}
+
+function xPostAccountKey(post: ViralXPost) {
+  return (post.username || post.authorName || "unknown").toLowerCase()
+}
+
+function profileReaderMaxPerAccount(limit: number) {
+  const configured = Math.trunc(Number(process.env.X_PROFILE_READER_MAX_PER_ACCOUNT || ""))
+  if (Number.isFinite(configured) && configured > 0) return Math.min(configured, 12)
+  return Math.max(2, Math.ceil(limit / 6))
+}
+
+function diversifyXPosts(posts: ViralXPost[], limit: number, maxPerAccount = profileReaderMaxPerAccount(limit)) {
+  const ranked = dedupePosts(posts).sort((left, right) => (right.score || 0) - (left.score || 0))
+  const selected: ViralXPost[] = []
+  const selectedKeys = new Set<string>()
+  const accountCounts = new Map<string, number>()
+
+  for (const post of ranked) {
+    const key = post.id || post.url
+    const account = xPostAccountKey(post)
+    if (!key || selectedKeys.has(key)) continue
+    if ((accountCounts.get(account) || 0) >= maxPerAccount) continue
+    selected.push(post)
+    selectedKeys.add(key)
+    accountCounts.set(account, (accountCounts.get(account) || 0) + 1)
+    if (selected.length >= limit) return selected
+  }
+
+  for (const post of ranked) {
+    const key = post.id || post.url
+    if (!key || selectedKeys.has(key)) continue
+    selected.push(post)
+    selectedKeys.add(key)
+    if (selected.length >= limit) return selected
+  }
+
+  return selected
 }
 
 function cleanSearchText(value?: string) {
@@ -961,14 +1000,14 @@ async function fetchJinaProfilePostsForTopic(topicId: string, limit: number) {
       .catch(() => [] satisfies ViralXPost[])
 
     posts.push(...accountPosts)
-    if (dedupePosts(posts).length >= limit) break
   }
 
-  return dedupePosts(posts)
-    .filter((post) => isFreshXPost(post))
-    .filter((post) => isQualityTopicPost(topicId, post))
-    .sort((left, right) => (right.score || 0) - (left.score || 0))
-    .slice(0, limit)
+  return diversifyXPosts(
+    posts
+      .filter((post) => isFreshXPost(post))
+      .filter((post) => isQualityTopicPost(topicId, post)),
+    limit,
+  )
 }
 
 export async function fetchViralXPostsForTopic(
@@ -987,9 +1026,7 @@ export async function fetchViralXPostsForTopic(
     fetchSyndicatedPriorityPosts(topicId, limit).catch(() => []),
     options.allowProfileReader ? fetchJinaProfilePostsForTopic(topicId, limit).catch(() => []) : Promise.resolve([]),
   ])
-  const rankedPosts = dedupePosts([...xPosts, ...indexedPosts, ...exaPosts, ...syndicatedPosts, ...profilePosts]).sort(
-    (left, right) => (right.score || 0) - (left.score || 0),
-  )
+  const rankedPosts = diversifyXPosts([...xPosts, ...indexedPosts, ...exaPosts, ...syndicatedPosts, ...profilePosts], limit)
 
   return mergeWithSeededPosts(topicId, [...recursivPosts, ...rankedPosts], limit)
 }
