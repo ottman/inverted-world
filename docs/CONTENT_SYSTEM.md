@@ -39,7 +39,7 @@ Server-side Recursiv calls use `RECURSIV_SERVER_API_KEY`. Local proof may use a 
 - `/news`: Drudge-style source board backed by Recursiv `coverage_snapshots` with `source = 'worldwire'`, published `article_drafts`, and published `claim_dossiers`. The worldwire lanes cover a regular front page plus world, war, U.S. politics, power/files, money, tech/AI, science/space, health/earth, crime/culture, and strange-records coverage. The public page links directly to source URLs and does not call Exa, Brave, or RSS providers during render.
 - `/news/[slug]`: source split, evidence grade, X velocity, Tales archive context, viral headlines, and AI chat for one dossier.
 - `/documents`: public source shelf for official releases, primary-source PDFs, hearing records, agency files, and research documents backed by `/api/documents`.
-- Media ingestion can still mirror source files into Recursiv for later reuse, but the public media-library section is disabled until that experience is rebuilt around a clearer news flow.
+- Media ingestion can still mirror source files into Recursiv for later reuse, but the public `/media` pages and `/api/media` endpoints are removed until that experience is rebuilt around a clearer news flow.
 - `/api/dossiers`: JSON feed of published claim dossiers.
 - `/api/dossiers/[slug]/chat`: Recursiv-agent chat over one dossier context.
 - `/api/recursiv/jobs/*`: authenticated scheduled job targets for archive sync, topic pulse, worldwire crawling, article generation, claim dossier generation, image generation, publishing, front-page editions, bounded pipeline refresh, and pipeline maintenance. Add `?async=1` for Recursiv cron triggers; omit it for manual proof runs that should wait for the full result.
@@ -224,7 +224,7 @@ Run `pnpm recursiv:snapshot:status` when the hosted database key is unhealthy or
 
 Run `pnpm recursiv:migration:status` for a no-secret operator packet that combines deploy cooldown, snapshot freshness, latest local proof, latest live public proof, and DNS cutover decisions. During deploy cooldowns it also compares `latestFullPipeline.freshUntil` with the next allowed deploy time, so operators know when a currently passing snapshot will be stale before the next Recursiv deployment attempt.
 
-The public snapshot feeds the archive, worldwire/news desk, X velocity, front-page edition, media library, and source document shelf. It is Recursiv-backed persisted data, but it is still a fallback: production is fully healthy only when hosted reads return `sourceMode: "recursiv-database"`.
+The public snapshot feeds the archive, worldwire/news desk, X velocity, front-page edition, and source document shelf. It is Recursiv-backed persisted data, but it is still a fallback: production is fully healthy only when hosted reads return `sourceMode: "recursiv-database"`.
 
 `/api/pipeline` also falls back to the committed Recursiv snapshot while live database reads are rate-limited, so users can still see the latest exported pipeline run and the non-secret `readHealth` backoff state at the same time.
 

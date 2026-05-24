@@ -131,7 +131,7 @@ Current live proof:
 
 - `https://invertedworld.on.recursiv.io` returns HTTP 200 with the Inverted World app.
 - `https://www.inverted.world` returns HTTP 200 with `server: Vercel` and `x-vercel-id`, so the custom domain is still on the legacy host.
-- `https://www.inverted.world/archive` no longer contains the removed homepage source-media shelf on the legacy deployment, while the stale Recursiv slug still does until the next Recursiv deploy.
+- The repo no longer exposes public `/media` pages or `/api/media` endpoints. The stale Recursiv slug can still show the old media library until the next Recursiv deploy; do not treat that stale hosted surface as DNS-ready.
 - `/x/secret-programs` returns HTTP 200 with 26 outbound X links, 19 anchored post cards, and 38 ticker anchor links.
 - `/api/x/secret-programs?limit=24` returns 19 recent Declassified X posts from two source modes, with the latest post age inside the freshness window.
 - `/api/archive?limit=1000` returns `sourceMode: "recursiv-snapshot"`, 437 archive videos, no warnings, all six core topics above the minimum coverage threshold, no topic above the 70% dominance threshold, and `hasMore: false`.
