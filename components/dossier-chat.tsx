@@ -19,10 +19,19 @@ type DossierChatProps = {
   slug: string
   endpoint?: string
   emptyText?: string
+  suggestions?: string[]
 }
 
-export function DossierChat({ slug, endpoint, emptyText }: DossierChatProps) {
+const DEFAULT_SUGGESTIONS = [
+  "What is documented here?",
+  "What is alleged but not proven?",
+  "Which sources should I read first?",
+  "What does the Tales archive add?",
+]
+
+export function DossierChat({ slug, endpoint, emptyText, suggestions }: DossierChatProps) {
   const chatEndpoint = endpoint || `/api/dossiers/${slug}/chat`
+  const promptSuggestions = (suggestions?.length ? suggestions : DEFAULT_SUGGESTIONS).slice(0, 4)
   const [message, setMessage] = useState("")
   const [conversationId, setConversationId] = useState<string | undefined>()
   const [messages, setMessages] = useState<Message[]>([])
@@ -62,8 +71,8 @@ export function DossierChat({ slug, endpoint, emptyText }: DossierChatProps) {
     }
   }, [chatEndpoint])
 
-  async function submit() {
-    const value = message.replace(/\s+/g, " ").trim()
+  async function submit(nextMessage?: string) {
+    const value = (nextMessage ?? message).replace(/\s+/g, " ").trim()
     if (!value || loading) return
 
     setLoading(true)
@@ -118,6 +127,22 @@ export function DossierChat({ slug, endpoint, emptyText }: DossierChatProps) {
       </div>
 
       {error ? <p className="text-xs text-[#df2f2f]">{error}</p> : null}
+
+      {promptSuggestions.length ? (
+        <div className="flex flex-wrap gap-2">
+          {promptSuggestions.map((prompt) => (
+            <button
+              key={prompt}
+              type="button"
+              disabled={loading}
+              onClick={() => void submit(prompt)}
+              className="min-h-9 max-w-full bg-black/30 px-3 py-2 text-left text-xs leading-4 text-[#f4efe2]/68 transition hover:bg-black/56 hover:text-[#fff8e6] disabled:cursor-wait disabled:opacity-50"
+            >
+              {prompt}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       <form
         className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]"

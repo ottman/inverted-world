@@ -419,6 +419,12 @@ export default async function NewsArticlePage({ params }: PageProps) {
             slug={dossier?.slug || article?.id || params.articleId}
             endpoint={chatEndpoint}
             emptyText="Ask what is documented, which sources matter most, what is missing, or how the Tales archive changes the read."
+            suggestions={[
+              "What is documented fact here?",
+              "Which sources disagree or leave gaps?",
+              "What should I verify before sharing?",
+              "Which Tales videos add context?",
+            ]}
           />
         </div>
       ) : null}
