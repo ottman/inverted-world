@@ -90,6 +90,7 @@ The existing endpoints should evolve into this contract:
 - `/archive/[videoId]`: SEO and LLM-readable per-video dossier.
 - `/api/articles`: daily merged feed of current news plus evergreen article inventory.
 - `/api/autopost/daily`: Recursiv-backed daily issue packet for site, X, newsletter, short-video scripting, source packs, image prompts, and guardrails.
+- `/api/recursiv/jobs/daily-autopost`: authenticated Recursiv scheduler target that builds and verifies the current daily issue packet after the front-page edition job.
 - `/llms.txt`: LLM-readable index of the archive and dossiers.
 - `/sitemap.xml`: crawler index for all article and video dossier URLs.
 

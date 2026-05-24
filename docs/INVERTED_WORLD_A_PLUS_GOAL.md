@@ -33,7 +33,7 @@ It must:
 - Chat: no required filters, no dead-end signup, useful answer on first prompt.
 - Archive: `/archive` embeds available uploads and uses YouTube Data API for full historical pagination.
 - News: `/news` shows current sourced briefs and `/api/autopost/daily` returns daily publish packets.
-- Documents: `/documents` exposes the source database and `/api/documents` returns machine-readable records.
+- Documents: source records should strengthen story pages and AI answers; the standalone `/documents` and `/api/documents` shelves are removed until the experience is worth the click.
 - Sources: article pages and agent answers must separate documented facts, allegations, speculation, and open questions.
 - Mobile: first screen must show brand, live animation, chat, and account entry without layout collisions.
 

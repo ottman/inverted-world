@@ -101,7 +101,7 @@ function storySources(article?: IntelligenceArticle | null, dossier?: ClaimDossi
           url: document.url,
           outlet: document.source,
           sourceKind: document.kind,
-          biasLane: "source shelf",
+          biasLane: "reference",
         }))
     : []
 
@@ -125,7 +125,7 @@ function storyParagraphs(article?: IntelligenceArticle | null, dossier?: ClaimDo
     dossier.summary,
     source
       ? `The strongest starting point is ${source.outlet || "the linked source"}: ${source.title}. Read that record first, then compare the surrounding coverage and social reaction.`
-      : `Start with the source links below, then compare the X signals, related Tales videos, and skeptical read before sharing the story.`,
+      : `Start with the attached source links, then compare the X signals, related Tales videos, and skeptical read before sharing the story.`,
     dossier.skepticalRead,
   ].filter(Boolean)
 }
@@ -188,7 +188,7 @@ export default async function NewsArticlePage({ params }: PageProps) {
         title="Story Recovery"
         breakingItems={[]}
         heroTitle={titleFromSlug(params.articleId) || "Story Recovery"}
-        heroDescription="This story is being refreshed. Continue through the current desk, archive, or source shelf."
+        heroDescription="This story is being refreshed. Continue through the current desk or the Tales archive."
       >
         <section className={cn("grid gap-4 p-5 text-sm leading-6 text-[#f4efe2]/68", archiveSurface)}>
           <p>Use the live desk and Tales archive to continue the trail while this story refreshes.</p>
@@ -199,10 +199,6 @@ export default async function NewsArticlePage({ params }: PageProps) {
             </a>
             <a href="/archive" className="inline-flex items-center gap-2 bg-black/30 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-black/54">
               Tales archive
-              <ArrowUpRight className="h-4 w-4 text-[#df2f2f]" />
-            </a>
-            <a href="/documents" className="inline-flex items-center gap-2 bg-black/30 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-black/54">
-              Source shelf
               <ArrowUpRight className="h-4 w-4 text-[#df2f2f]" />
             </a>
           </div>
@@ -310,8 +306,8 @@ export default async function NewsArticlePage({ params }: PageProps) {
                   <ArrowUpRight className="h-4 w-4 text-[#df2f2f]" />
                 </a>
               )) : (
-                <a href="/documents" className="bg-black/28 p-3 text-sm leading-6 text-[#f4efe2]/62 transition hover:text-[#fff8e6]">
-                  Open the source document shelf.
+                <a href="/news" className="bg-black/28 p-3 text-sm leading-6 text-[#f4efe2]/62 transition hover:text-[#fff8e6]">
+                  Return to the news desk while sources refresh.
                 </a>
               )}
             </div>

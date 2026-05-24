@@ -32,13 +32,12 @@ The command prints a redacted JSON report with:
 - Recursiv deployment-domain proof that distinguishes the platform slug host from a configured custom-domain binding;
 - Recursiv archive API proof, including `sourceMode`, data-source classification, archive count, required topic coverage, and dominant-topic balance;
 - published article API proof from `/api/articles`, including Recursiv-backed source mode, direct external source links, generated thumbnails, topic spread, and clean non-templated full-story bodies;
-- source-document API proof for `https://invertedworld.on.recursiv.io/api/documents`;
-- source-shelf proof through `/documents` and `/api/documents`;
+- removed public source-shelf proof requiring `/documents` and `/api/documents` to return 404 until that experience is rebuilt;
 - Ask This Story proof from `/api/dossiers/[slug]/chat` and `/api/articles/[articleId]/chat`, requiring no-write sourced Markdown with source and archive links;
 - latest full-pipeline status and `sourceMode` from `/api/pipeline`, including a completion timestamp inside 36 hours;
 - front-page edition and site ticker proof from `/api/front-page`, including direct news, X, archive targets, and an edition or pipeline timestamp inside 36 hours;
 - daily autopost packet proof from `/api/autopost/daily`, including Recursiv-backed source mode, publish-ready status, source pack, headline variants, X thread copy, image prompts, guardrails, and direct story/X/archive links;
-- removed public media-surface proof requiring `/media` and `/api/media` to return 404 until the media experience is rebuilt;
+- removed public media-surface proof requiring `/media` and `/api/media` to return 404 until that experience is rebuilt;
 - HTTP and DNS proof for `https://www.inverted.world`;
 - active Recursiv scheduled job count and missing jobs;
 - latest hosted provider-health blockers for the full AI product;
@@ -68,12 +67,11 @@ The output file contains the same no-secret report printed to stdout.
 - `recursivArchiveDataReady` must be `true`. This can be live `recursiv-database` or `recursiv-snapshot`, but it must not be `seed`, `static`, RSS, YouTube API, or direct provider fallback data.
 - `recursivArchiveTopicCoverage` must pass, proving the archive has at least 12 videos in each core topic and no single topic is more than 70% of the archive.
 - `articlesApi` must pass, proving `/api/articles` returns at least 12 Recursiv-backed full-story articles across at least four topics, with at least eight direct external source links, generated thumbnails, no repeated lane prefixes in headlines, and no templated `Signal` / `Source split` / `Viral frame` bodies.
-- `documentsApi` must pass, proving the source shelf is available as machine-readable JSON from live `recursiv-database` or `recursiv-snapshot` data.
 - `pipelineApi` and `pipelineFreshness` must pass, proving `/api/pipeline` exposes a succeeded full-pipeline run from live Recursiv database rows or the committed Recursiv snapshot fallback completed inside 36 hours.
 - `frontPageApi` and `frontPageFreshness` must pass, proving `/api/front-page` exposes a Recursiv-backed edition tied to an edition or pipeline timestamp inside 36 hours and direct ticker targets into stories, X signals, and archive items.
 - `autopostApi` must pass, proving `/api/autopost/daily` exposes a Recursiv-backed, publish-ready daily distribution packet with enough sources, headlines, thread posts, image prompts, guardrails, and direct story/X/archive links.
+- `publicSourceShelfRemoved` must pass, proving the disabled public source shelf is not reachable on the hosted build.
 - `publicMediaSurfaceRemoved` must pass, proving the disabled public media library is not reachable on the hosted build.
-- `documentsApi` must pass, proving the hosted build includes the machine-readable source shelf with topic and kind coverage.
 - `dossierChatApi` and `articleChatApi` must pass, proving Ask This Story can return sourced Markdown without requiring a writable agent conversation on dossier-backed or article-only story pages.
 - `publicHostingReady` must be `true`.
 - Recursiv custom-domain binding must be created and proven before changing DNS or removing the Vercel domain binding.
@@ -135,15 +133,13 @@ Current live proof:
 
 - `https://invertedworld.on.recursiv.io` returns HTTP 200 with the Inverted World app.
 - `https://www.inverted.world` returns HTTP 200 with `server: Vercel` and `x-vercel-id`, so the custom domain is still on the legacy host.
-- The repo no longer exposes public `/media` pages or `/api/media` endpoints. The stale Recursiv slug can still show the old media library until the next Recursiv deploy; do not treat that stale hosted surface as DNS-ready.
+- The repo no longer exposes public `/documents`, `/api/documents`, `/media`, or `/api/media` endpoints. The stale Recursiv slug can still show the old shelves until the next Recursiv deploy; do not treat that stale hosted surface as DNS-ready.
 - `/x/secret-programs` returns HTTP 200 with 26 outbound X links, 19 anchored post cards, and 38 ticker anchor links.
 - `/api/x/secret-programs?limit=24` returns 19 recent Declassified X posts from two source modes, with the latest post age inside the freshness window.
 - `/api/archive?limit=1000` returns `sourceMode: "recursiv-snapshot"`, 437 archive videos, no warnings, all six core topics above the minimum coverage threshold, no topic above the 70% dominance threshold, and `hasMore: false`.
 - `/api/articles` currently returns 8 articles and 8 generated thumbnails on the hosted build, but it does not expose Recursiv `sourceMode`, does not meet the 12-article cutover gate, does not prove direct external source links, and can still surface templated briefs. The local built proof now returns `sourceMode: "recursiv-snapshot"` with 13 full-story articles, 13 direct external source links, 13 generated thumbnails, six topics, and `templatedArticleCount: 0`; deploy that build before considering the article gate live.
-- `/api/documents` returns `sourceMode: "recursiv-snapshot"` with 37 source documents across six topics and five media/document kinds.
 - The repo exposes `/api/front-page` with `sourceMode` and direct Recursiv-backed ticker items, but the hosted build must be redeployed before this can pass publicly.
-- `/documents` returns HTTP 200.
-- `/api/documents` returns `sourceMode: "recursiv-snapshot"` or `sourceMode: "recursiv-database"` with topic and kind coverage.
+- The stale hosted build still returns `/documents` and `/api/documents`; the next deploy must make both return 404.
 - `/api/release` still returns `pipelineSnapshotFallback: false` and release `worldwire-persistence-v2` on the hosted app, so the current hosted build is older than the pushed repo.
 - `releaseCommit` is `unknown` because the hosted app does not expose `deployment.sourceRevision` yet.
 - `/api/pipeline?limit=1` returns `sourceMode: "unavailable"` with `readHealthLastErrorStatus: 429`, so the hosted pipeline status fallback and 36-hour freshness proof are not live until the newer commit is deployed.

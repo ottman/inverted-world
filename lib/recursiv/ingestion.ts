@@ -10,6 +10,7 @@ import { fetchLiveArticlesForTopic } from "@/lib/live-articles"
 import { fetchMediaSeedItemsForSync, mediaItemMetadata } from "@/lib/media-library"
 import { generatedSvgThumbnail } from "@/lib/generated-thumbnail"
 import { createRecursivServerClient } from "@/lib/recursiv/client"
+import { buildDailyAutopostJobResult } from "@/lib/recursiv/daily-autopost"
 import { INVERTED_WORLD_SCHEMA_SQL } from "@/lib/recursiv/schema"
 import { extractSourceText } from "@/lib/source-extraction"
 import { classifyInvertedWorldTopic, classifyInvertedWorldTopicMatch } from "@/lib/topic-classifier"
@@ -2063,6 +2064,7 @@ export async function runFullPipelineInRecursiv(options: { mode?: string | null;
     ["image-generation", generateImagesForDraftsInRecursiv],
     ["publishing", publishReadyDraftsInRecursiv],
     ["front-page-edition", publishFrontPageEditionInRecursiv],
+    ["daily-autopost", buildDailyAutopostJobResult],
   ]
   const scheduledStepDefinitions: Array<[string, () => Promise<unknown>]> = [
     ["source-documents", syncSourceDocumentsToRecursiv],
@@ -2072,6 +2074,7 @@ export async function runFullPipelineInRecursiv(options: { mode?: string | null;
     ["worldwire", syncWorldwireCoverageToRecursiv],
     ["publishing", publishReadyDraftsInRecursiv],
     ["front-page-edition", publishFrontPageEditionInRecursiv],
+    ["daily-autopost", buildDailyAutopostJobResult],
   ]
   const stepDefinitions = mode === "all" ? allStepDefinitions : scheduledStepDefinitions
   const skippedSteps = mode === "all" ? [] : allStepDefinitions.map(([step]) => step).filter((step) => !stepDefinitions.some(([activeStep]) => activeStep === step))

@@ -322,6 +322,11 @@ const JOBS = [
     endpoint: "/api/recursiv/jobs/front-page-edition?async=1",
   },
   {
+    name: "inverted-world-daily-autopost",
+    cron: "35 * * * *",
+    endpoint: "/api/recursiv/jobs/daily-autopost?async=1",
+  },
+  {
     name: "inverted-world-full-pipeline",
     cron: "2 * * * *",
     endpoint: "/api/recursiv/jobs/full-pipeline?mode=scheduled&staleAfterMinutes=30&profileReader=1&async=1",

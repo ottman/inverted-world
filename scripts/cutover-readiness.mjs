@@ -50,6 +50,7 @@ const EXPECTED_JOBS = [
   "inverted-world-image-generation",
   "inverted-world-publishing",
   "inverted-world-front-page-edition",
+  "inverted-world-daily-autopost",
   "inverted-world-full-pipeline",
   "inverted-world-pipeline-maintenance",
   "inverted-world-provider-health",
@@ -1018,6 +1019,7 @@ async function main() {
   const xSignalApiUrl = new URL(`/api/x/${X_SIGNAL_PROOF_TOPIC}?limit=24`, recursivUrl).toString()
   const archiveApiUrl = new URL("/api/archive?limit=1000", recursivUrl).toString()
   const articlesApiUrl = new URL("/api/articles", recursivUrl).toString()
+  const documentsPageUrl = new URL("/documents", recursivUrl).toString()
   const documentsApiUrl = new URL("/api/documents", recursivUrl).toString()
   const pipelineApiUrl = new URL("/api/pipeline?limit=1", recursivUrl).toString()
   const frontPageApiUrl = new URL("/api/front-page", recursivUrl).toString()
@@ -1057,6 +1059,7 @@ async function main() {
     releaseApi,
     archiveApi,
     articlesApi,
+    documentsPage,
     documentsApi,
     pipelineApi,
     frontPageApi,
@@ -1102,7 +1105,8 @@ async function main() {
       probeReleaseApi(releaseApiUrl),
       probeArchiveApi(archiveApiUrl),
       probeArticlesApi(articlesApiUrl),
-      probeDocumentsApi(documentsApiUrl),
+      probeRemovedRoute(documentsPageUrl),
+      probeRemovedRoute(documentsApiUrl),
       probePipelineApi(pipelineApiUrl),
       probeFrontPageApi(frontPageApiUrl),
       probeAutopostApi(autopostApiUrl),
@@ -1242,13 +1246,6 @@ async function main() {
       Number(articlesApi.templatedArticleCount || 0) === 0 &&
       Number(articlesApi.warningCount || 0) === 0,
   )
-  const documentsApiReady = Boolean(
-    documentsApi.ok &&
-      RECURSIV_BACKED_SOURCE_MODES.has(documentsApi.sourceMode) &&
-      Number(documentsApi.totalCount || 0) >= 10 &&
-      Number(documentsApi.topicCount || 0) >= 6 &&
-      Number(documentsApi.kindCount || 0) >= 4,
-  )
   const pipelineApiFresh = pipelineApi.latestAgeMinutes !== null && Number(pipelineApi.latestAgeMinutes) <= PIPELINE_MAX_AGE_HOURS * 60
   const pipelineApiReady = Boolean(
     pipelineApi.ok &&
@@ -1286,6 +1283,7 @@ async function main() {
       Number(autopostApi.archiveVideoLinkCount || 0) >= 2 &&
       autopostApi.hasGuardrails,
   )
+  const publicSourceShelfRemoved = Boolean(documentsPage.removed && documentsApi.removed)
   const publicMediaSurfaceRemoved = Boolean(mediaPage.removed && mediaApi.removed)
   const dossierChatApiReady = Boolean(
     dossierChatApi.ok &&
@@ -1326,10 +1324,10 @@ async function main() {
     recursivManifestAuditReady &&
     recursivArchiveDataReady &&
     articlesApiReady &&
-    documentsApiReady &&
     pipelineApiReady &&
     frontPageApiReady &&
     autopostApiReady &&
+    publicSourceShelfRemoved &&
     publicMediaSurfaceRemoved &&
     dossierChatApiReady &&
     articleChatApiReady &&
@@ -1359,7 +1357,7 @@ async function main() {
     recursivArchiveLiveDatabase: statusText(recursivArchiveLiveDatabaseReady),
     recursivArchiveSnapshot: statusText(recursivArchiveSnapshotReady),
     articlesApi: statusText(articlesApiReady),
-    documentsApi: statusText(documentsApiReady),
+    publicSourceShelfRemoved: statusText(publicSourceShelfRemoved),
     pipelineApi: statusText(pipelineApiReady),
     pipelineFreshness: statusText(pipelineApiFresh),
     frontPageApi: statusText(frontPageApiReady),
@@ -1433,7 +1431,9 @@ async function main() {
       `Do not touch DNS until /api/articles returns at least ${ARTICLE_MIN_COUNT} Recursiv-backed full-story articles across ${ARTICLE_MIN_TOPICS} topics with generated thumbnails, ${ARTICLE_MIN_EXTERNAL_SOURCES} direct external source links, and clean non-templated titles and bodies.`,
     )
   }
-  if (!documentsApiReady) nextActions.push("Do not touch DNS until /api/documents returns the machine-readable source shelf with topic and kind coverage.")
+  if (!publicSourceShelfRemoved) {
+    nextActions.push("Do not touch DNS until the removed public source shelf is gone from the hosted build: /documents and /api/documents must both return 404.")
+  }
   if (!pipelineApiReady) {
     nextActions.push(
       `Do not touch DNS until /api/pipeline returns a succeeded full-pipeline run from Recursiv database or Recursiv snapshot data completed inside ${PIPELINE_MAX_AGE_HOURS} hours.`,
@@ -1516,6 +1516,7 @@ async function main() {
       frontPageApiFresh,
       frontPageApiReady,
       autopostApiReady,
+      publicSourceShelfRemoved,
       publicMediaSurfaceRemoved,
       dossierChatApiReady,
       articleChatApiReady,
@@ -1542,8 +1543,10 @@ async function main() {
     recursivArchiveDataSource: dataSourceStatus(archiveApi.sourceMode),
     articlesApi,
     articlesDataSource: dataSourceStatus(articlesApi.sourceMode),
-    documentsApi,
-    documentsDataSource: dataSourceStatus(documentsApi.sourceMode),
+    removedSourceShelfRoutes: {
+      page: documentsPage,
+      api: documentsApi,
+    },
     pipelineApi,
     pipelineDataSource: dataSourceStatus(pipelineApi.sourceMode),
     frontPageApi,

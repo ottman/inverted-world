@@ -223,13 +223,10 @@ export default async function NewsPage() {
         </section>
       ) : (
         <section className={cn("grid gap-4 p-6 text-sm leading-6 text-[#f4efe2]/62", archiveSurface)}>
-          <p>The current source board has no ranked links to show yet. Start with the archive and official source index while the next edition is assembled.</p>
+          <p>The current source board has no ranked links to show yet. Start with the archive while the next edition is assembled.</p>
           <div className="flex flex-wrap gap-2">
             <a href="/archive" className="bg-black/30 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-black/54">
               Archive
-            </a>
-            <a href="/documents" className="bg-black/30 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-black/54">
-              Sources
             </a>
           </div>
         </section>
