@@ -842,8 +842,7 @@ async function upsertPostsViaRecursivApi(client, projectId, databaseName, posts)
   await recursivQuery(client, {
     project_id: projectId,
     database_name: databaseName,
-    sql: xSignalUpsertSql("$1::jsonb"),
-    params: [JSON.stringify(rows)],
+    sql: xSignalUpsertSql(sqlJsonLiteral(JSON.stringify(rows))),
   })
 }
 
@@ -860,12 +859,11 @@ async function clearLocalBackfillRowsViaRecursivApi(client, projectId, databaseN
     database_name: databaseName,
     sql: `WITH topics AS (
         SELECT value AS topic_id
-        FROM jsonb_array_elements_text($1::jsonb)
+        FROM jsonb_array_elements_text(${sqlJsonLiteral(JSON.stringify(topicIds))})
       )
       DELETE FROM x_signals
       WHERE metadata->>'ingestion' = 'local-x-backfill'
         AND topic_id IN (SELECT topic_id FROM topics)`,
-    params: [JSON.stringify(topicIds)],
   })
 }
 

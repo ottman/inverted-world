@@ -128,7 +128,7 @@ async function checkRecursivDatabase() {
       httpStatus: response.status,
       count: body.data?.rows?.length || 0,
       mode: "live",
-      message: response.ok ? undefined : `Recursiv returned ${response.status}`,
+      message: response.ok ? undefined : providerErrorMessage("Recursiv", response.status, body),
     })
   } catch (error) {
     return result("recursiv-database", {
