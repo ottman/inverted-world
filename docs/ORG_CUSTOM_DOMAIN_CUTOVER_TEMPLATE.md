@@ -42,6 +42,8 @@ The Recursiv slug host must return the expected app over HTTPS, and each require
 
 Use `--path=/route::expected text` for app-specific proof points. Good routes are health endpoints, public data APIs, logged-out dashboards, content pages, freshness/status endpoints, archive/category coverage endpoints, or other surfaces that prove the production app is more than a placeholder homepage.
 
+Use `--status-check=/route::status` for routes where the status code is the product contract, such as intentionally removed public shelves, disabled legacy endpoints, redirects, auth gates, or health routes.
+
 For content products, include at least one machine-readable breadth gate before DNS. Use `--json-check=/api/path::json.path::operator::expected` for structured JSON checks. Supported operators are `exists`, `truthy`, `falsy`, `eq`, `neq`, `contains`, `includes`, `gt`, `gte`, `lt`, and `lte`; use `.length` for array, string, or object counts. Examples: a news API with minimum item count, source mode, direct source links, no boilerplate/template bodies, article detail pages with visible sources/context, and a working story-chat endpoint; an archive API with category coverage; a source-document route with topic coverage; or a freshness endpoint tied to the latest publishing job.
 
 ### 2. Recursiv Project Binding
@@ -163,9 +165,13 @@ pnpm recursiv:domain:preflight -- \
   --path=/news::"source sheet" \
   --path=/x/secret-programs::"Live X Stream" \
   --path=/api/release::"worldwire-persistence-v2" \
+  --status-check=/documents::404 \
+  --status-check=/api/documents::404 \
+  --status-check=/media::404 \
+  --status-check=/api/media::404 \
   --json-check=/api/articles::sourceMode::eq::recursiv-snapshot \
-  --json-check=/api/articles::articleCount::gte::12 \
-  --json-check=/api/articles::externalSourceCount::gte::8 \
+  --json-check=/api/articles::count::gte::12 \
+  --json-check=/api/articles::articles.0.sourceUrl::exists \
   --json-check=/api/front-page::hasEdition::truthy \
   --json-check=/api/front-page::breakingItems.length::gte::8 \
   --output=/private/tmp/inverted-world-domain-preflight.json \

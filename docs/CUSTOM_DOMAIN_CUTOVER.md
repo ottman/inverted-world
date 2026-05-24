@@ -127,7 +127,7 @@ This still does not change DNS. The `:wait` variant polls deployment status unti
 
 ## Current Expected State
 
-As of the latest public-only proof on May 23, 2026 at `23:36Z`, `invertedworld.on.recursiv.io` is live but the hosted build has not yet caught up to the latest repo changes. Treat the Recursiv slug as available, not DNS-ready.
+As of the latest public-only proof on May 24, 2026 at `01:40Z`, `invertedworld.on.recursiv.io` is live but the hosted build has not yet caught up to commit `4dfdba793cf0`. Treat the Recursiv slug as available, not DNS-ready.
 
 Current live proof:
 
@@ -137,7 +137,7 @@ Current live proof:
 - `/x/secret-programs` returns HTTP 200 with 26 outbound X links, 19 anchored post cards, and 38 ticker anchor links.
 - `/api/x/secret-programs?limit=24` returns 19 recent Declassified X posts from two source modes, with the latest post age inside the freshness window.
 - `/api/archive?limit=1000` returns `sourceMode: "recursiv-snapshot"`, 437 archive videos, no warnings, all six core topics above the minimum coverage threshold, no topic above the 70% dominance threshold, and `hasMore: false`.
-- `/api/articles` currently returns 8 articles and 8 generated thumbnails on the hosted build, but it does not expose Recursiv `sourceMode`, does not meet the 12-article cutover gate, does not prove direct external source links, and can still surface templated briefs. The local built proof now returns `sourceMode: "recursiv-snapshot"` with 13 full-story articles, 13 direct external source links, 13 generated thumbnails, six topics, and `templatedArticleCount: 0`; deploy that build before considering the article gate live.
+- `/api/articles` currently returns 8 articles and 8 generated thumbnails on the hosted build, but it does not expose Recursiv `sourceMode`, does not meet the 12-article cutover gate, does not prove direct external source links, and can still surface templated briefs. The local built proof for commit `4dfdba793cf0` returns `sourceMode: "recursiv-snapshot"` with 13 full-story articles, 13 direct external source links, 13 generated thumbnails, six topics, and `templatedArticleCount: 0`; deploy that build before considering the article gate live.
 - The repo exposes `/api/front-page` with `sourceMode` and direct Recursiv-backed ticker items, but the hosted build must be redeployed before this can pass publicly.
 - The stale hosted build still returns `/documents` and `/api/documents`; the next deploy must make both return 404.
 - `/api/release` still returns `pipelineSnapshotFallback: false` and release `worldwire-persistence-v2` on the hosted app, so the current hosted build is older than the pushed repo.
@@ -155,7 +155,7 @@ The known full-product blockers are provider/account-side, not DNS fixes. A fres
 
 ## Current Decision
 
-As of the latest public-only proof on May 23, 2026 at `23:36Z`:
+As of the latest public-only proof on May 24, 2026 at `01:40Z`:
 
 - `publicHostingReady: false`
 - `fullAiProductReady: false`
@@ -186,7 +186,7 @@ pnpm recursiv:domain:preflight -- \
   --require=hosted
 ```
 
-That command proves the current HTTP/DNS posture and required product routes without calling Recursiv deploy/status APIs. It does not replace the Recursiv custom-domain binding proof. Use `--path=/route::expected text` for app-specific health, dashboard, or rendered content routes. Use `--json-check=/api/path::json.path::operator::expected` for structured API gates such as source mode, item counts, direct-source counts, freshness booleans, and ticker breadth. Supported operators are `exists`, `truthy`, `falsy`, `eq`, `neq`, `contains`, `includes`, `gt`, `gte`, `lt`, and `lte`; use `.length` for array, string, or object counts. Use `--require=dns-change` after the binding is proven and `--require=cutover` after DNS is changed to make the same proof suitable for CI or support handoff.
+That command proves the current HTTP/DNS posture and required product routes without calling Recursiv deploy/status APIs. It does not replace the Recursiv custom-domain binding proof. Use `--path=/route::expected text` for app-specific health, dashboard, or rendered content routes. Use `--status-check=/route::status` for status-code contracts such as intentionally removed public routes, disabled legacy endpoints, redirects, auth gates, or health routes. Use `--json-check=/api/path::json.path::operator::expected` for structured API gates such as source mode, item counts, direct-source counts, freshness booleans, and ticker breadth. Supported operators are `exists`, `truthy`, `falsy`, `eq`, `neq`, `contains`, `includes`, `gt`, `gte`, `lt`, and `lte`; use `.length` for array, string, or object counts. Use `--require=dns-change` after the binding is proven and `--require=cutover` after DNS is changed to make the same proof suitable for CI or support handoff.
 
 ### 1. Intake
 
