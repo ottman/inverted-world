@@ -103,8 +103,40 @@ function commitMatches(proof, commitHash) {
   return proof.expectedReleaseCommit.startsWith(commitHash) || commitHash.startsWith(proof.expectedReleaseCommit)
 }
 
+function timestampMs(value) {
+  const timestamp = value ? new Date(value).getTime() : Number.NaN
+  return Number.isFinite(timestamp) ? timestamp : null
+}
+
+function minutesBetween(left, right) {
+  const leftMs = timestampMs(left)
+  const rightMs = timestampMs(right)
+  if (leftMs === null || rightMs === null) return null
+  return Math.round((rightMs - leftMs) / 60000)
+}
+
+function snapshotDeployWindowFreshness(deployWindow, snapshotStatus) {
+  const freshUntil = snapshotStatus.news?.latestFullPipeline?.freshUntil || null
+  const nextAllowedAt = deployWindow.nextAllowedAt || null
+  const freshUntilMs = timestampMs(freshUntil)
+  const nextAllowedAtMs = timestampMs(nextAllowedAt)
+  const nowMs = Date.now()
+  const freshAtNextAllowedAt = freshUntilMs !== null && nextAllowedAtMs !== null ? freshUntilMs > nextAllowedAtMs : null
+
+  return {
+    freshUntil,
+    nextAllowedAt,
+    minutesUntilStale: freshUntilMs === null ? null : Math.round((freshUntilMs - nowMs) / 60000),
+    nextAllowedInMinutes: nextAllowedAtMs === null ? null : Math.round((nextAllowedAtMs - nowMs) / 60000),
+    freshAtNextAllowedAt,
+    staleBeforeNextAllowedAt: freshAtNextAllowedAt === false,
+    staleMinutesBeforeNextAllowedAt: freshAtNextAllowedAt === false ? minutesBetween(freshUntil, nextAllowedAt) : null,
+  }
+}
+
 function nextActions({ deployWindow, snapshotStatus, localProof, publicProof, commitHash }) {
   const actions = []
+  const deployFreshness = snapshotDeployWindowFreshness(deployWindow, snapshotStatus)
 
   if (!deployWindow.ready) {
     actions.push(`Do not call Recursiv deploy/custom-domain APIs with this key until ${deployWindow.nextAllowedAt}, unless a healthy key is installed.`)
@@ -116,6 +148,12 @@ function nextActions({ deployWindow, snapshotStatus, localProof, publicProof, co
 
   if (!snapshotStatus.databaseUrl?.available) {
     actions.push("No protected direct database URL is available; add it locally before running pnpm recursiv:snapshot.")
+  }
+
+  if (deployFreshness.staleBeforeNextAllowedAt) {
+    actions.push(
+      `The committed snapshot freshness gate expires ${deployFreshness.staleMinutesBeforeNextAllowedAt} minutes before the deploy cooldown clears; refresh the Recursiv snapshot before the next deployment proof.`,
+    )
   }
 
   if (!localProof.exists || !commitMatches(localProof, commitHash)) {
@@ -146,10 +184,12 @@ async function main() {
   const snapshotStatus = runJson("node", ["scripts/export-recursiv-snapshots.mjs", "--status"])
   const localProof = readProof(latestProofFile(LOCAL_PROOF_PREFIX))
   const publicProof = readProof(latestProofFile(PUBLIC_PROOF_PREFIX))
+  const snapshotDeployFreshness = snapshotDeployWindowFreshness(deployWindow, snapshotStatus)
   const status = {
     ok: Boolean(
       deployWindow.ok &&
         snapshotStatus.ok &&
+        snapshotDeployFreshness.staleBeforeNextAllowedAt !== true &&
         localProof.exists &&
         commitMatches(localProof, commitHash) &&
         publicProof.exists &&
@@ -168,6 +208,7 @@ async function main() {
       ok: Boolean(snapshotStatus.ok),
       databaseUrlAvailable: Boolean(snapshotStatus.databaseUrl?.available),
       latestFullPipeline: snapshotStatus.news?.latestFullPipeline,
+      deployWindowFreshness: snapshotDeployFreshness,
       counts: {
         news: snapshotStatus.news?.counts || {},
         public: snapshotStatus.public?.counts || {},
