@@ -109,7 +109,7 @@ pnpm recursiv:deploy:dry-run
 pnpm recursiv:deploy:dry-run -- --custom-domain=www.inverted.world
 ```
 
-`recursiv:migration:status` is the fastest operator packet during cooldowns. It does not call Recursiv; it combines the deploy window, snapshot freshness, latest local proof, latest public proof, and DNS decision into one no-secret JSON report. `recursiv:deploy:window` is the narrower deploy-only check; it prints whether the local deploy guard is ready, the exact current commit payload for `www.inverted.world`, the next allowed retry time, and the next command to run.
+`recursiv:migration:status` is the fastest operator packet during cooldowns. It does not call Recursiv; it combines the deploy window, snapshot freshness, latest local proof, latest public proof, and DNS decision into one no-secret JSON report. `recursiv:deploy:window` is the narrower deploy-only check; it prints whether the local deploy guard is ready, the exact current commit payload for `www.inverted.world`, the next allowed retry time, the next command to run, and whether the committed Recursiv snapshot is fresh enough for a deployment proof. The deploy helper refuses an actual deploy when the local snapshot freshness gate is already failed unless an operator deliberately passes `--skip-snapshot-preflight`.
 
 Create the pre-DNS custom-domain binding after public hosting and Recursiv API health are green:
 

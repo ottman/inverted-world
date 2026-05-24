@@ -74,6 +74,10 @@ function cooldownBypassEnabled() {
   return process.env.RECURSIV_DEPLOY_IGNORE_COOLDOWN === "1" || process.argv.includes("--ignore-cooldown")
 }
 
+function snapshotPreflightBypassEnabled() {
+  return process.env.RECURSIV_DEPLOY_SKIP_SNAPSHOT_PREFLIGHT === "1" || process.argv.includes("--skip-snapshot-preflight")
+}
+
 function argValue(name) {
   const exact = process.argv.find((arg) => arg.startsWith(`${name}=`))
   if (exact) return exact.slice(name.length + 1)
@@ -244,6 +248,82 @@ function deployCommandFor({ action, customDomain, wait }) {
   if (action === "status") return wait ? "pnpm recursiv:deploy:status -- --wait" : "pnpm recursiv:deploy:status"
   if (customDomain) return wait ? "pnpm recursiv:deploy:custom-domain:wait" : "pnpm recursiv:deploy:custom-domain"
   return wait ? "pnpm recursiv:deploy -- --wait" : "pnpm recursiv:deploy"
+}
+
+function parseJsonOutput(output) {
+  const jsonStart = output.indexOf("{")
+  if (jsonStart === -1) throw new Error("command did not print JSON")
+  return JSON.parse(output.slice(jsonStart))
+}
+
+function readSnapshotStatus() {
+  try {
+    return parseJsonOutput(execFileSync("node", ["scripts/export-recursiv-snapshots.mjs", "--status"], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }))
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : String(error),
+    }
+  }
+}
+
+function timestampMs(value) {
+  const timestamp = value ? new Date(value).getTime() : Number.NaN
+  return Number.isFinite(timestamp) ? timestamp : null
+}
+
+function minutesBetween(left, right) {
+  const leftMs = timestampMs(left)
+  const rightMs = timestampMs(right)
+  if (leftMs === null || rightMs === null) return null
+  return Math.round((rightMs - leftMs) / 60000)
+}
+
+function snapshotDeployPreflight(snapshotStatus, state) {
+  const freshUntil = snapshotStatus.news?.latestFullPipeline?.freshUntil || null
+  const nextAllowedAt = state.cooldown?.expiresAt || null
+  const freshUntilMs = timestampMs(freshUntil)
+  const nextAllowedAtMs = timestampMs(nextAllowedAt)
+  const nowMs = Date.now()
+  const freshNow = freshUntilMs !== null ? freshUntilMs > nowMs : null
+  const freshAtNextAllowedAt = freshUntilMs !== null && nextAllowedAtMs !== null ? freshUntilMs > nextAllowedAtMs : null
+  const bypassed = snapshotPreflightBypassEnabled()
+  const ready = Boolean(bypassed || (snapshotStatus.ok && freshNow !== false))
+  const warnings = []
+
+  if (!snapshotStatus.ok) warnings.push("Snapshot status is not fresh enough for cutover proof; refresh the Recursiv snapshot before deployment.")
+  if (freshAtNextAllowedAt === false) {
+    warnings.push(
+      `Snapshot freshness expires ${minutesBetween(freshUntil, nextAllowedAt)} minutes before the deploy cooldown clears; refresh before the next deployment proof.`,
+    )
+  }
+  if (snapshotStatus.databaseUrl?.available === false) {
+    warnings.push("No protected direct database URL is available for pnpm recursiv:snapshot.")
+  }
+
+  return {
+    ready,
+    bypassed,
+    ok: Boolean(snapshotStatus.ok),
+    databaseUrlAvailable: Boolean(snapshotStatus.databaseUrl?.available),
+    latestFullPipeline: snapshotStatus.news?.latestFullPipeline,
+    freshUntil,
+    minutesUntilStale: freshUntilMs === null ? null : Math.round((freshUntilMs - nowMs) / 60000),
+    nextAllowedAt,
+    freshAtNextAllowedAt,
+    staleBeforeNextAllowedAt: freshAtNextAllowedAt === false,
+    staleMinutesBeforeNextAllowedAt: freshAtNextAllowedAt === false ? minutesBetween(freshUntil, nextAllowedAt) : null,
+    warnings,
+  }
+}
+
+function assertSnapshotDeployPreflight(preflight) {
+  if (preflight.ready) return
+  const error = new Error("Recursiv deployment snapshot preflight failed; refresh the Recursiv snapshot or pass --skip-snapshot-preflight for a deliberate override.")
+  error.status = 412
+  error.code = "snapshot_preflight_failed"
+  error.snapshotPreflight = preflight
+  throw error
 }
 
 function assertNotInCooldown(action) {
@@ -430,6 +510,9 @@ async function main() {
   const requestTimeoutMs = timeoutMs()
   const action = process.argv.includes("--status") ? "status" : process.argv.includes("--update-project") ? "update-project" : "deploy"
   const customDomain = action === "deploy" ? requestedCustomDomain() : undefined
+  const state = cooldownState()
+  const snapshotStatus = action === "deploy" ? readSnapshotStatus() : undefined
+  const snapshotPreflight = action === "deploy" ? snapshotDeployPreflight(snapshotStatus, state) : undefined
   const deploymentPayload = {
     project_id: projectId,
     branch,
@@ -441,7 +524,6 @@ async function main() {
   }
 
   if (process.argv.includes("--dry-run") || process.argv.includes("--ready")) {
-    const state = cooldownState()
     const command = deployCommandFor({ action, customDomain, wait: waitEnabled() || Boolean(customDomain) })
     const requireReady = process.argv.includes("--require-ready")
     console.log(
@@ -449,7 +531,7 @@ async function main() {
         {
           ok: true,
           action: process.argv.includes("--ready") ? "deploy-window" : "dry-run",
-          ready: !state.active,
+          ready: !state.active && (snapshotPreflight?.ready !== false),
           wouldRun: action,
           endpoint: action === "deploy" ? "/deployments" : action,
           branch,
@@ -461,6 +543,7 @@ async function main() {
           cooldownAdvice: cooldownAdvice(state.cooldown),
           nextAllowedAt: state.cooldown?.expiresAt,
           nextCommand: command,
+          snapshotPreflight,
           requireReady,
           wait: waitEnabled()
             ? {
@@ -473,13 +556,14 @@ async function main() {
         2,
       ),
     )
-    if (requireReady && state.active) process.exit(1)
+    if (requireReady && (state.active || snapshotPreflight?.ready === false)) process.exit(1)
     return
   }
 
   const apiKey = readApiKey()
   if (!apiKey?.value) throw new Error("Missing RECURSIV_SERVER_API_KEY or RECURSIV_API_KEY")
   assertNotInCooldown(action)
+  if (action === "deploy") assertSnapshotDeployPreflight(snapshotPreflight)
 
   const requestOptions = {
     baseUrl,
@@ -560,6 +644,7 @@ main().catch((error) => {
         code: error?.code,
         message: error instanceof Error ? error.message : String(error),
         ...(cooldown ? { cooldown } : {}),
+        ...(error?.snapshotPreflight ? { snapshotPreflight: error.snapshotPreflight } : {}),
       },
       null,
       2,
