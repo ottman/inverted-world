@@ -526,6 +526,33 @@ async function probeJson(url) {
   }
 }
 
+async function probeRemovedRoute(url) {
+  const started = Date.now()
+  try {
+    const response = await fetch(url, {
+      headers: { "user-agent": "InvertedWorldCutoverReadiness/1.0" },
+      redirect: "manual",
+      signal: AbortSignal.timeout(20000),
+    })
+
+    return {
+      url,
+      status: response.status,
+      removed: response.status === 404,
+      contentType: response.headers.get("content-type") || undefined,
+      durationMs: Date.now() - started,
+    }
+  } catch (error) {
+    return {
+      url,
+      status: 0,
+      removed: false,
+      message: error instanceof Error ? error.message : String(error),
+      durationMs: Date.now() - started,
+    }
+  }
+}
+
 async function probeArchiveApi(url) {
   const started = Date.now()
   try {
@@ -995,6 +1022,8 @@ async function main() {
   const pipelineApiUrl = new URL("/api/pipeline?limit=1", recursivUrl).toString()
   const frontPageApiUrl = new URL("/api/front-page", recursivUrl).toString()
   const autopostApiUrl = new URL("/api/autopost/daily", recursivUrl).toString()
+  const mediaPageUrl = new URL("/media", recursivUrl).toString()
+  const mediaApiUrl = new URL("/api/media", recursivUrl).toString()
   const dossierChatApiUrl = new URL(`/api/dossiers/${DOSSIER_CHAT_PROOF_SLUG}/chat`, recursivUrl).toString()
   const articleChatApiUrl = new URL(`/api/articles/${ARTICLE_CHAT_PROOF_SLUG}/chat`, recursivUrl).toString()
   const readinessWarnings = []
@@ -1032,6 +1061,8 @@ async function main() {
     pipelineApi,
     frontPageApi,
     autopostApi,
+    mediaPage,
+    mediaApi,
     dossierChatApi,
     articleChatApi,
     customHttp,
@@ -1075,6 +1106,8 @@ async function main() {
       probePipelineApi(pipelineApiUrl),
       probeFrontPageApi(frontPageApiUrl),
       probeAutopostApi(autopostApiUrl),
+      probeRemovedRoute(mediaPageUrl),
+      probeRemovedRoute(mediaApiUrl),
       probeStoryChatApi(dossierChatApiUrl, DOSSIER_CHAT_PROOF_QUESTION),
       probeStoryChatApi(articleChatApiUrl, ARTICLE_CHAT_PROOF_QUESTION),
       probeHttp(customDomainUrl),
@@ -1253,6 +1286,7 @@ async function main() {
       Number(autopostApi.archiveVideoLinkCount || 0) >= 2 &&
       autopostApi.hasGuardrails,
   )
+  const publicMediaSurfaceRemoved = Boolean(mediaPage.removed && mediaApi.removed)
   const dossierChatApiReady = Boolean(
     dossierChatApi.ok &&
       dossierChatApi.mode === "context-fallback" &&
@@ -1296,6 +1330,7 @@ async function main() {
     pipelineApiReady &&
     frontPageApiReady &&
     autopostApiReady &&
+    publicMediaSurfaceRemoved &&
     dossierChatApiReady &&
     articleChatApiReady &&
     scheduledJobsReady &&
@@ -1330,6 +1365,7 @@ async function main() {
     frontPageApi: statusText(frontPageApiReady),
     frontPageFreshness: statusText(frontPageApiFresh),
     autopostApi: statusText(autopostApiReady),
+    publicMediaSurfaceRemoved: statusText(publicMediaSurfaceRemoved),
     dossierChatApi: statusText(dossierChatApiReady),
     articleChatApi: statusText(articleChatApiReady),
     providerHealthFresh: providerHealthAvailable ? statusText(providerHealthFresh) : "unknown",
@@ -1413,6 +1449,9 @@ async function main() {
       `Do not touch DNS until /api/autopost/daily returns a Recursiv-backed daily publish packet with source pack, headline variants, X thread, image prompts, guardrails, and direct story/X/archive links.`,
     )
   }
+  if (!publicMediaSurfaceRemoved) {
+    nextActions.push("Do not touch DNS until the removed public media surface is gone from the hosted build: /media and /api/media must both return 404.")
+  }
   if (!dossierChatApiReady) {
     nextActions.push("Do not touch DNS until Ask This Story returns sourced Markdown with source and archive links without requiring an agent write.")
   }
@@ -1477,6 +1516,7 @@ async function main() {
       frontPageApiFresh,
       frontPageApiReady,
       autopostApiReady,
+      publicMediaSurfaceRemoved,
       dossierChatApiReady,
       articleChatApiReady,
       publicHostingReady,
@@ -1510,6 +1550,10 @@ async function main() {
     frontPageDataSource: dataSourceStatus(frontPageApi.sourceMode),
     autopostApi,
     autopostDataSource: dataSourceStatus(autopostApi.sourceMode),
+    removedMediaRoutes: {
+      page: mediaPage,
+      api: mediaApi,
+    },
     dossierChatApi,
     articleChatApi,
     customDomain: {

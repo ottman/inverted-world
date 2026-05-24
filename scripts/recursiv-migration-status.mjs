@@ -72,6 +72,7 @@ function readProof(file) {
         pipelineApi: proof.checks?.pipelineApi,
         frontPageApi: proof.checks?.frontPageApi,
         autopostApi: proof.checks?.autopostApi,
+        publicMediaSurfaceRemoved: proof.checks?.publicMediaSurfaceRemoved,
         dossierChatApi: proof.checks?.dossierChatApi,
         articleChatApi: proof.checks?.articleChatApi,
         publicHostingReady: proof.checks?.publicHostingReady,
