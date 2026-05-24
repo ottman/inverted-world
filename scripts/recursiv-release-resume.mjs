@@ -31,6 +31,7 @@ function statusText(value) {
 
 function phaseFor(status) {
   if (status.deployWindow?.cooldownActive) return "wait-for-recursiv-api-cooldown"
+  if (!status.snapshot?.snapshotRefreshPathAvailable) return "repair-snapshot-refresh-path"
   if (status.snapshot?.deployWindowFreshness?.staleBeforeNextAllowedAt || status.snapshot?.latestFullPipeline?.fresh === false) {
     return "refresh-recursiv-snapshot"
   }
@@ -89,12 +90,16 @@ function commandPlan(status) {
     : "after Recursiv API health is confirmed"
   const snapshotCommand = status.snapshot?.databaseUrlAvailable
     ? "pnpm recursiv:snapshot"
-    : "pnpm recursiv:snapshot -- --source=recursiv-api"
+    : status.snapshot?.recursivApiUsableForSnapshot
+      ? "pnpm recursiv:snapshot -- --source=recursiv-api"
+      : "Repair Recursiv database query/credentials or add /private/tmp/inverted-world-database-url before running pnpm recursiv:snapshot."
   const commands = [
     command({
       id: "status",
       run: `pnpm recursiv:migration:status -- --output=/private/tmp/inverted-world-migration-status-${shortCommit}.json`,
       why: "Refresh the no-secret operator packet before taking action.",
+      callsRecursivApi: true,
+      requiresNetwork: true,
     }),
   ]
 
@@ -118,14 +123,17 @@ function commandPlan(status) {
         status.snapshot?.deployWindowFreshness?.staleBeforeNextAllowedAt
           ? "The current snapshot will be stale before deploy is allowed, so refresh persisted Recursiv rows before release proof."
           : "Refresh persisted Recursiv rows before deploy proof if the current snapshot is stale.",
-      callsRecursivApi: !status.snapshot?.databaseUrlAvailable,
-      requiresNetwork: !status.snapshot?.databaseUrlAvailable,
+      callsRecursivApi: Boolean(!status.snapshot?.databaseUrlAvailable && status.snapshot?.recursivApiUsableForSnapshot),
+      requiresNetwork: Boolean(!status.snapshot?.databaseUrlAvailable && status.snapshot?.recursivApiUsableForSnapshot),
+      manual: !status.snapshot?.snapshotRefreshPathAvailable,
     }),
     command({
       id: "verify-snapshot",
       run: "pnpm recursiv:snapshot:status",
       when: "after refresh-snapshot",
       why: "Confirm the full-pipeline freshness window and public row counts before deploying.",
+      callsRecursivApi: true,
+      requiresNetwork: true,
     }),
     command({
       id: "build",
@@ -206,10 +214,13 @@ function blockers(status) {
       detail: `Snapshot freshness expires ${status.snapshot.deployWindowFreshness.staleMinutesBeforeNextAllowedAt} minutes before deploy cooldown clears.`,
     })
   }
-  if (!status.snapshot?.databaseUrlAvailable && !status.snapshot?.recursivApiAvailable) {
+  if (!status.snapshot?.snapshotRefreshPathAvailable) {
     items.push({
-      id: "no-snapshot-refresh-source",
-      detail: "Neither a protected direct database URL nor a local Recursiv API key source is available.",
+      id: "snapshot-refresh-path-unavailable",
+      detail:
+        status.snapshot?.recursivApiKeyAvailable
+          ? "A Recursiv API key source exists, but database query is not proven usable; repair the Recursiv database API/credentials path or add a protected direct database URL."
+          : "Neither a protected direct database URL nor a usable Recursiv API database query path is available.",
     })
   }
   if (status.dns?.keepDnsOnVercel) {
@@ -232,6 +243,7 @@ async function main() {
     phase,
     gates: {
       deployWindowReady: statusText(status.deployWindow?.ready),
+      snapshotRefreshPathAvailable: statusText(status.snapshot?.snapshotRefreshPathAvailable),
       snapshotFreshAtNextDeployWindow: statusText(status.snapshot?.deployWindowFreshness?.freshAtNextAllowedAt),
       localProofCurrent: statusText(status.proof?.local?.exists && status.proof.local.expectedReleaseCommit === status.commitHash),
       publicProofCurrent: statusText(status.proof?.public?.exists && status.proof.public.expectedReleaseCommit === status.commitHash),

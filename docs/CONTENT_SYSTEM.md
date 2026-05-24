@@ -220,7 +220,7 @@ pnpm recursiv:snapshot -- --source=recursiv-api
 
 Use that mode only after the Recursiv API cooldown is clear or with a healthy key, because it calls `/databases/query`. It prints the local key source and row counts, not the key value.
 
-Run `pnpm recursiv:snapshot:status` when the hosted database key is unhealthy or the deploy API is cooling down. It does not call Recursiv and does not require database credentials. It reports local snapshot row counts, the latest exported full-pipeline completion time, the 36-hour freshness window, and whether a protected direct database URL is available for a real refresh.
+Run `pnpm recursiv:snapshot:status` when the hosted database key is unhealthy or the deploy API is cooling down. It reports local snapshot row counts, the latest exported full-pipeline completion time, the 36-hour freshness window, whether a protected direct database URL is available, and whether the Recursiv database API can actually list/query the configured database. A local Recursiv key source is not enough for refresh; only use `--source=recursiv-api` when the status output marks the Recursiv database query path usable.
 
 Run `pnpm recursiv:migration:status` for a no-secret operator packet that combines deploy cooldown, snapshot freshness, latest local proof, latest live public proof, and DNS cutover decisions. During deploy cooldowns it also compares `latestFullPipeline.freshUntil` with the next allowed deploy time, so operators know when a currently passing snapshot will be stale before the next Recursiv deployment attempt.
 

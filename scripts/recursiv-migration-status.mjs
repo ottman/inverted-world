@@ -140,6 +140,9 @@ function snapshotDeployWindowFreshness(deployWindow, snapshotStatus) {
 function nextActions({ deployWindow, snapshotStatus, localProof, publicProof, commitHash }) {
   const actions = []
   const deployFreshness = snapshotDeployWindowFreshness(deployWindow, snapshotStatus)
+  const directDatabaseAvailable = Boolean(snapshotStatus.databaseUrl?.available)
+  const recursivApiKeyAvailable = Boolean(snapshotStatus.recursivApi?.keyAvailable ?? snapshotStatus.recursivApi?.available)
+  const recursivApiUsableForSnapshot = Boolean(snapshotStatus.recursivApi?.usableForSnapshot || snapshotStatus.recursivApi?.queryAvailable)
 
   if (!deployWindow.ready) {
     actions.push(`Do not call Recursiv deploy/custom-domain APIs with this key until ${deployWindow.nextAllowedAt}, unless a healthy key is installed.`)
@@ -149,10 +152,14 @@ function nextActions({ deployWindow, snapshotStatus, localProof, publicProof, co
     actions.push("Refresh the committed Recursiv snapshot before relying on snapshot-backed readiness gates.")
   }
 
-  if (!snapshotStatus.databaseUrl?.available) {
+  if (!directDatabaseAvailable) {
     actions.push("No protected direct database URL is available; add it locally before running pnpm recursiv:snapshot.")
-    if (snapshotStatus.recursivApi?.available) {
+    if (recursivApiUsableForSnapshot) {
       actions.push("A Recursiv API key source is available; after API cooldown clears, pnpm recursiv:snapshot -- --source=recursiv-api can refresh without a direct database URL.")
+    } else if (recursivApiKeyAvailable) {
+      actions.push("A Recursiv API key source exists, but Recursiv database query is not proven usable; repair the database API/credentials path or add a protected direct database URL before refreshing snapshots.")
+    } else {
+      actions.push("No Recursiv API key source is available for snapshot refresh; add a protected direct database URL or local Recursiv API key before continuing.")
     }
   }
 
@@ -213,8 +220,20 @@ async function main() {
     snapshot: {
       ok: Boolean(snapshotStatus.ok),
       databaseUrlAvailable: Boolean(snapshotStatus.databaseUrl?.available),
-      recursivApiAvailable: Boolean(snapshotStatus.recursivApi?.available),
+      recursivApiAvailable: Boolean(snapshotStatus.recursivApi?.keyAvailable ?? snapshotStatus.recursivApi?.available),
+      recursivApiKeyAvailable: Boolean(snapshotStatus.recursivApi?.keyAvailable ?? snapshotStatus.recursivApi?.available),
+      recursivApiDatabaseListAvailable: Boolean(snapshotStatus.recursivApi?.databaseListAvailable),
+      recursivApiDatabaseReady: Boolean(snapshotStatus.recursivApi?.databaseReady),
+      recursivApiQueryAvailable: Boolean(snapshotStatus.recursivApi?.queryAvailable),
+      recursivApiCredentialsAvailable: Boolean(snapshotStatus.recursivApi?.credentialsAvailable),
+      recursivApiUsableForSnapshot: Boolean(snapshotStatus.recursivApi?.usableForSnapshot || snapshotStatus.recursivApi?.queryAvailable),
       recursivApiSource: snapshotStatus.recursivApi?.source,
+      recursivApiLastErrorStatus: snapshotStatus.recursivApi?.lastErrorStatus,
+      recursivApiLastErrorCode: snapshotStatus.recursivApi?.lastErrorCode,
+      recursivApiLastErrorMessage: snapshotStatus.recursivApi?.lastErrorMessage,
+      snapshotRefreshPathAvailable: Boolean(
+        snapshotStatus.databaseUrl?.available || snapshotStatus.recursivApi?.usableForSnapshot || snapshotStatus.recursivApi?.queryAvailable,
+      ),
       latestFullPipeline: snapshotStatus.news?.latestFullPipeline,
       deployWindowFreshness: snapshotDeployFreshness,
       counts: {

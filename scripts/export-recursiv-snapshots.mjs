@@ -2,6 +2,7 @@ import { spawn } from "node:child_process"
 import fs from "node:fs"
 import fsp from "node:fs/promises"
 import path from "node:path"
+import { Recursiv } from "@recursiv/sdk"
 
 const NEWS_SNAPSHOT_FILE = path.resolve("data/generated/recursiv-news-snapshot.json")
 const PUBLIC_SNAPSHOT_FILE = path.resolve("data/generated/recursiv-public-snapshot.json")
@@ -299,19 +300,122 @@ function readRecursivApiKey() {
   throw new Error(`Missing Recursiv API key. Set RECURSIV_API_KEY_FILE, RECURSIV_SERVER_API_KEY, or write the key to ${LOCAL_RECURSIV_KEY}.`)
 }
 
-function recursivApiStatus() {
+function recursivApiKeyStatus() {
   try {
     const key = readRecursivApiKey()
     return {
       available: true,
+      keyAvailable: true,
       source: key.source,
     }
   } catch {
     return {
       available: false,
+      keyAvailable: false,
       source: null,
     }
   }
+}
+
+function providerErrorDetails(error) {
+  const detail = error instanceof Error ? error : new Error(String(error))
+  const typed = detail
+  const status = Number(typed.status || typed.response?.status || typed.cause?.status)
+  const code = typed.code || typed.response?.data?.error?.code || typed.response?.data?.code
+  const rawMessage =
+    typed.response?.data?.error?.message ||
+    typed.response?.data?.message ||
+    typed.message ||
+    "request failed"
+  return {
+    status: Number.isFinite(status) ? status : undefined,
+    code: code ? String(code) : undefined,
+    message: String(rawMessage).replace(/Bearer\s+[A-Za-z0-9._-]+/g, "Bearer [redacted]").slice(0, 220),
+  }
+}
+
+function mergeProbeError(result, error) {
+  const detail = providerErrorDetails(error)
+  if (detail.status && !result.lastErrorStatus) result.lastErrorStatus = detail.status
+  if (detail.code && !result.lastErrorCode) result.lastErrorCode = detail.code
+  if (detail.message && !result.lastErrorMessage) result.lastErrorMessage = detail.message
+}
+
+async function recursivApiCapabilityStatus(options = {}) {
+  const keyStatus = recursivApiKeyStatus()
+  const result = {
+    ...keyStatus,
+    probed: false,
+    configured: keyStatus.keyAvailable,
+    databaseListAvailable: false,
+    databaseReady: false,
+    queryAvailable: false,
+    credentialsAvailable: false,
+    usableForSnapshot: false,
+    lastErrorStatus: undefined,
+    lastErrorCode: undefined,
+    lastErrorMessage: undefined,
+  }
+
+  if (!keyStatus.keyAvailable) return result
+  if (options.probe === false) return result
+
+  let config
+  try {
+    config = recursivApiConfig()
+  } catch (error) {
+    mergeProbeError(result, error)
+    return result
+  }
+
+  result.probed = true
+  result.projectId = config.projectId
+  result.databaseName = config.databaseName
+
+  const sdk = new Recursiv({
+    apiKey: config.apiKey.value,
+    baseUrl: config.baseUrl,
+    timeout: Math.min(config.timeoutMs, 15000),
+    maxRetries: 0,
+  })
+
+  try {
+    const { data } = await sdk.databases.list({ project_id: config.projectId })
+    const databases = Array.isArray(data) ? data : Array.isArray(data?.databases) ? data.databases : Array.isArray(data?.items) ? data.items : []
+    const database = databases.find((item) => item?.name === config.databaseName)
+    result.databaseListAvailable = true
+    result.databaseReady = Boolean(database && (!database.status || database.status === "ready"))
+    result.databaseStatus = database?.status || null
+  } catch (error) {
+    mergeProbeError(result, error)
+  }
+
+  try {
+    await sdk.databases.query({
+      project_id: config.projectId,
+      database_name: config.databaseName,
+      sql: "SELECT 1 AS ok",
+      params: [],
+    })
+    result.queryAvailable = true
+  } catch (error) {
+    mergeProbeError(result, error)
+  }
+
+  if (typeof sdk.databases.getCredentials === "function") {
+    try {
+      await sdk.databases.getCredentials({
+        project_id: config.projectId,
+        name: config.databaseName,
+      })
+      result.credentialsAvailable = true
+    } catch (error) {
+      mergeProbeError(result, error)
+    }
+  }
+
+  result.usableForSnapshot = Boolean(result.queryAvailable)
+  return result
 }
 
 function readDatabaseUrl() {
@@ -596,7 +700,7 @@ function databaseUrlStatus() {
   }
 }
 
-function snapshotStatus() {
+async function snapshotStatus(options = {}) {
   const maxAgeHours =
     Math.trunc(Number(process.env.RECURSIV_SNAPSHOT_MAX_AGE_HOURS || process.env.CUTOVER_PIPELINE_MAX_AGE_HOURS || DEFAULT_SNAPSHOT_MAX_AGE_HOURS)) ||
     DEFAULT_SNAPSHOT_MAX_AGE_HOURS
@@ -610,15 +714,17 @@ function snapshotStatus() {
   const pipelineFresh = latestFullPipelineAgeMinutes !== null && latestFullPipelineAgeMinutes <= maxAgeHours * 60
   const nextActions = []
   const database = databaseUrlStatus()
-  const recursivApi = recursivApiStatus()
+  const recursivApi = await recursivApiCapabilityStatus(options)
 
   if (!news.exists || news.error) nextActions.push("Regenerate the Recursiv news snapshot before relying on public fallback data.")
   if (!publicSnapshot.exists || publicSnapshot.error) nextActions.push("Regenerate the Recursiv public media/document snapshot before relying on public fallback data.")
   if (!pipelineFresh) nextActions.push(`Refresh the Recursiv news snapshot before the ${maxAgeHours} hour pipeline freshness gate can pass.`)
   if (!database.available) {
     nextActions.push(`No protected direct database URL was found; add it to ${DEFAULT_DATABASE_URL_FILE} or set RECURSIV_DATABASE_URL_FILE before running pnpm recursiv:snapshot.`)
-    if (recursivApi.available) {
+    if (recursivApi.usableForSnapshot) {
       nextActions.push("After the Recursiv API cooldown clears, run pnpm recursiv:snapshot -- --source=recursiv-api to refresh through the database API without a direct Postgres URL.")
+    } else if (recursivApi.keyAvailable) {
+      nextActions.push("A Recursiv API key source exists, but the database query path is not proven usable. Repair the Recursiv database query/credentials path or add a protected direct database URL before refreshing the snapshot.")
     }
   } else if (!pipelineFresh) {
     nextActions.push("Run pnpm recursiv:snapshot to refresh committed Recursiv fallback data from the protected direct database connection.")
@@ -683,7 +789,7 @@ async function main() {
 
   const flags = new Set(process.argv.slice(2))
   if (flags.has("--status")) {
-    console.log(JSON.stringify(snapshotStatus(), null, 2))
+    console.log(JSON.stringify(await snapshotStatus({ probe: !flags.has("--no-recursiv-probe") }), null, 2))
     return
   }
 
