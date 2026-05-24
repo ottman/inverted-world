@@ -10,10 +10,6 @@ const DEFAULT_SITE_URL = "https://invertedworld.on.recursiv.io"
 const DEFAULT_CUSTOM_DOMAIN = "https://www.inverted.world"
 const DEFAULT_DATABASE_NAME = "inverted_world_research"
 const READINESS_TIMEOUT_MS = Number(process.env.CUTOVER_READINESS_TIMEOUT_MS || "30000")
-const MEDIA_PROOF_ID = "war-uap-release-02-senior-usic-narrative"
-const MEDIA_PROOF_TITLE = "Senior U.S. intelligence officer UAP narrative"
-const MEDIA_PROOF_SOURCE_URL =
-  "https://www.war.gov/medialink/ufo/052226/release_02/documents/ODNI-UAP-D001_USPER_Narrative_Senior_USIC.pdf"
 const DOSSIER_CHAT_PROOF_SLUG = "secret-programs-the-top-secret-testimony-of-cia-s-mkultra-chief-50-years-later-national-security"
 const DOSSIER_CHAT_PROOF_QUESTION = "What is actually documented here? Link me to the key sources."
 const ARTICLE_CHAT_PROOF_SLUG = "uap-disclosure-the-pursue-protocol-pentagon-drops-never-before-seen-uap-files-under-presidential-order"
@@ -315,7 +311,6 @@ async function probeHttp(url) {
     const contentSignals = {
       hasInvertedWorld: /inverted\.world|Inverted World|Tales From The Inverted World/i.test(text),
       hasCoreProductCopy: /Tales From The Inverted World|Latest Stories|How It Works|Power Web|Ask This Story/i.test(text),
-      hasMediaLibraryProof: /Senior U\.S\. intelligence officer UAP narrative|Source shelf|Related Media/i.test(text),
     }
 
     return {
@@ -972,8 +967,6 @@ async function main() {
   const documentsApiUrl = new URL("/api/documents", recursivUrl).toString()
   const pipelineApiUrl = new URL("/api/pipeline?limit=1", recursivUrl).toString()
   const frontPageApiUrl = new URL("/api/front-page", recursivUrl).toString()
-  const mediaItemPageUrl = new URL(`/media/${MEDIA_PROOF_ID}`, recursivUrl).toString()
-  const mediaItemApiUrl = new URL(`/api/media/${MEDIA_PROOF_ID}`, recursivUrl).toString()
   const dossierChatApiUrl = new URL(`/api/dossiers/${DOSSIER_CHAT_PROOF_SLUG}/chat`, recursivUrl).toString()
   const articleChatApiUrl = new URL(`/api/articles/${ARTICLE_CHAT_PROOF_SLUG}/chat`, recursivUrl).toString()
   const readinessWarnings = []
@@ -1010,8 +1003,6 @@ async function main() {
     documentsApi,
     pipelineApi,
     frontPageApi,
-    mediaItemPage,
-    mediaItemApi,
     dossierChatApi,
     articleChatApi,
     customHttp,
@@ -1054,8 +1045,6 @@ async function main() {
       probeDocumentsApi(documentsApiUrl),
       probePipelineApi(pipelineApiUrl),
       probeFrontPageApi(frontPageApiUrl),
-      probeHttp(mediaItemPageUrl),
-      probeMediaItemApi(mediaItemApiUrl),
       probeStoryChatApi(dossierChatApiUrl, DOSSIER_CHAT_PROOF_QUESTION),
       probeStoryChatApi(articleChatApiUrl, ARTICLE_CHAT_PROOF_QUESTION),
       probeHttp(customDomainUrl),
@@ -1218,15 +1207,6 @@ async function main() {
       frontPageApi.hasInternalXLinks &&
       frontPageApi.hasArchiveLinks,
   )
-  const mediaItemPageReady = Boolean(mediaItemPage.ok && mediaItemPage.contentSignals?.hasMediaLibraryProof)
-  const mediaItemApiReady = Boolean(
-    mediaItemApi.ok &&
-      RECURSIV_BACKED_SOURCE_MODES.has(mediaItemApi.sourceMode) &&
-      mediaItemApi.itemTitle === MEDIA_PROOF_TITLE &&
-      mediaItemApi.itemHref === `/media/${MEDIA_PROOF_ID}` &&
-      mediaItemApi.itemUrl === MEDIA_PROOF_SOURCE_URL &&
-      Number(mediaItemApi.relatedCount || 0) >= 1,
-  )
   const dossierChatApiReady = Boolean(
     dossierChatApi.ok &&
       dossierChatApi.mode === "context-fallback" &&
@@ -1269,8 +1249,6 @@ async function main() {
     documentsApiReady &&
     pipelineApiReady &&
     frontPageApiReady &&
-    mediaItemPageReady &&
-    mediaItemApiReady &&
     dossierChatApiReady &&
     articleChatApiReady &&
     scheduledJobsReady &&
@@ -1304,8 +1282,6 @@ async function main() {
     pipelineFreshness: statusText(pipelineApiFresh),
     frontPageApi: statusText(frontPageApiReady),
     frontPageFreshness: statusText(frontPageApiFresh),
-    mediaItemPage: statusText(mediaItemPageReady),
-    mediaItemApi: statusText(mediaItemApiReady),
     dossierChatApi: statusText(dossierChatApiReady),
     articleChatApi: statusText(articleChatApiReady),
     providerHealthFresh: providerHealthAvailable ? statusText(providerHealthFresh) : "unknown",
@@ -1384,9 +1360,6 @@ async function main() {
       `Do not touch DNS until /api/front-page returns a Recursiv-backed edition from inside ${PIPELINE_MAX_AGE_HOURS} hours with direct news, X, and archive ticker targets.`,
     )
   }
-  if (!mediaItemPageReady || !mediaItemApiReady) {
-    nextActions.push(`Do not touch DNS until the Recursiv hosted media library proves /media/${MEDIA_PROOF_ID} and /api/media/${MEDIA_PROOF_ID}.`)
-  }
   if (!dossierChatApiReady) {
     nextActions.push("Do not touch DNS until Ask This Story returns sourced Markdown with source and archive links without requiring an agent write.")
   }
@@ -1450,8 +1423,6 @@ async function main() {
       pipelineApiReady,
       frontPageApiFresh,
       frontPageApiReady,
-      mediaItemPageReady,
-      mediaItemApiReady,
       dossierChatApiReady,
       articleChatApiReady,
       publicHostingReady,
@@ -1483,9 +1454,6 @@ async function main() {
     pipelineDataSource: dataSourceStatus(pipelineApi.sourceMode),
     frontPageApi,
     frontPageDataSource: dataSourceStatus(frontPageApi.sourceMode),
-    mediaItemPage,
-    mediaItemApi,
-    mediaItemDataSource: dataSourceStatus(mediaItemApi.sourceMode),
     dossierChatApi,
     articleChatApi,
     customDomain: {

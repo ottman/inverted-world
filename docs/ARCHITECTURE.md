@@ -20,7 +20,7 @@ Current runtime lanes:
 - Pipeline status: `/api/pipeline` exposes the latest persisted Recursiv pipeline run, and `/api/front-page` includes the latest pipeline status so the public news desk can show freshness without provider keys.
 - Dossier chat: `/api/dossiers/[slug]/chat` stores Recursiv-agent Q/A in `claim_chat_messages`; the dossier chat UI hydrates recent messages from Recursiv so conversations persist beyond the current browser session.
 - Video pages: `app/archive/[videoId]/page.tsx` renders one embedded video and related Tales videos.
-- Media library: `/media`, `/media/[mediaId]`, `/api/media`, and `/api/media/[mediaId]` render and expose Recursiv-backed videos, official release documents, audio, images, archive hubs, source-chain briefs, and research questions. The WAR.GOV PURSUE manifest importer expands official rows into direct PDF/video/audio/image entries when the source CSV is reachable.
+- Source documents: `/documents` and `/api/documents` expose the public source shelf. The media ingestion job can still mirror Recursiv-backed videos, official release documents, audio, images, archive hubs, source-chain briefs, and research questions for later use, but the public media-library section is disabled until that experience is rebuilt around a clearer news flow.
 - Static editorial scaffolding: `data/intelligence-articles.ts`, `data/inverted-world.ts`, and docs files.
 
 The `@recursiv/sdk` package is now used for server-side Recursiv database reads, provisioning scripts, deployment scripts, and scheduled job endpoints.
@@ -77,7 +77,6 @@ Recommended backend flow:
    - `/api/dossiers`
    - `/api/dossiers/[slug]/chat`
    - `/api/front-page`
-   - `/api/media`
    - `/api/documents`
 5. Vercel gets no third-party provider keys. Remove Vercel hosting/domain binding only after Recursiv hosting is proven live.
 

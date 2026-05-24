@@ -7,6 +7,13 @@ const NEWS_SNAPSHOT_FILE = path.resolve("data/generated/recursiv-news-snapshot.j
 const PUBLIC_SNAPSHOT_FILE = path.resolve("data/generated/recursiv-public-snapshot.json")
 const DEFAULT_DATABASE_URL_FILE = "/private/tmp/inverted-world-database-url"
 const DEFAULT_SNAPSHOT_MAX_AGE_HOURS = 36
+const DEFAULT_RECURSIV_BASE_URL = "https://api.recursiv.io/api/v1"
+const DEFAULT_RECURSIV_DATABASE_NAME = "inverted_world_research"
+const LOCAL_RECURSIV_KEY = "/private/tmp/inverted-world-recursiv-key"
+const RECURSIV_API_TIMEOUT_MS = Math.max(
+  5000,
+  Math.min(Math.trunc(Number(process.env.RECURSIV_SNAPSHOT_API_TIMEOUT_MS || "30000")) || 30000, 120000),
+)
 
 const NEWS_EXPORTS = [
   {
@@ -255,6 +262,58 @@ function readOptionalFile(file) {
   return fs.readFileSync(file, "utf8").trim()
 }
 
+function argValue(name) {
+  const exact = process.argv.find((arg) => arg.startsWith(`${name}=`))
+  if (exact) return exact.slice(name.length + 1)
+  const index = process.argv.indexOf(name)
+  if (index !== -1 && process.argv[index + 1] && !process.argv[index + 1].startsWith("--")) return process.argv[index + 1]
+  return undefined
+}
+
+function snapshotSource() {
+  if (process.argv.includes("--recursiv-api")) return "recursiv-api"
+  const value = String(argValue("--source") || process.env.RECURSIV_SNAPSHOT_SOURCE || "direct-db").trim().toLowerCase()
+  if (["direct-db", "recursiv-api"].includes(value)) return value
+  throw new Error("Unsupported snapshot source. Use --source=direct-db or --source=recursiv-api.")
+}
+
+function readRecursivApiKey() {
+  const fileCandidates = [
+    ["RECURSIV_API_KEY_FILE", process.env.RECURSIV_API_KEY_FILE],
+    [LOCAL_RECURSIV_KEY, LOCAL_RECURSIV_KEY],
+  ]
+  for (const [source, file] of fileCandidates) {
+    const value = readOptionalFile(file)
+    if (value) return { value, source }
+  }
+
+  const envCandidates = [
+    ["RECURSIV_SERVER_API_KEY", process.env.RECURSIV_SERVER_API_KEY],
+    ["RECURSIV_API_KEY", process.env.RECURSIV_API_KEY],
+    ["SOCIAL_DEV_API_KEY", process.env.SOCIAL_DEV_API_KEY],
+  ]
+  for (const [source, value] of envCandidates) {
+    if (value) return { value, source }
+  }
+
+  throw new Error(`Missing Recursiv API key. Set RECURSIV_API_KEY_FILE, RECURSIV_SERVER_API_KEY, or write the key to ${LOCAL_RECURSIV_KEY}.`)
+}
+
+function recursivApiStatus() {
+  try {
+    const key = readRecursivApiKey()
+    return {
+      available: true,
+      source: key.source,
+    }
+  } catch {
+    return {
+      available: false,
+      source: null,
+    }
+  }
+}
+
 function readDatabaseUrl() {
   const explicitEnvCandidates = [
     ["RECURSIV_DATABASE_URL", process.env.RECURSIV_DATABASE_URL],
@@ -287,6 +346,21 @@ function readDatabaseUrl() {
   throw new Error(
     `Missing Recursiv database URL. Set RECURSIV_DATABASE_URL, RECURSIV_DATABASE_URL_FILE, or write the URL to ${DEFAULT_DATABASE_URL_FILE}.`,
   )
+}
+
+function recursivApiConfig() {
+  const apiKey = readRecursivApiKey()
+  const projectId = process.env.RECURSIV_PROJECT_ID || process.env.NEXT_PUBLIC_RECURSIV_PROJECT_ID
+  const databaseName = process.env.RECURSIV_DATABASE_NAME || DEFAULT_RECURSIV_DATABASE_NAME
+  if (!projectId) throw new Error("Missing RECURSIV_PROJECT_ID for Recursiv API snapshot export.")
+
+  return {
+    baseUrl: process.env.RECURSIV_BASE_URL || process.env.NEXT_PUBLIC_RECURSIV_BASE_URL || DEFAULT_RECURSIV_BASE_URL,
+    apiKey,
+    projectId,
+    databaseName,
+    timeoutMs: RECURSIV_API_TIMEOUT_MS,
+  }
 }
 
 function safeDecode(value) {
@@ -378,15 +452,62 @@ async function exportRows(exportSpec, databaseUrl) {
   return parsed
 }
 
-async function exportSnapshot(exportSpecs, databaseUrl) {
+async function runRecursivQuery(client, sql) {
+  const response = await fetch(`${client.baseUrl.replace(/\/+$/, "")}/databases/query`, {
+    method: "POST",
+    headers: {
+      accept: "application/json",
+      authorization: `Bearer ${client.apiKey.value}`,
+      "content-type": "application/json",
+      "user-agent": "InvertedWorldSnapshotExport/1.0",
+    },
+    body: JSON.stringify({
+      project_id: client.projectId,
+      database_name: client.databaseName,
+      sql,
+    }),
+    signal: AbortSignal.timeout(client.timeoutMs),
+  })
+  const text = await response.text()
+  let body = {}
+  try {
+    body = text ? JSON.parse(text) : {}
+  } catch {
+    body = { text: text.slice(0, 220) }
+  }
+
+  if (!response.ok) {
+    const message = body?.error?.message || body?.error || body?.message || response.statusText
+    const error = new Error(`Recursiv query returned ${response.status}: ${message}`)
+    error.status = response.status
+    error.code = body?.error?.code
+    throw error
+  }
+
+  return body
+}
+
+async function exportRowsFromRecursivApi(exportSpec, client) {
+  const body = await runRecursivQuery(client, `SELECT (${exportSpec.sql}) AS payload`)
+  const row = body?.data?.rows?.[0] || {}
+  const raw = row.payload ?? Object.values(row)[0] ?? "[]"
+  const parsed = typeof raw === "string" ? JSON.parse(raw || "[]") : raw
+  if (!Array.isArray(parsed)) throw new Error(`${exportSpec.key} Recursiv API export returned a non-array payload`)
+  return parsed
+}
+
+async function exportSnapshot(exportSpecs, source) {
   const snapshot = {
-    source: "recursiv-database-direct-export",
+    source: source.type === "recursiv-api" ? "recursiv-database-api-export" : "recursiv-database-direct-export",
     generatedAt: new Date().toISOString(),
     exportedBy: "scripts/export-recursiv-snapshots.mjs",
   }
 
   for (const exportSpec of exportSpecs) {
-    snapshot[exportSpec.key] = await exportRows(exportSpec, databaseUrl)
+    snapshot[exportSpec.key] =
+      source.type === "recursiv-api"
+        ? await exportRowsFromRecursivApi(exportSpec, source.client)
+        : await exportRows(exportSpec, source.databaseUrl)
   }
 
   return snapshot
@@ -489,12 +610,16 @@ function snapshotStatus() {
   const pipelineFresh = latestFullPipelineAgeMinutes !== null && latestFullPipelineAgeMinutes <= maxAgeHours * 60
   const nextActions = []
   const database = databaseUrlStatus()
+  const recursivApi = recursivApiStatus()
 
   if (!news.exists || news.error) nextActions.push("Regenerate the Recursiv news snapshot before relying on public fallback data.")
   if (!publicSnapshot.exists || publicSnapshot.error) nextActions.push("Regenerate the Recursiv public media/document snapshot before relying on public fallback data.")
   if (!pipelineFresh) nextActions.push(`Refresh the Recursiv news snapshot before the ${maxAgeHours} hour pipeline freshness gate can pass.`)
   if (!database.available) {
     nextActions.push(`No protected direct database URL was found; add it to ${DEFAULT_DATABASE_URL_FILE} or set RECURSIV_DATABASE_URL_FILE before running pnpm recursiv:snapshot.`)
+    if (recursivApi.available) {
+      nextActions.push("After the Recursiv API cooldown clears, run pnpm recursiv:snapshot -- --source=recursiv-api to refresh through the database API without a direct Postgres URL.")
+    }
   } else if (!pipelineFresh) {
     nextActions.push("Run pnpm recursiv:snapshot to refresh committed Recursiv fallback data from the protected direct database connection.")
   }
@@ -504,6 +629,7 @@ function snapshotStatus() {
     generatedAt: new Date().toISOString(),
     freshnessWindowHours: maxAgeHours,
     databaseUrl: database,
+    recursivApi,
     news: {
       file: NEWS_SNAPSHOT_FILE,
       exists: news.exists,
@@ -564,19 +690,27 @@ async function main() {
   const exportNews = !flags.has("--public-only")
   const exportPublic = !flags.has("--news-only")
   const dryRun = flags.has("--dry-run")
+  const sourceMode = snapshotSource()
   if (!exportNews && !exportPublic) throw new Error("Nothing to export. Remove one of --news-only or --public-only.")
 
-  const databaseUrl = readDatabaseUrl()
+  const source =
+    sourceMode === "recursiv-api"
+      ? { type: "recursiv-api", client: recursivApiConfig() }
+      : { type: "direct-db", databaseUrl: readDatabaseUrl().value }
   const result = {
     dryRun,
-    databaseUrlSource: databaseUrl.source,
+    source: source.type,
+    databaseUrlSource: source.type === "direct-db" ? databaseUrlStatus().source : undefined,
+    recursivApiKeySource: source.type === "recursiv-api" ? source.client.apiKey.source : undefined,
+    projectId: source.type === "recursiv-api" ? source.client.projectId : undefined,
+    databaseName: source.type === "recursiv-api" ? source.client.databaseName : undefined,
     written: [],
     wouldWrite: [],
     counts: {},
   }
 
   if (exportNews) {
-    const snapshot = await exportSnapshot(NEWS_EXPORTS, databaseUrl.value)
+    const snapshot = await exportSnapshot(NEWS_EXPORTS, source)
     if (dryRun) {
       result.wouldWrite.push(NEWS_SNAPSHOT_FILE)
     } else {
@@ -587,7 +721,7 @@ async function main() {
   }
 
   if (exportPublic) {
-    const snapshot = await exportSnapshot(PUBLIC_EXPORTS, databaseUrl.value)
+    const snapshot = await exportSnapshot(PUBLIC_EXPORTS, source)
     if (dryRun) {
       result.wouldWrite.push(PUBLIC_SNAPSHOT_FILE)
     } else {

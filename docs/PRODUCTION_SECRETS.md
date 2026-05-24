@@ -51,6 +51,8 @@ pnpm recursiv:snapshot
 
 The snapshot exporter also accepts `RECURSIV_DATABASE_URL_FILE`, `DATABASE_URL_FILE`, `RECURSIV_DATABASE_URL`, `RECURSIV_DIRECT_DATABASE_URL`, `INVERTED_WORLD_DATABASE_URL`, `DATABASE_URL`, `POSTGRES_URL`, and `RECURSIV_POSTGRES_URL`. Prefer the file path form for proof runs so the URL does not appear in shell history, committed files, or command output.
 
+When a direct Postgres URL is unavailable, `pnpm recursiv:snapshot -- --source=recursiv-api` can export the same persisted rows through the Recursiv database API using the local Recursiv key file or server API key. Use that only after API cooldowns are clear or with a healthy key; it still prints only key source names and row counts.
+
 ## Readiness Proof
 
 - `pnpm recursiv:health` checks local/proof provider access without printing key values.

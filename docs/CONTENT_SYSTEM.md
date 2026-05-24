@@ -38,11 +38,8 @@ Server-side Recursiv calls use `RECURSIV_SERVER_API_KEY`. Local proof may use a 
 - `/archive`: embedded channel archive. Reads Recursiv `channel_items` first, then falls back to YouTube RSS/API.
 - `/news`: Drudge-style source board backed by Recursiv `coverage_snapshots` with `source = 'worldwire'`, published `article_drafts`, and published `claim_dossiers`. The worldwire lanes cover a regular front page plus world, war, U.S. politics, power/files, money, tech/AI, science/space, health/earth, crime/culture, and strange-records coverage. The public page links directly to source URLs and does not call Exa, Brave, or RSS providers during render.
 - `/news/[slug]`: source split, evidence grade, X velocity, Tales archive context, viral headlines, and AI chat for one dossier.
-- `/documents`: browsable source database backed by `/api/documents`.
-- `/media`: watch/read media library for Tales clips, official UAP releases, primary-source PDFs, videos, audio, images, archive hubs, source briefs, and research questions.
-- `/media/[mediaId]`: shareable media detail pages with inline video/PDF/image rendering and related media.
-- `/api/media`: machine-readable media library.
-- `/api/media/[mediaId]`: machine-readable media item, source-chain brief, and related media.
+- `/documents`: public source shelf for official releases, primary-source PDFs, hearing records, agency files, and research documents backed by `/api/documents`.
+- Media ingestion can still mirror source files into Recursiv for later reuse, but the public media-library section is disabled until that experience is rebuilt around a clearer news flow.
 - `/api/dossiers`: JSON feed of published claim dossiers.
 - `/api/dossiers/[slug]/chat`: Recursiv-agent chat over one dossier context.
 - `/api/recursiv/jobs/*`: authenticated scheduled job targets for archive sync, topic pulse, worldwire crawling, article generation, claim dossier generation, image generation, publishing, front-page editions, bounded pipeline refresh, and pipeline maintenance. Add `?async=1` for Recursiv cron triggers; omit it for manual proof runs that should wait for the full result.
@@ -213,6 +210,15 @@ npm run recursiv:snapshot
 `recursiv:snapshot` exports persisted Recursiv rows into the committed public fallbacks `data/generated/recursiv-news-snapshot.json` and `data/generated/recursiv-public-snapshot.json`. It is for local/proof refreshes when the hosted runtime database key is unhealthy or rate-limited. The command reads a direct database URL from `RECURSIV_DATABASE_URL`, `RECURSIV_DATABASE_URL_FILE`, or the protected local file `/private/tmp/inverted-world-database-url`; it passes the password to `psql` through environment variables and prints only redacted counts.
 
 Run `npm run recursiv:snapshot -- --dry-run` to validate the export path and row counts without rewriting the committed snapshots.
+
+If a protected direct Postgres URL is not available, the exporter can read through the Recursiv database API instead:
+
+```bash
+pnpm recursiv:snapshot -- --source=recursiv-api --dry-run
+pnpm recursiv:snapshot -- --source=recursiv-api
+```
+
+Use that mode only after the Recursiv API cooldown is clear or with a healthy key, because it calls `/databases/query`. It prints the local key source and row counts, not the key value.
 
 Run `pnpm recursiv:snapshot:status` when the hosted database key is unhealthy or the deploy API is cooling down. It does not call Recursiv and does not require database credentials. It reports local snapshot row counts, the latest exported full-pipeline completion time, the 36-hour freshness window, and whether a protected direct database URL is available for a real refresh.
 

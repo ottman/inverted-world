@@ -148,6 +148,9 @@ function nextActions({ deployWindow, snapshotStatus, localProof, publicProof, co
 
   if (!snapshotStatus.databaseUrl?.available) {
     actions.push("No protected direct database URL is available; add it locally before running pnpm recursiv:snapshot.")
+    if (snapshotStatus.recursivApi?.available) {
+      actions.push("A Recursiv API key source is available; after API cooldown clears, pnpm recursiv:snapshot -- --source=recursiv-api can refresh without a direct database URL.")
+    }
   }
 
   if (deployFreshness.staleBeforeNextAllowedAt) {
@@ -207,6 +210,8 @@ async function main() {
     snapshot: {
       ok: Boolean(snapshotStatus.ok),
       databaseUrlAvailable: Boolean(snapshotStatus.databaseUrl?.available),
+      recursivApiAvailable: Boolean(snapshotStatus.recursivApi?.available),
+      recursivApiSource: snapshotStatus.recursivApi?.source,
       latestFullPipeline: snapshotStatus.news?.latestFullPipeline,
       deployWindowFreshness: snapshotDeployFreshness,
       counts: {

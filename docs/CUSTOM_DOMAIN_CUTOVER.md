@@ -33,7 +33,7 @@ The command prints a redacted JSON report with:
 - Recursiv archive API proof, including `sourceMode`, data-source classification, archive count, required topic coverage, and dominant-topic balance;
 - published article API proof from `/api/articles`, including Recursiv-backed source mode, direct external source links, generated thumbnails, topic spread, and clean non-templated full-story bodies;
 - source-document API proof for `https://invertedworld.on.recursiv.io/api/documents`;
-- media-library detail proof for the UAP PDF route and JSON item route;
+- source-shelf proof through `/documents` and `/api/documents`;
 - Ask This Story proof from `/api/dossiers/[slug]/chat` and `/api/articles/[articleId]/chat`, requiring no-write sourced Markdown with source and archive links;
 - latest full-pipeline status and `sourceMode` from `/api/pipeline`, including a completion timestamp inside 36 hours;
 - front-page edition and site ticker proof from `/api/front-page`, including direct news, X, archive targets, and an edition or pipeline timestamp inside 36 hours;
@@ -69,7 +69,7 @@ The output file contains the same no-secret report printed to stdout.
 - `documentsApi` must pass, proving the source shelf is available as machine-readable JSON from live `recursiv-database` or `recursiv-snapshot` data.
 - `pipelineApi` and `pipelineFreshness` must pass, proving `/api/pipeline` exposes a succeeded full-pipeline run from live Recursiv database rows or the committed Recursiv snapshot fallback completed inside 36 hours.
 - `frontPageApi` and `frontPageFreshness` must pass, proving `/api/front-page` exposes a Recursiv-backed edition tied to an edition or pipeline timestamp inside 36 hours and direct ticker targets into stories, X signals, and archive items.
-- `mediaItemPage` and `mediaItemApi` must pass, proving the hosted build includes shareable media pages and machine-readable item data for the official UAP PDF.
+- `documentsApi` must pass, proving the hosted build includes the machine-readable source shelf with topic and kind coverage.
 - `dossierChatApi` and `articleChatApi` must pass, proving Ask This Story can return sourced Markdown without requiring a writable agent conversation on dossier-backed or article-only story pages.
 - `publicHostingReady` must be `true`.
 - Recursiv custom-domain binding must be created and proven before changing DNS or removing the Vercel domain binding.
@@ -137,8 +137,8 @@ Current live proof:
 - `/api/articles` currently returns 8 articles and 8 generated thumbnails on the hosted build, but it does not expose Recursiv `sourceMode`, does not meet the 12-article cutover gate, does not prove direct external source links, and can still surface templated briefs. The local built proof now returns `sourceMode: "recursiv-snapshot"` with 13 full-story articles, 13 direct external source links, 13 generated thumbnails, six topics, and `templatedArticleCount: 0`; deploy that build before considering the article gate live.
 - `/api/documents` returns `sourceMode: "recursiv-snapshot"` with 37 source documents across six topics and five media/document kinds.
 - The repo exposes `/api/front-page` with `sourceMode` and direct Recursiv-backed ticker items, but the hosted build must be redeployed before this can pass publicly.
-- `/media/war-uap-release-02-senior-usic-narrative` returns HTTP 200.
-- `/api/media/war-uap-release-02-senior-usic-narrative` returns `sourceMode: "recursiv-snapshot"` with the official UAP PDF item and related media.
+- `/documents` returns HTTP 200.
+- `/api/documents` returns `sourceMode: "recursiv-snapshot"` or `sourceMode: "recursiv-database"` with topic and kind coverage.
 - `/api/release` still returns `pipelineSnapshotFallback: false` and release `worldwire-persistence-v2` on the hosted app, so the current hosted build is older than the pushed repo.
 - `releaseCommit` is `unknown` because the hosted app does not expose `deployment.sourceRevision` yet.
 - `/api/pipeline?limit=1` returns `sourceMode: "unavailable"` with `readHealthLastErrorStatus: 429`, so the hosted pipeline status fallback and 36-hour freshness proof are not live until the newer commit is deployed.
