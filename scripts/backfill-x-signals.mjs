@@ -153,6 +153,7 @@ const TOPICS = {
   "cryptids-paranormal": {
     floor: 60,
     coreFloor: 25,
+    profileLimit: 8,
     queries: [
       '(Bigfoot OR Sasquatch OR cryptid OR Mothman OR Dogman)',
       '("ghost sighting" OR "ghost video" OR poltergeist OR "paranormal investigation")',
@@ -166,6 +167,7 @@ const TOPICS = {
   "ai-technocracy": {
     floor: 140,
     coreFloor: 35,
+    profileLimit: 8,
     queries: [
       '("AI surveillance" OR technocracy OR Palantir OR "digital ID")',
       '("facial recognition" OR "license plate reader" OR "predictive policing")',
@@ -178,6 +180,7 @@ const TOPICS = {
   "space-anomalies": {
     floor: 110,
     coreFloor: 30,
+    profileLimit: 8,
     queries: [
       '((NASA OR NOAA OR ESA) ("space anomaly" OR anomaly OR meteor OR asteroid OR "solar storm" OR "geomagnetic storm"))',
       '("Mars anomaly" OR "moon anomaly" OR "lost satellite" OR "interstellar object")',
@@ -865,7 +868,7 @@ async function main() {
     throw new Error(`Missing EXA_API_KEY or EXA_SEARCH_API_KEY. Expected ${LOCAL_PROVIDER_ENV} or server env.`)
   }
   if (provider === "all" && !token && !exaKey) {
-    throw new Error(`Missing X bearer token or EXA_API_KEY. Expected ${LOCAL_PROVIDER_ENV} or server env.`)
+    profileReaderWarnings.add("paid X/Exa keys unavailable; using profile-reader fallback only")
   }
 
   const databaseUrlInfo = dryRun ? undefined : readDatabaseUrlOptional()

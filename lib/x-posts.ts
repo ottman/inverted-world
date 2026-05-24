@@ -37,6 +37,9 @@ const PRIORITY_X_ACCOUNT_SET = new Set(PRIORITY_X_ACCOUNTS.map((account) => acco
 const TOPIC_PROFILE_READER_ACCOUNT_LIMITS: Record<string, number> = {
   "secret-programs": 8,
   "epstein-networks": 8,
+  "cryptids-paranormal": 8,
+  "ai-technocracy": 8,
+  "space-anomalies": 8,
 }
 const TOPIC_SOURCE_X_ACCOUNTS: Record<string, string[]> = {
   "uap-disclosure": ["InvertedTales", "ShaneCashman", "ChrisKMellon", "uncertainvector", "Debriefmedia", "mufon"],
