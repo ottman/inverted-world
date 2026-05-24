@@ -37,6 +37,7 @@ The command prints a redacted JSON report with:
 - Ask This Story proof from `/api/dossiers/[slug]/chat` and `/api/articles/[articleId]/chat`, requiring no-write sourced Markdown with source and archive links;
 - latest full-pipeline status and `sourceMode` from `/api/pipeline`, including a completion timestamp inside 36 hours;
 - front-page edition and site ticker proof from `/api/front-page`, including direct news, X, archive targets, and an edition or pipeline timestamp inside 36 hours;
+- daily autopost packet proof from `/api/autopost/daily`, including Recursiv-backed source mode, publish-ready status, source pack, headline variants, X thread copy, image prompts, guardrails, and direct story/X/archive links;
 - HTTP and DNS proof for `https://www.inverted.world`;
 - active Recursiv scheduled job count and missing jobs;
 - latest hosted provider-health blockers for the full AI product;
@@ -69,6 +70,7 @@ The output file contains the same no-secret report printed to stdout.
 - `documentsApi` must pass, proving the source shelf is available as machine-readable JSON from live `recursiv-database` or `recursiv-snapshot` data.
 - `pipelineApi` and `pipelineFreshness` must pass, proving `/api/pipeline` exposes a succeeded full-pipeline run from live Recursiv database rows or the committed Recursiv snapshot fallback completed inside 36 hours.
 - `frontPageApi` and `frontPageFreshness` must pass, proving `/api/front-page` exposes a Recursiv-backed edition tied to an edition or pipeline timestamp inside 36 hours and direct ticker targets into stories, X signals, and archive items.
+- `autopostApi` must pass, proving `/api/autopost/daily` exposes a Recursiv-backed, publish-ready daily distribution packet with enough sources, headlines, thread posts, image prompts, guardrails, and direct story/X/archive links.
 - `documentsApi` must pass, proving the hosted build includes the machine-readable source shelf with topic and kind coverage.
 - `dossierChatApi` and `articleChatApi` must pass, proving Ask This Story can return sourced Markdown without requiring a writable agent conversation on dossier-backed or article-only story pages.
 - `publicHostingReady` must be `true`.

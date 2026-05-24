@@ -42,6 +42,7 @@ Server-side Recursiv calls use `RECURSIV_SERVER_API_KEY`. Local proof may use a 
 - Media ingestion can still mirror source files into Recursiv for later reuse, but the public `/media` pages and `/api/media` endpoints are removed until that experience is rebuilt around a clearer news flow.
 - `/api/dossiers`: JSON feed of published claim dossiers.
 - `/api/dossiers/[slug]/chat`: Recursiv-agent chat over one dossier context.
+- `/api/autopost/daily`: Recursiv-backed daily distribution packet for social, newsletter, short video, generated-image prompts, source pack, and direct story/X/archive links.
 - `/api/recursiv/jobs/*`: authenticated scheduled job targets for archive sync, topic pulse, worldwire crawling, article generation, claim dossier generation, image generation, publishing, front-page editions, bounded pipeline refresh, and pipeline maintenance. Add `?async=1` for Recursiv cron triggers; omit it for manual proof runs that should wait for the full result.
 
 The worldwire job keeps persisted rows compact: each stored item keeps the source URL, source label, score, title, section, and timestamp, while long excerpts are dropped before database write. The `items` and `metadata` JSONB payloads are embedded as safely dollar-quoted SQL literals instead of oversized Recursiv `params` entries, because the Recursiv API validates request bodies before PostgreSQL sees the query. Keep scalar params small for scheduled jobs.

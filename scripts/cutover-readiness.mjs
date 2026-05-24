@@ -33,6 +33,10 @@ const ARTICLE_MIN_COUNT = Number(process.env.CUTOVER_ARTICLE_MIN_COUNT || "12")
 const ARTICLE_MIN_THUMBNAILS = Number(process.env.CUTOVER_ARTICLE_MIN_THUMBNAILS || "8")
 const ARTICLE_MIN_TOPICS = Number(process.env.CUTOVER_ARTICLE_MIN_TOPICS || "4")
 const ARTICLE_MIN_EXTERNAL_SOURCES = Number(process.env.CUTOVER_ARTICLE_MIN_EXTERNAL_SOURCES || "8")
+const AUTOPOST_MIN_SOURCES = Number(process.env.CUTOVER_AUTOPOST_MIN_SOURCES || "8")
+const AUTOPOST_MIN_HEADLINES = Number(process.env.CUTOVER_AUTOPOST_MIN_HEADLINES || "3")
+const AUTOPOST_MIN_THREAD_POSTS = Number(process.env.CUTOVER_AUTOPOST_MIN_THREAD_POSTS || "3")
+const AUTOPOST_MIN_IMAGES = Number(process.env.CUTOVER_AUTOPOST_MIN_IMAGES || "2")
 const ARTICLE_LANE_TITLES = ["Skywatch", "Declassified", "Power Web", "High Strangeness", "Machine State", "Off-World Signals"]
 
 const EXPECTED_JOBS = [
@@ -650,7 +654,7 @@ async function probeArticlesApi(url) {
   }
 }
 
-async function probeMediaItemApi(url) {
+async function probeAutopostApi(url) {
   const started = Date.now()
   try {
     const response = await fetch(url, {
@@ -658,19 +662,42 @@ async function probeMediaItemApi(url) {
       signal: AbortSignal.timeout(20000),
     })
     const body = await response.json().catch(() => ({}))
-    const related = Array.isArray(body.related) ? body.related : []
-    const item = body.item && typeof body.item === "object" ? body.item : {}
+    const autopost = body.autopost && typeof body.autopost === "object" ? body.autopost : {}
+    const readiness = body.readiness && typeof body.readiness === "object" ? body.readiness : {}
+    const sourcePack = Array.isArray(autopost.sourcePack) ? autopost.sourcePack : []
+    const headlineVariants = Array.isArray(autopost.headlineVariants) ? autopost.headlineVariants : []
+    const xThread = Array.isArray(autopost.xThread) ? autopost.xThread : []
+    const imagePrompts = Array.isArray(autopost.imagePrompts) ? autopost.imagePrompts : []
+    const links = autopost.links && typeof autopost.links === "object" ? autopost.links : {}
+    const primaryPost = typeof autopost.primaryPost === "string" ? autopost.primaryPost : ""
+    const canonicalUrl = typeof autopost.canonicalUrl === "string" ? autopost.canonicalUrl : ""
+    const distributionText = [primaryPost, ...headlineVariants, ...xThread].join("\n")
 
     return {
       url,
       status: response.status,
       ok: response.ok,
       sourceMode: body.sourceMode,
-      archiveSourceMode: body.archiveSourceMode,
-      itemTitle: typeof item.title === "string" ? item.title : undefined,
-      itemHref: typeof item.href === "string" ? item.href : undefined,
-      itemUrl: typeof item.url === "string" ? item.url : undefined,
-      relatedCount: related.length,
+      packetStatus: typeof body.status === "string" ? body.status : undefined,
+      readinessReady: Boolean(readiness.ready),
+      canonicalUrl,
+      sourcePackCount: Number(readiness.sourcePackCount || sourcePack.length || 0),
+      headlineVariantCount: Number(readiness.headlineVariantCount || headlineVariants.length || 0),
+      xThreadCount: Number(readiness.xThreadCount || xThread.length || 0),
+      imagePromptCount: Number(readiness.imagePromptCount || imagePrompts.length || 0),
+      articleLinkCount: Number(readiness.articleLinkCount || (Array.isArray(links.articles) ? links.articles.length : 0)),
+      dossierLinkCount: Number(readiness.dossierLinkCount || (Array.isArray(links.dossiers) ? links.dossiers.length : 0)),
+      xSignalLinkCount: Number(readiness.xSignalLinkCount || (Array.isArray(links.xSignals) ? links.xSignals.length : 0)),
+      archiveVideoLinkCount: Number(readiness.archiveVideoLinkCount || (Array.isArray(links.archiveVideos) ? links.archiveVideos.length : 0)),
+      hasGuardrails: Array.isArray(autopost.guardrails) && autopost.guardrails.length >= 3,
+      hasPrimaryPost: primaryPost.length >= 80 && /^https?:\/\//i.test(canonicalUrl),
+      noWarmupLanguage: !/warming|warm up|placeholder|coming soon|not configured/i.test(distributionText),
+      thresholds: {
+        minSources: AUTOPOST_MIN_SOURCES,
+        minHeadlines: AUTOPOST_MIN_HEADLINES,
+        minThreadPosts: AUTOPOST_MIN_THREAD_POSTS,
+        minImagePrompts: AUTOPOST_MIN_IMAGES,
+      },
       durationMs: Date.now() - started,
     }
   } catch (error) {
@@ -967,6 +994,7 @@ async function main() {
   const documentsApiUrl = new URL("/api/documents", recursivUrl).toString()
   const pipelineApiUrl = new URL("/api/pipeline?limit=1", recursivUrl).toString()
   const frontPageApiUrl = new URL("/api/front-page", recursivUrl).toString()
+  const autopostApiUrl = new URL("/api/autopost/daily", recursivUrl).toString()
   const dossierChatApiUrl = new URL(`/api/dossiers/${DOSSIER_CHAT_PROOF_SLUG}/chat`, recursivUrl).toString()
   const articleChatApiUrl = new URL(`/api/articles/${ARTICLE_CHAT_PROOF_SLUG}/chat`, recursivUrl).toString()
   const readinessWarnings = []
@@ -1003,6 +1031,7 @@ async function main() {
     documentsApi,
     pipelineApi,
     frontPageApi,
+    autopostApi,
     dossierChatApi,
     articleChatApi,
     customHttp,
@@ -1045,6 +1074,7 @@ async function main() {
       probeDocumentsApi(documentsApiUrl),
       probePipelineApi(pipelineApiUrl),
       probeFrontPageApi(frontPageApiUrl),
+      probeAutopostApi(autopostApiUrl),
       probeStoryChatApi(dossierChatApiUrl, DOSSIER_CHAT_PROOF_QUESTION),
       probeStoryChatApi(articleChatApiUrl, ARTICLE_CHAT_PROOF_QUESTION),
       probeHttp(customDomainUrl),
@@ -1207,6 +1237,22 @@ async function main() {
       frontPageApi.hasInternalXLinks &&
       frontPageApi.hasArchiveLinks,
   )
+  const autopostApiReady = Boolean(
+    autopostApi.ok &&
+      RECURSIV_BACKED_SOURCE_MODES.has(autopostApi.sourceMode) &&
+      autopostApi.packetStatus === "ready" &&
+      autopostApi.readinessReady &&
+      autopostApi.hasPrimaryPost &&
+      autopostApi.noWarmupLanguage &&
+      Number(autopostApi.sourcePackCount || 0) >= AUTOPOST_MIN_SOURCES &&
+      Number(autopostApi.headlineVariantCount || 0) >= AUTOPOST_MIN_HEADLINES &&
+      Number(autopostApi.xThreadCount || 0) >= AUTOPOST_MIN_THREAD_POSTS &&
+      Number(autopostApi.imagePromptCount || 0) >= AUTOPOST_MIN_IMAGES &&
+      Number(autopostApi.articleLinkCount || 0) >= 3 &&
+      Number(autopostApi.xSignalLinkCount || 0) >= 3 &&
+      Number(autopostApi.archiveVideoLinkCount || 0) >= 2 &&
+      autopostApi.hasGuardrails,
+  )
   const dossierChatApiReady = Boolean(
     dossierChatApi.ok &&
       dossierChatApi.mode === "context-fallback" &&
@@ -1249,6 +1295,7 @@ async function main() {
     documentsApiReady &&
     pipelineApiReady &&
     frontPageApiReady &&
+    autopostApiReady &&
     dossierChatApiReady &&
     articleChatApiReady &&
     scheduledJobsReady &&
@@ -1282,6 +1329,7 @@ async function main() {
     pipelineFreshness: statusText(pipelineApiFresh),
     frontPageApi: statusText(frontPageApiReady),
     frontPageFreshness: statusText(frontPageApiFresh),
+    autopostApi: statusText(autopostApiReady),
     dossierChatApi: statusText(dossierChatApiReady),
     articleChatApi: statusText(articleChatApiReady),
     providerHealthFresh: providerHealthAvailable ? statusText(providerHealthFresh) : "unknown",
@@ -1360,6 +1408,11 @@ async function main() {
       `Do not touch DNS until /api/front-page returns a Recursiv-backed edition from inside ${PIPELINE_MAX_AGE_HOURS} hours with direct news, X, and archive ticker targets.`,
     )
   }
+  if (!autopostApiReady) {
+    nextActions.push(
+      `Do not touch DNS until /api/autopost/daily returns a Recursiv-backed daily publish packet with source pack, headline variants, X thread, image prompts, guardrails, and direct story/X/archive links.`,
+    )
+  }
   if (!dossierChatApiReady) {
     nextActions.push("Do not touch DNS until Ask This Story returns sourced Markdown with source and archive links without requiring an agent write.")
   }
@@ -1423,6 +1476,7 @@ async function main() {
       pipelineApiReady,
       frontPageApiFresh,
       frontPageApiReady,
+      autopostApiReady,
       dossierChatApiReady,
       articleChatApiReady,
       publicHostingReady,
@@ -1454,6 +1508,8 @@ async function main() {
     pipelineDataSource: dataSourceStatus(pipelineApi.sourceMode),
     frontPageApi,
     frontPageDataSource: dataSourceStatus(frontPageApi.sourceMode),
+    autopostApi,
+    autopostDataSource: dataSourceStatus(autopostApi.sourceMode),
     dossierChatApi,
     articleChatApi,
     customDomain: {
