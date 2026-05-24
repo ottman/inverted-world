@@ -196,6 +196,34 @@ function runPublicProviderAudit() {
   }
 }
 
+function runRecursivManifestAudit() {
+  try {
+    const output = execFileSync("node", ["scripts/audit-recursiv-manifest.mjs"], {
+      encoding: "utf8",
+      timeout: 15_000,
+    })
+    return JSON.parse(output)
+  } catch (error) {
+    const stdout = error?.stdout ? String(error.stdout) : ""
+    const stderr = error?.stderr ? String(error.stderr) : ""
+    for (const text of [stdout, stderr]) {
+      try {
+        const parsed = JSON.parse(text)
+        return { ...parsed, ok: false }
+      } catch {
+        // Continue to the generic error shape.
+      }
+    }
+
+    return {
+      ok: false,
+      checkedAt: new Date().toISOString(),
+      checks: [],
+      error: error instanceof Error ? error.message : String(error),
+    }
+  }
+}
+
 function normalizeCommit(value) {
   return String(value || "")
     .trim()
@@ -950,6 +978,7 @@ async function main() {
   const articleChatApiUrl = new URL(`/api/articles/${ARTICLE_CHAT_PROOF_SLUG}/chat`, recursivUrl).toString()
   const readinessWarnings = []
   const publicProviderAudit = runPublicProviderAudit()
+  const recursivManifestAudit = runRecursivManifestAudit()
 
   if (publicOnly) {
     readinessWarnings.push("Public-only mode skipped Recursiv project, deployment, job, provider-health, and pipeline database checks.")
@@ -1132,6 +1161,7 @@ async function main() {
   const releaseCommitMatch = commitsMatch(releaseRevision.value, expectedReleaseCommit)
   const releaseCommitReady = releaseCommitMatch === true
   const publicProviderFallbackAuditReady = Boolean(publicProviderAudit.ok)
+  const recursivManifestAuditReady = Boolean(recursivManifestAudit.ok)
   const recursivDeploymentCompleted = Boolean(latestDeployment?.status === "completed")
   const recursivHostingProven = Boolean(recursivHostedUrlProven && recursivDeploymentCompleted)
   const archiveTopicCoverageReady = Boolean(
@@ -1233,6 +1263,7 @@ async function main() {
     releaseProofReady &&
     releaseCommitReady &&
     publicProviderFallbackAuditReady &&
+    recursivManifestAuditReady &&
     recursivArchiveDataReady &&
     articlesApiReady &&
     documentsApiReady &&
@@ -1262,6 +1293,7 @@ async function main() {
     releaseProof: statusText(releaseProofReady),
     releaseCommit: releaseCommitMatch === null ? "unknown" : statusText(releaseCommitMatch),
     publicProviderFallbackAudit: statusText(publicProviderFallbackAuditReady),
+    recursivManifestAudit: statusText(recursivManifestAuditReady),
     recursivArchiveData: statusText(recursivArchiveDataReady),
     recursivArchiveTopicCoverage: statusText(archiveTopicCoverageReady),
     recursivArchiveLiveDatabase: statusText(recursivArchiveLiveDatabaseReady),
@@ -1316,6 +1348,9 @@ async function main() {
   }
   if (!publicProviderFallbackAuditReady) {
     nextActions.push("Do not touch DNS until pnpm audit:public-providers passes with no public provider fallback findings.")
+  }
+  if (!recursivManifestAuditReady) {
+    nextActions.push("Do not touch DNS until pnpm recursiv:manifest:audit passes, proving schema, scheduled jobs, cutover expectations, and route files are aligned.")
   }
   if (recursivHostedUrlProven && !recursivDeploymentCompleted) {
     nextActions.push("HTTP proof for invertedworld.on.recursiv.io is green, but Recursiv deployment completion could not be proven; rerun cutover after the Recursiv API key is healthy.")
@@ -1405,6 +1440,7 @@ async function main() {
       releaseProofReady,
       releaseCommitReady,
       publicProviderFallbackAuditReady,
+      recursivManifestAuditReady,
       recursivArchiveDataReady,
       archiveTopicCoverageReady,
       recursivArchiveLiveDatabaseReady,
@@ -1436,6 +1472,7 @@ async function main() {
     expectedReleaseCommit,
     releaseRevision,
     publicProviderAudit,
+    recursivManifestAudit,
     recursivArchiveApi: archiveApi,
     recursivArchiveDataSource: dataSourceStatus(archiveApi.sourceMode),
     articlesApi,

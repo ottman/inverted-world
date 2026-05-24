@@ -62,6 +62,7 @@ The output file contains the same no-secret report printed to stdout.
 - `xSignalApi` and `xSignalFreshness` must pass, proving `/api/x/secret-programs` has enough recent X posts from multiple persisted/source modes.
 - `releaseCommit` must be `pass`. Full readiness may prove this from `/api/release` or from authenticated Recursiv deployment metadata. `unknown` means neither source exposes a revision yet, and `fail` means the deployed revision is not the expected commit.
 - `publicProviderFallbackAudit` must be `pass`, proving public `app/` routes and pages do not call provider-capable helpers without `allowProviderFallbacks: false`.
+- `recursivManifestAudit` must be `pass`, proving the desired Recursiv tables, scheduled job manifest, cutover expected jobs, job route files, and scheduler endpoint options are aligned.
 - `recursivArchiveDataReady` must be `true`. This can be live `recursiv-database` or `recursiv-snapshot`, but it must not be `seed`, `static`, RSS, YouTube API, or direct provider fallback data.
 - `recursivArchiveTopicCoverage` must pass, proving the archive has at least 12 videos in each core topic and no single topic is more than 70% of the archive.
 - `articlesApi` must pass, proving `/api/articles` returns at least 12 Recursiv-backed full-story articles across at least four topics, with at least eight direct external source links, generated thumbnails, no repeated lane prefixes in headlines, and no templated `Signal` / `Source split` / `Viral frame` bodies.
