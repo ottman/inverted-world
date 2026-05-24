@@ -5,6 +5,7 @@ import { DossierChat } from "@/components/dossier-chat"
 import { archiveSurface, InvertedPageShell, type BreakingItem } from "@/components/inverted-page-shell"
 import type { IntelligenceArticle } from "@/data/intelligence-articles"
 import { featuredVideos, researchDocuments, type ChannelVideo } from "@/data/inverted-world"
+import { isGeneratedSvgThumbnailUrl } from "@/lib/generated-thumbnail"
 import { getArticleById } from "@/lib/live-articles"
 import { getRecursivClaimDossier, type ClaimDossier, type ClaimSourceLink } from "@/lib/recursiv/content"
 import { xPostInternalHref } from "@/lib/x-links"
@@ -79,6 +80,12 @@ function primarySource(article?: IntelligenceArticle | null, dossier?: ClaimDoss
   return undefined
 }
 
+function articleDisplayImage(article?: IntelligenceArticle | null) {
+  const imageUrl = article?.thumbnail.imageUrl
+  if (!imageUrl || isGeneratedSvgThumbnailUrl(imageUrl)) return undefined
+  return imageUrl
+}
+
 function dedupeSources(sources: ClaimSourceLink[]) {
   const seen = new Set<string>()
   return sources.filter((source) => {
@@ -134,6 +141,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { article, dossier } = await getStoryData(params.articleId)
   const title = article?.title || dossier?.title
   const description = article?.deck || dossier?.deck || dossier?.summary
+  const imageUrl = articleDisplayImage(article)
+  const relatedVideoThumbnail = dossier?.relatedVideos[0]?.thumbnail
 
   if (!title) {
     return {
@@ -157,23 +166,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       type: "article",
       publishedTime: article?.publishedAt || dossier?.publishedAt || undefined,
       url: `/news/${dossier?.slug || params.articleId}`,
-      images:
-        article?.thumbnail.imageUrl
-          ? [article.thumbnail.imageUrl]
-          : dossier?.relatedVideos[0]?.thumbnail
-            ? [dossier.relatedVideos[0].thumbnail]
-            : undefined,
+      images: imageUrl ? [imageUrl] : relatedVideoThumbnail ? [relatedVideoThumbnail] : undefined,
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images:
-        article?.thumbnail.imageUrl
-          ? [article.thumbnail.imageUrl]
-          : dossier?.relatedVideos[0]?.thumbnail
-            ? [dossier.relatedVideos[0].thumbnail]
-            : undefined,
+      images: imageUrl ? [imageUrl] : relatedVideoThumbnail ? [relatedVideoThumbnail] : undefined,
     },
   }
 }
@@ -315,13 +314,6 @@ export default async function NewsArticlePage({ params }: PageProps) {
         </div>
 
         <aside className="grid gap-4">
-          {article?.thumbnail.imageUrl ? (
-            <div className="overflow-hidden bg-[#050504]/42 p-2">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={article.thumbnail.imageUrl} alt="" className="aspect-square w-full object-contain opacity-95" />
-            </div>
-          ) : null}
-
           {dossier || article ? (
             <>
               <div className="grid grid-cols-2 gap-2">
