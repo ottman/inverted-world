@@ -361,7 +361,7 @@ async function probeNewsPage(url) {
       status: response.status,
       ok: response.ok,
       title: html.match(/<title>(.*?)<\/title>/i)?.[1]?.trim(),
-      hasSourceSheet: /source sheet|outside world, sorted by heat|original sources first/i.test(html),
+      hasPrimaryNewsSurface: /Just in|ranked links|source hosts|The deeper reads/i.test(html),
       hasNewsMetrics: /ranked links|source hosts|lanes/i.test(html),
       hasEmptyState: /current source board has no ranked links/i.test(html),
       externalSourceLinks,
@@ -1178,7 +1178,7 @@ async function main() {
   )
   const newsPageReady = Boolean(
     newsPage.ok &&
-      newsPage.hasSourceSheet &&
+      newsPage.hasPrimaryNewsSurface &&
       newsPage.hasNewsMetrics &&
       !newsPage.hasEmptyState &&
       Number(newsPage.externalSourceLinks || 0) >= 20 &&

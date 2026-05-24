@@ -162,7 +162,7 @@ pnpm recursiv:domain:preflight -- \
   --slug=invertedworld.on.recursiv.io \
   --custom-domain=www.inverted.world \
   --expected-text="Inverted World" \
-  --path=/news::"source sheet" \
+  --path=/news::"Just in" \
   --path=/x/secret-programs::"Live X Stream" \
   --path=/api/release::"worldwire-persistence-v2" \
   --status-check=/documents::404 \
@@ -178,4 +178,4 @@ pnpm recursiv:domain:preflight -- \
   --require=hosted
 ```
 
-As of May 24, 2026 at `01:47Z`, the route/status-aware public preflight still fails because the Recursiv slug is serving a stale build: `/documents`, `/api/documents`, `/media`, and `/api/media` return 200 there instead of 404. DNS should remain unchanged until the Recursiv slug deploy and custom-domain binding for `www.inverted.world` are both proven.
+Current route/status-aware public preflight still fails because the Recursiv slug is serving a stale build: `/documents`, `/api/documents`, `/media`, and `/api/media` return 200 there instead of 404. DNS should remain unchanged until the Recursiv slug deploy and custom-domain binding for `www.inverted.world` are both proven.

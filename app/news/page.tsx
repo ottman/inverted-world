@@ -14,7 +14,6 @@ import {
 } from "@/lib/recursiv/content"
 import { cn } from "@/lib/utils"
 import {
-  WORLDWIRE_LANES,
   isExternalUrl,
   isGoogleNewsUrl,
   looksLikeArticleUrl,
@@ -96,26 +95,6 @@ function uniqueItems(items: NewsBoardItem[]) {
   return unique
 }
 
-function groupedSections(items: NewsBoardItem[]) {
-  const sections = new Map<string, { id: string; title: string; items: NewsBoardItem[] }>()
-  for (const item of items) {
-    const current = sections.get(item.sectionId) || { id: item.sectionId, title: item.sectionTitle, items: [] }
-    current.items.push(item)
-    sections.set(item.sectionId, current)
-  }
-
-  return [
-    ...WORLDWIRE_LANES.map((lane) => sections.get(lane.id)).filter(Boolean),
-    ...topics.map((topic) => sections.get(`topic-${topic.id}`)).filter(Boolean),
-    sections.get("inverted-files"),
-  ]
-    .filter((section): section is { id: string; title: string; items: NewsBoardItem[] } => Boolean(section?.items.length))
-    .map((section) => ({
-      ...section,
-      items: section.items.sort((left, right) => right.score - left.score).slice(0, 12),
-    }))
-}
-
 function hostKey(value: string) {
   try {
     return new URL(value).hostname.replace(/^www\./, "")
@@ -173,7 +152,6 @@ export default async function NewsPage() {
     allItems.filter((item) => item !== lead),
     { limit: 28, maxPerSection: 3, maxPerHost: 2 },
   )
-  const sections = groupedSections(allItems)
   const sourceCount = new Set(allItems.map((item) => hostKey(item.url))).size
   const laneCount = new Set(allItems.map((item) => item.sectionId)).size
 
@@ -231,33 +209,6 @@ export default async function NewsPage() {
           </div>
         </section>
       )}
-
-      <section className={cn("mt-5 p-3", archiveSurface)}>
-        <div className="mb-3 flex flex-wrap items-end justify-between gap-3 border-b border-[#f4efe2]/10 pb-3">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#df2f2f]">source sheet</p>
-            <h2 className="iw-serif text-4xl leading-none text-[#fff8e6]">The outside world, sorted by heat</h2>
-          </div>
-          <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/44">
-            original sources first
-          </span>
-        </div>
-        <div className="columns-1 gap-4 md:columns-2 xl:columns-3">
-          {sections.map((section) => (
-            <div key={section.id} className="mb-4 break-inside-avoid border-b border-[#f4efe2]/10 pb-3">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <h3 className="iw-serif text-3xl leading-none text-[#fff8e6]">{section.title}</h3>
-                <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#df2f2f]">{section.items.length}</span>
-              </div>
-              <div className="grid gap-1">
-                {section.items.map((item, index) => (
-                  <ExternalHeadline key={`${section.id}-${item.id}-${index}`} item={item} size={index === 0 ? "major" : "list"} />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
 
       {dossiers.length ? (
         <section className={cn("mt-5 grid gap-3 p-3", archiveSurface)}>
