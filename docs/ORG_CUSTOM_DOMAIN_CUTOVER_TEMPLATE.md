@@ -32,6 +32,8 @@ pnpm recursiv:domain:preflight -- \
   --expected-text="Product name" \
   --path=/health::ok \
   --path=/dashboard::"Product name" \
+  --json-check=/api/status::sourceMode::eq::recursiv-database \
+  --json-check=/api/status::itemCount::gte::12 \
   --output=/private/tmp/<org>-custom-domain-preflight.json \
   --require=hosted
 ```
@@ -40,7 +42,7 @@ The Recursiv slug host must return the expected app over HTTPS, and each require
 
 Use `--path=/route::expected text` for app-specific proof points. Good routes are health endpoints, public data APIs, logged-out dashboards, content pages, freshness/status endpoints, archive/category coverage endpoints, or other surfaces that prove the production app is more than a placeholder homepage.
 
-For content products, include at least one machine-readable breadth gate before DNS. Examples: a news API with minimum item count, source mode, direct source links, no boilerplate/template bodies, article detail pages with visible sources/context, and a working story-chat endpoint; an archive API with category coverage; a media-library item route; or a freshness endpoint tied to the latest publishing job.
+For content products, include at least one machine-readable breadth gate before DNS. Use `--json-check=/api/path::json.path::operator::expected` for structured JSON checks. Supported operators are `exists`, `truthy`, `falsy`, `eq`, `neq`, `contains`, `includes`, `gt`, `gte`, `lt`, and `lte`; use `.length` for array, string, or object counts. Examples: a news API with minimum item count, source mode, direct source links, no boilerplate/template bodies, article detail pages with visible sources/context, and a working story-chat endpoint; an archive API with category coverage; a media-library item route; or a freshness endpoint tied to the latest publishing job.
 
 ### 2. Recursiv Project Binding
 
@@ -68,6 +70,8 @@ pnpm recursiv:domain:preflight -- \
   --expected-text="Product name" \
   --path=/health::ok \
   --path=/dashboard::"Product name" \
+  --json-check=/api/status::sourceMode::eq::recursiv-database \
+  --json-check=/api/status::itemCount::gte::12 \
   --binding-proven \
   --output=/private/tmp/<org>-custom-domain-binding-proof.json \
   --require=dns-change
@@ -109,6 +113,8 @@ pnpm recursiv:domain:preflight -- \
   --expected-text="Product name" \
   --path=/health::ok \
   --path=/dashboard::"Product name" \
+  --json-check=/api/status::sourceMode::eq::recursiv-database \
+  --json-check=/api/status::itemCount::gte::12 \
   --binding-proven \
   --output=/private/tmp/<org>-custom-domain-cutover-proof.json \
   --require=cutover
@@ -157,7 +163,11 @@ pnpm recursiv:domain:preflight -- \
   --path=/news::"source sheet" \
   --path=/x/secret-programs::"Live X Stream" \
   --path=/api/release::"worldwire-persistence-v2" \
-  --path=/api/articles::"recursiv-snapshot" \
+  --json-check=/api/articles::sourceMode::eq::recursiv-snapshot \
+  --json-check=/api/articles::articleCount::gte::12 \
+  --json-check=/api/articles::externalSourceCount::gte::8 \
+  --json-check=/api/front-page::hasEdition::truthy \
+  --json-check=/api/front-page::breakingItems.length::gte::8 \
   --output=/private/tmp/inverted-world-domain-preflight.json \
   --require=hosted
 ```

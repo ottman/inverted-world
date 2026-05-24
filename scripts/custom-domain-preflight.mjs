@@ -83,6 +83,133 @@ function productRouteSpecs(defaultExpectedText) {
   return [...envRoutes, ...argValues("--path")].map((value) => parseRouteSpec(value, defaultExpectedText))
 }
 
+function parseJsonCheckSpec(value) {
+  const [rawPath, rawJsonPath, rawOperator, ...expectedParts] = String(value || "").split("::")
+  const routePath = normalizeRoutePath(rawPath)
+  const jsonPath = String(rawJsonPath || "").trim()
+  const operator = String(rawOperator || "exists").trim().toLowerCase()
+  const expected = expectedParts.join("::").trim()
+
+  if (!jsonPath) throw new Error(`JSON check is missing a path: ${value}`)
+
+  return {
+    path: routePath,
+    jsonPath,
+    operator,
+    expected: expected || undefined,
+  }
+}
+
+function jsonCheckSpecs() {
+  const envChecks = String(process.env.CUSTOM_DOMAIN_PREFLIGHT_JSON_CHECKS || "")
+    .split(/\n+/)
+    .map((value) => value.trim())
+    .filter(Boolean)
+  return [...envChecks, ...argValues("--json-check")].map(parseJsonCheckSpec)
+}
+
+function jsonPathSegments(jsonPath) {
+  const normalized = String(jsonPath || "")
+    .replace(/^\$\./, "")
+    .replace(/^\$/, "")
+    .replace(/\[(\d+)\]/g, ".$1")
+  return normalized
+    .split(".")
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+}
+
+function valueAtJsonPath(data, jsonPath) {
+  const segments = jsonPathSegments(jsonPath)
+  if (!segments.length) return data
+
+  let current = data
+  for (const segment of segments) {
+    if (current === undefined || current === null) return undefined
+    if (segment === "length") {
+      if (Array.isArray(current) || typeof current === "string") {
+        current = current.length
+        continue
+      }
+      if (typeof current === "object") {
+        current = Object.keys(current).length
+        continue
+      }
+      return undefined
+    }
+    if (Array.isArray(current) && /^\d+$/.test(segment)) {
+      current = current[Number(segment)]
+      continue
+    }
+    if (typeof current === "object" && segment in current) {
+      current = current[segment]
+      continue
+    }
+    return undefined
+  }
+  return current
+}
+
+function numericValue(value) {
+  const numeric = Number(value)
+  return Number.isFinite(numeric) ? numeric : undefined
+}
+
+function booleanish(value) {
+  if (typeof value === "boolean") return value
+  if (typeof value === "number") return value !== 0
+  if (typeof value === "string") return !["", "0", "false", "no", "null", "undefined"].includes(value.trim().toLowerCase())
+  return Boolean(value)
+}
+
+function primitivePreview(value) {
+  if (value === undefined) return undefined
+  if (value === null || ["string", "number", "boolean"].includes(typeof value)) return value
+  if (Array.isArray(value)) return { type: "array", length: value.length }
+  if (typeof value === "object") return { type: "object", keys: Object.keys(value).slice(0, 8) }
+  return String(value)
+}
+
+function evaluateJsonCheck(data, spec) {
+  const value = valueAtJsonPath(data, spec.jsonPath)
+  const expected = spec.expected
+  const operator = spec.operator
+  let ok = false
+
+  if (operator === "exists") {
+    ok = value !== undefined && value !== null
+  } else if (operator === "truthy") {
+    ok = booleanish(value)
+  } else if (operator === "falsy") {
+    ok = !booleanish(value)
+  } else if (operator === "eq") {
+    ok = String(value) === String(expected)
+  } else if (operator === "neq") {
+    ok = String(value) !== String(expected)
+  } else if (operator === "contains" || operator === "includes") {
+    ok = Array.isArray(value) ? value.map(String).includes(String(expected)) : String(value || "").includes(String(expected))
+  } else if (["gt", "gte", "lt", "lte"].includes(operator)) {
+    const actualNumber = numericValue(value)
+    const expectedNumber = numericValue(expected)
+    ok =
+      actualNumber !== undefined &&
+      expectedNumber !== undefined &&
+      ((operator === "gt" && actualNumber > expectedNumber) ||
+        (operator === "gte" && actualNumber >= expectedNumber) ||
+        (operator === "lt" && actualNumber < expectedNumber) ||
+        (operator === "lte" && actualNumber <= expectedNumber))
+  } else {
+    throw new Error(`Unsupported JSON check operator: ${operator}`)
+  }
+
+  return {
+    ...spec,
+    found: value !== undefined && value !== null,
+    value: primitivePreview(value),
+    ok,
+  }
+}
+
 async function probeHttp(url, expectedText, legacyProvider) {
   const started = Date.now()
   try {
@@ -137,6 +264,65 @@ function productRoutesReady(routes) {
   return routes.every((route) => route.ok && (route.expectedText ? route.containsExpectedText : true))
 }
 
+async function probeJsonCheckRoute(baseUrl, routePath, checks) {
+  const url = new URL(routePath, baseUrl).toString()
+  const started = Date.now()
+  try {
+    const response = await fetch(url, {
+      headers: { "user-agent": "RecursivCustomDomainPreflight/1.0" },
+      redirect: "manual",
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    })
+    const contentType = response.headers.get("content-type") || ""
+    const bodyText = await response.text()
+    let data
+    let parseOk = false
+    try {
+      data = JSON.parse(bodyText)
+      parseOk = true
+    } catch {
+      parseOk = false
+    }
+
+    return {
+      path: routePath,
+      url,
+      status: response.status,
+      ok: response.ok,
+      contentType,
+      parseOk,
+      checks: parseOk ? checks.map((check) => evaluateJsonCheck(data, check)) : checks.map((check) => ({ ...check, ok: false })),
+      durationMs: Date.now() - started,
+    }
+  } catch (error) {
+    return {
+      path: routePath,
+      url,
+      status: 0,
+      ok: false,
+      parseOk: false,
+      message: error instanceof Error ? error.message : String(error),
+      checks: checks.map((check) => ({ ...check, ok: false })),
+      durationMs: Date.now() - started,
+    }
+  }
+}
+
+async function probeJsonChecks(baseUrl, checks) {
+  const grouped = new Map()
+  for (const check of checks) {
+    const current = grouped.get(check.path) || []
+    current.push(check)
+    grouped.set(check.path, current)
+  }
+
+  return Promise.all([...grouped.entries()].map(([routePath, routeChecks]) => probeJsonCheckRoute(baseUrl, routePath, routeChecks)))
+}
+
+function jsonChecksReady(routes) {
+  return routes.every((route) => route.ok && route.parseOk && route.checks.every((check) => check.ok))
+}
+
 async function probeDns(hostname, legacyProvider, legacyIps) {
   const [cname, a, aaaa] = await Promise.all([
     dns.resolveCname(hostname).catch(() => []),
@@ -167,6 +353,9 @@ Options:
   --legacy-provider          Header/DNS provider string to flag as legacy. Defaults to ${DEFAULT_LEGACY_PROVIDER}.
   --legacy-ip                Legacy provider IP to flag. Repeatable. Defaults to known Vercel IPs when provider is Vercel.
   --path                     Product route to prove on the slug host and custom domain. Repeatable. Use /path::expected text to override expected text.
+  --json-check               Structured API gate. Repeatable. Format: /api/path::json.path::operator::expected.
+                             Operators: exists, truthy, falsy, eq, neq, contains, includes, gt, gte, lt, lte.
+                             Use .length for array/string/object counts, for example /api/articles::articleCount::gte::12.
   --binding-proven           Set only after the Recursiv project/domain binding has been proven.
   --output                   Write the redacted JSON proof packet to a file.
   --require=hosted           Exit nonzero unless the Recursiv slug host is proven.
@@ -210,26 +399,32 @@ async function main() {
   const requireMode = argValue("--require") || process.env.CUSTOM_DOMAIN_PREFLIGHT_REQUIRE || "none"
   const customHostname = normalizeHostname(customDomainUrl)
   const routes = productRouteSpecs(expectedText)
+  const jsonChecks = jsonCheckSpecs()
 
-  const [recursivHttp, customHttp, customDns, recursivProductRoutes, customDomainProductRoutes] = await Promise.all([
+  const [recursivHttp, customHttp, customDns, recursivProductRoutes, customDomainProductRoutes, recursivJsonChecks, customDomainJsonChecks] = await Promise.all([
     probeHttp(recursivUrl, expectedText, legacyProvider),
     probeHttp(customDomainUrl, expectedText, legacyProvider),
     probeDns(customHostname, legacyProvider, legacyIps),
     probeProductRoutes(recursivUrl, routes, legacyProvider),
     probeProductRoutes(customDomainUrl, routes, legacyProvider),
+    probeJsonChecks(recursivUrl, jsonChecks),
+    probeJsonChecks(customDomainUrl, jsonChecks),
   ])
 
   const recursivProductRoutesReady = productRoutesReady(recursivProductRoutes)
   const customDomainProductRoutesReady = productRoutesReady(customDomainProductRoutes)
+  const recursivJsonChecksReady = jsonChecksReady(recursivJsonChecks)
+  const customDomainJsonChecksReady = jsonChecksReady(customDomainJsonChecks)
   const recursivHostedUrlProven = Boolean(
-    recursivHttp.ok && (expectedText ? recursivHttp.containsExpectedText : true) && recursivProductRoutesReady,
+    recursivHttp.ok && (expectedText ? recursivHttp.containsExpectedText : true) && recursivProductRoutesReady && recursivJsonChecksReady,
   )
   const customDomainLooksLegacy = Boolean(customHttp.looksLikeLegacyProvider || customDns.looksLikeLegacyProvider)
   const customDomainAlreadyOnRecursiv = Boolean(
     customHttp.ok &&
       !customDomainLooksLegacy &&
       (expectedText ? customHttp.containsExpectedText : true) &&
-      customDomainProductRoutesReady,
+      customDomainProductRoutesReady &&
+      customDomainJsonChecksReady,
   )
   const dnsChangeReady = Boolean(recursivHostedUrlProven && bindingProven)
   const legacyCleanupReady = Boolean(bindingProven && customDomainAlreadyOnRecursiv)
@@ -238,11 +433,13 @@ async function main() {
   if (!recursivHostedUrlProven) {
     nextActions.push("Do not create or change custom-domain DNS until the Recursiv-hosted URL returns the expected app.")
     if (!recursivProductRoutesReady) nextActions.push("Fix the failing Recursiv-hosted product route checks before domain work.")
+    if (!recursivJsonChecksReady) nextActions.push("Fix the failing Recursiv-hosted structured JSON checks before domain work.")
   } else if (!bindingProven) {
     nextActions.push("Create and prove the Recursiv custom-domain binding before changing DNS.")
   } else if (!customDomainAlreadyOnRecursiv) {
     nextActions.push(`Change only ${customHostname} to the Recursiv target, then rerun this proof.`)
     if (!customDomainProductRoutesReady) nextActions.push("After DNS propagation, rerun proof until the custom domain product routes match the Recursiv app.")
+    if (!customDomainJsonChecksReady) nextActions.push("After DNS propagation, rerun proof until the custom domain structured JSON checks match the Recursiv app.")
   } else {
     nextActions.push("Custom domain appears to serve the Recursiv app; monitor before removing the legacy host binding.")
   }
@@ -257,21 +454,26 @@ async function main() {
       legacyProvider,
       legacyIps,
       productRoutes: routes,
+      jsonChecks,
       bindingProven,
       requireMode,
     },
     recursivHttp,
     recursivProductRoutes,
+    recursivJsonChecks,
     customDomain: {
       http: customHttp,
       dns: customDns,
       productRoutes: customDomainProductRoutes,
+      jsonChecks: customDomainJsonChecks,
     },
     decision: {
       recursivHostedUrlProven,
       recursivProductRoutesReady,
+      recursivJsonChecksReady,
       customDomainLooksLegacy,
       customDomainProductRoutesReady,
+      customDomainJsonChecksReady,
       customDomainAlreadyOnRecursiv,
       dnsChangeReady,
       legacyCleanupReady,

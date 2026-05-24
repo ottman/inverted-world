@@ -179,11 +179,13 @@ pnpm recursiv:domain:preflight -- \
   --expected-text="Customer" \
   --path=/health::ok \
   --path=/dashboard::"Customer" \
+  --json-check=/api/status::sourceMode::eq::recursiv-database \
+  --json-check=/api/status::itemCount::gte::12 \
   --output=/private/tmp/<org>-custom-domain-preflight.json \
   --require=hosted
 ```
 
-That command proves the current HTTP/DNS posture and required product routes without calling Recursiv deploy/status APIs. It does not replace the Recursiv custom-domain binding proof. Use `--path=/route::expected text` for app-specific health, API, dashboard, content, or data-readiness routes. Use `--require=dns-change` after the binding is proven and `--require=cutover` after DNS is changed to make the same proof suitable for CI or support handoff.
+That command proves the current HTTP/DNS posture and required product routes without calling Recursiv deploy/status APIs. It does not replace the Recursiv custom-domain binding proof. Use `--path=/route::expected text` for app-specific health, dashboard, or rendered content routes. Use `--json-check=/api/path::json.path::operator::expected` for structured API gates such as source mode, item counts, direct-source counts, freshness booleans, and ticker breadth. Supported operators are `exists`, `truthy`, `falsy`, `eq`, `neq`, `contains`, `includes`, `gt`, `gte`, `lt`, and `lte`; use `.length` for array, string, or object counts. Use `--require=dns-change` after the binding is proven and `--require=cutover` after DNS is changed to make the same proof suitable for CI or support handoff.
 
 ### 1. Intake
 
@@ -265,6 +267,8 @@ pnpm recursiv:domain:preflight -- \
   --expected-text="Customer" \
   --path=/health::ok \
   --path=/dashboard::"Customer" \
+  --json-check=/api/status::sourceMode::eq::recursiv-database \
+  --json-check=/api/status::itemCount::gte::12 \
   --binding-proven \
   --output=/private/tmp/<org>-custom-domain-cutover-proof.json \
   --require=cutover
