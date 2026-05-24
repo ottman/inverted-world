@@ -14,6 +14,7 @@
     "recursiv:backfill:x": "node scripts/backfill-x-signals.mjs",
     "recursiv:health": "node scripts/provider-health.mjs",
     "recursiv:readiness": "node scripts/provider-readiness.mjs",
+    "recursiv:db:probe": "node scripts/probe-recursiv-database-api.mjs",
     "recursiv:snapshot": "node scripts/export-recursiv-snapshots.mjs",
     "recursiv:snapshot:status": "node scripts/export-recursiv-snapshots.mjs --status",
     "recursiv:migration:status": "node scripts/recursiv-migration-status.mjs",

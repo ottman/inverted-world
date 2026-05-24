@@ -91,7 +91,7 @@ pnpm recursiv:snapshot
 
 The command writes the news/archive/X/front-page snapshot and the media/document snapshot from Recursiv Postgres. Use `pnpm recursiv:snapshot -- --dry-run` to validate counts without rewriting files. It should be run only from a local/proof environment with a protected direct database URL; do not add that URL to the repo or to public runtime code.
 
-`pnpm recursiv:snapshot:status` is safe for secrets: it prints key/file sources and redacted provider errors, not credentials. It reads committed local snapshot files and, when a local Recursiv API key is present, probes whether the Recursiv database list/query/credentials paths are actually usable. Treat `recursivApi.keyAvailable: true` as insufficient for refresh. Snapshot refresh through `--source=recursiv-api` is allowed only when `recursivApi.queryAvailable` / `recursivApi.usableForSnapshot` is true; otherwise repair the Recursiv database API path or use a protected direct database URL.
+`pnpm recursiv:snapshot:status` is safe for secrets: it prints key/file sources and redacted provider errors, not credentials. It reads committed local snapshot files and, when a local Recursiv API key is present, probes whether the Recursiv database list/query/credentials paths are actually usable. Treat `recursivApi.keyAvailable: true` as insufficient for refresh. Snapshot refresh through `--source=recursiv-api` is allowed only when `recursivApi.queryAvailable` / `recursivApi.usableForSnapshot` is true; otherwise repair the Recursiv database API path or use a protected direct database URL. Use `pnpm recursiv:db:probe` for a redacted control check that separates database listing, credential retrieval, and `SELECT 1` query failures.
 
 Trigger or inspect the Recursiv deployment with:
 

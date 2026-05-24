@@ -341,6 +341,12 @@ function mergeProbeError(result, error) {
   if (detail.message && !result.lastErrorMessage) result.lastErrorMessage = detail.message
 }
 
+function recordProbeError(result, key, error) {
+  const detail = providerErrorDetails(error)
+  result[key] = detail
+  mergeProbeError(result, error)
+}
+
 async function recursivApiCapabilityStatus(options = {}) {
   const keyStatus = recursivApiKeyStatus()
   const result = {
@@ -355,6 +361,9 @@ async function recursivApiCapabilityStatus(options = {}) {
     lastErrorStatus: undefined,
     lastErrorCode: undefined,
     lastErrorMessage: undefined,
+    databaseListError: undefined,
+    queryError: undefined,
+    credentialsError: undefined,
   }
 
   if (!keyStatus.keyAvailable) return result
@@ -375,7 +384,7 @@ async function recursivApiCapabilityStatus(options = {}) {
   const sdk = new Recursiv({
     apiKey: config.apiKey.value,
     baseUrl: config.baseUrl,
-    timeout: Math.min(config.timeoutMs, 15000),
+    timeout: config.timeoutMs,
     maxRetries: 0,
   })
 
@@ -387,7 +396,7 @@ async function recursivApiCapabilityStatus(options = {}) {
     result.databaseReady = Boolean(database && (!database.status || database.status === "ready"))
     result.databaseStatus = database?.status || null
   } catch (error) {
-    mergeProbeError(result, error)
+    recordProbeError(result, "databaseListError", error)
   }
 
   try {
@@ -399,7 +408,7 @@ async function recursivApiCapabilityStatus(options = {}) {
     })
     result.queryAvailable = true
   } catch (error) {
-    mergeProbeError(result, error)
+    recordProbeError(result, "queryError", error)
   }
 
   if (typeof sdk.databases.getCredentials === "function") {
@@ -410,7 +419,7 @@ async function recursivApiCapabilityStatus(options = {}) {
       })
       result.credentialsAvailable = true
     } catch (error) {
-      mergeProbeError(result, error)
+      recordProbeError(result, "credentialsError", error)
     }
   }
 

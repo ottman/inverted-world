@@ -137,6 +137,18 @@ function snapshotDeployWindowFreshness(deployWindow, snapshotStatus) {
   }
 }
 
+function recursivApiRepairAction(snapshotStatus) {
+  const credentialsCode = snapshotStatus.recursivApi?.credentialsError?.code
+  const queryCode = snapshotStatus.recursivApi?.queryError?.code
+  if (credentialsCode === "credentials_not_found") {
+    return "A Recursiv API key source exists and the database can be listed, but Recursiv database credentials are not available; repair the Recursiv Neon credentials path or add a protected direct database URL before refreshing snapshots."
+  }
+  if (queryCode === "query_failed") {
+    return "A Recursiv API key source exists and the database can be listed, but SELECT 1 fails through /databases/query; repair the Recursiv database query/credentials path or add a protected direct database URL before refreshing snapshots."
+  }
+  return "A Recursiv API key source exists, but Recursiv database query is not proven usable; repair the database API/credentials path or add a protected direct database URL before refreshing snapshots."
+}
+
 function nextActions({ deployWindow, snapshotStatus, localProof, publicProof, commitHash }) {
   const actions = []
   const deployFreshness = snapshotDeployWindowFreshness(deployWindow, snapshotStatus)
@@ -157,7 +169,7 @@ function nextActions({ deployWindow, snapshotStatus, localProof, publicProof, co
     if (recursivApiUsableForSnapshot) {
       actions.push("A Recursiv API key source is available; after API cooldown clears, pnpm recursiv:snapshot -- --source=recursiv-api can refresh without a direct database URL.")
     } else if (recursivApiKeyAvailable) {
-      actions.push("A Recursiv API key source exists, but Recursiv database query is not proven usable; repair the database API/credentials path or add a protected direct database URL before refreshing snapshots.")
+      actions.push(recursivApiRepairAction(snapshotStatus))
     } else {
       actions.push("No Recursiv API key source is available for snapshot refresh; add a protected direct database URL or local Recursiv API key before continuing.")
     }
@@ -188,6 +200,18 @@ function nextActions({ deployWindow, snapshotStatus, localProof, publicProof, co
   }
 
   return [...new Set(actions)]
+}
+
+function errorCode(error) {
+  return error?.code || null
+}
+
+function errorStatus(error) {
+  return error?.status || null
+}
+
+function errorMessage(error) {
+  return error?.message || null
 }
 
 async function main() {
@@ -231,6 +255,12 @@ async function main() {
       recursivApiLastErrorStatus: snapshotStatus.recursivApi?.lastErrorStatus,
       recursivApiLastErrorCode: snapshotStatus.recursivApi?.lastErrorCode,
       recursivApiLastErrorMessage: snapshotStatus.recursivApi?.lastErrorMessage,
+      recursivApiQueryErrorStatus: errorStatus(snapshotStatus.recursivApi?.queryError),
+      recursivApiQueryErrorCode: errorCode(snapshotStatus.recursivApi?.queryError),
+      recursivApiQueryErrorMessage: errorMessage(snapshotStatus.recursivApi?.queryError),
+      recursivApiCredentialsErrorStatus: errorStatus(snapshotStatus.recursivApi?.credentialsError),
+      recursivApiCredentialsErrorCode: errorCode(snapshotStatus.recursivApi?.credentialsError),
+      recursivApiCredentialsErrorMessage: errorMessage(snapshotStatus.recursivApi?.credentialsError),
       snapshotRefreshPathAvailable: Boolean(
         snapshotStatus.databaseUrl?.available || snapshotStatus.recursivApi?.usableForSnapshot || snapshotStatus.recursivApi?.queryAvailable,
       ),

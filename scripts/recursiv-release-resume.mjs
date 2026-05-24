@@ -92,7 +92,7 @@ function commandPlan(status) {
     ? "pnpm recursiv:snapshot"
     : status.snapshot?.recursivApiUsableForSnapshot
       ? "pnpm recursiv:snapshot -- --source=recursiv-api"
-      : "Repair Recursiv database query/credentials or add /private/tmp/inverted-world-database-url before running pnpm recursiv:snapshot."
+      : `${snapshotRefreshRepairDetail(status)} Then run pnpm recursiv:snapshot.`
   const commands = [
     command({
       id: "status",
@@ -200,6 +200,21 @@ function commandPlan(status) {
   return commands
 }
 
+function snapshotRefreshRepairDetail(status) {
+  if (!status.snapshot?.recursivApiKeyAvailable) {
+    return "Neither a protected direct database URL nor a usable Recursiv API database query path is available."
+  }
+  const credentialsCode = status.snapshot?.recursivApiCredentialsErrorCode
+  const queryCode = status.snapshot?.recursivApiQueryErrorCode
+  if (credentialsCode === "credentials_not_found") {
+    return "Recursiv can list the database, but database credentials are not available; repair the Recursiv Neon credentials path or add a protected direct database URL."
+  }
+  if (queryCode === "query_failed") {
+    return "Recursiv can list the database, but SELECT 1 fails through /databases/query; repair the Recursiv database query/credentials path or add a protected direct database URL."
+  }
+  return "A Recursiv API key source exists, but database query is not proven usable; repair the Recursiv database API/credentials path or add a protected direct database URL."
+}
+
 function blockers(status) {
   const items = []
   if (status.deployWindow?.cooldownActive) {
@@ -217,10 +232,7 @@ function blockers(status) {
   if (!status.snapshot?.snapshotRefreshPathAvailable) {
     items.push({
       id: "snapshot-refresh-path-unavailable",
-      detail:
-        status.snapshot?.recursivApiKeyAvailable
-          ? "A Recursiv API key source exists, but database query is not proven usable; repair the Recursiv database API/credentials path or add a protected direct database URL."
-          : "Neither a protected direct database URL nor a usable Recursiv API database query path is available.",
+      detail: snapshotRefreshRepairDetail(status),
     })
   }
   if (status.dns?.keepDnsOnVercel) {
