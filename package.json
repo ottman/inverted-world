@@ -17,6 +17,7 @@
     "recursiv:snapshot": "node scripts/export-recursiv-snapshots.mjs",
     "recursiv:snapshot:status": "node scripts/export-recursiv-snapshots.mjs --status",
     "recursiv:migration:status": "node scripts/recursiv-migration-status.mjs",
+    "recursiv:migration:next": "node scripts/recursiv-release-resume.mjs",
     "recursiv:manifest:audit": "node scripts/audit-recursiv-manifest.mjs",
     "recursiv:cutover": "node scripts/cutover-readiness.mjs",
     "recursiv:cutover:public": "node scripts/cutover-readiness.mjs --public-only",

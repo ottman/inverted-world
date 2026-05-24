@@ -104,12 +104,13 @@ Preview the deployment payload without calling Recursiv:
 
 ```bash
 pnpm recursiv:migration:status
+pnpm recursiv:migration:next
 pnpm recursiv:deploy:window
 pnpm recursiv:deploy:dry-run
 pnpm recursiv:deploy:dry-run -- --custom-domain=www.inverted.world
 ```
 
-`recursiv:migration:status` is the fastest operator packet during cooldowns. It does not call Recursiv; it combines the deploy window, snapshot freshness, latest local proof, latest public proof, and DNS decision into one no-secret JSON report. `recursiv:deploy:window` is the narrower deploy-only check; it prints whether the local deploy guard is ready, the exact current commit payload for `www.inverted.world`, the next allowed retry time, the next command to run, and whether the committed Recursiv snapshot is fresh enough for a deployment proof. The deploy helper refuses an actual deploy when the local snapshot freshness gate is already failed unless an operator deliberately passes `--skip-snapshot-preflight`.
+`recursiv:migration:status` is the fastest operator packet during cooldowns. It does not call Recursiv; it combines the deploy window, snapshot freshness, latest local proof, latest public proof, and DNS decision into one no-secret JSON report. `recursiv:migration:next` turns that status into a guarded resume plan with exact commands for snapshot refresh, build, slug deploy, hosted proof, custom-domain binding, binding proof, and the final manual DNS step. It marks which commands call the Recursiv API and keeps DNS as an explicit last manual action. `recursiv:deploy:window` is the narrower deploy-only check; it prints whether the local deploy guard is ready, the exact current commit payload for `www.inverted.world`, the next allowed retry time, the next command to run, and whether the committed Recursiv snapshot is fresh enough for a deployment proof. The deploy helper refuses an actual deploy when the local snapshot freshness gate is already failed unless an operator deliberately passes `--skip-snapshot-preflight`.
 
 Create the pre-DNS custom-domain binding after public hosting and Recursiv API health are green:
 
