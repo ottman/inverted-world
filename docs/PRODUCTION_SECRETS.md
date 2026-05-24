@@ -39,6 +39,18 @@ The second option is fine if access controls are strict and only this app's prod
 
 The Recursiv project and database are configured for `invertedworld`. Keep provider keys inside Recursiv/Infisical, prove `invertedworld.on.recursiv.io`, then cut over `www.inverted.world`. Do not remove the Vercel domain binding until Recursiv HTTP proof is green.
 
+## Local Snapshot Refresh
+
+The committed Recursiv snapshot is a public fallback, but refreshing it requires a protected direct Postgres URL from the Recursiv database. Keep that URL local-only:
+
+```bash
+chmod 600 /private/tmp/inverted-world-database-url
+pnpm recursiv:snapshot:status
+pnpm recursiv:snapshot
+```
+
+The snapshot exporter also accepts `RECURSIV_DATABASE_URL_FILE`, `DATABASE_URL_FILE`, `RECURSIV_DATABASE_URL`, `RECURSIV_DIRECT_DATABASE_URL`, `INVERTED_WORLD_DATABASE_URL`, `DATABASE_URL`, `POSTGRES_URL`, and `RECURSIV_POSTGRES_URL`. Prefer the file path form for proof runs so the URL does not appear in shell history, committed files, or command output.
+
 ## Readiness Proof
 
 - `pnpm recursiv:health` checks local/proof provider access without printing key values.
