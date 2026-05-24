@@ -52,10 +52,11 @@ The worldwire job keeps persisted rows compact: each stored item keeps the sourc
 If only scheduled job endpoints need repair, run:
 
 ```bash
+pnpm recursiv:manifest:audit
 pnpm recursiv:provision -- --jobs-only
 ```
 
-That path skips database/schema/storage setup and updates the Recursiv cron jobs only. Use it after a deployment when the schema is already established or when the full provision path is blocked by database API rate limits.
+The audit is a no-network manifest check: it verifies the desired tables, provisioned job list, cutover expected jobs, route files, and required `async=1`/`profileReader=1` scheduler options still match. The `--jobs-only` path skips database/schema/storage setup and updates the Recursiv cron jobs only. Use it after a deployment when the schema is already established or when the full provision path is blocked by database API rate limits.
 
 ## First Tables
 
