@@ -201,7 +201,7 @@ function BreakingTicker({ items }: { items?: BreakingItem[] }) {
                   key={`${item.href}-${item.title}-${index}`}
                   href={item.href}
                   target={external ? "_blank" : undefined}
-                  rel={external ? "noreferrer" : undefined}
+                  rel={external ? "noopener noreferrer" : undefined}
                   className="group flex shrink-0 items-center gap-2 text-[11px] uppercase tracking-[0.1em] text-[#f4efe2]/62 transition hover:text-[#fff8e6]"
                 >
                   <span className="max-w-[72vw] truncate sm:max-w-[420px]">{item.title}</span>
@@ -243,7 +243,7 @@ function SimpleFooter() {
             key={link.href}
             href={link.href}
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             aria-label={link.label}
             className="grid h-9 w-9 place-items-center bg-[#070706]/30 text-[#f4efe2]/62 transition hover:bg-[#df2f2f]/12 hover:text-[#fff8e6]"
           >
@@ -289,7 +289,7 @@ export function ExternalAction({ href, children }: { href: string; children: Rea
     <a
       href={href}
       target="_blank"
-      rel="noreferrer"
+      rel="noopener noreferrer"
       className={cn(
         "inline-flex h-10 items-center gap-2 rounded-md bg-[#070706]/22 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-[#df2f2f]/12",
         archiveSurface,

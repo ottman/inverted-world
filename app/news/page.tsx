@@ -364,7 +364,7 @@ function ExternalHeadline({ item, size }: { item: NewsBoardItem; size: "lead" | 
       <a
         href={item.url}
         target="_blank"
-        rel="noreferrer"
+        rel="noopener noreferrer"
         className={cn(
           "block min-w-0",
           showThumb && size !== "lead" && size !== "major" && "grid grid-cols-[76px_minmax(0,1fr)] items-start gap-2",

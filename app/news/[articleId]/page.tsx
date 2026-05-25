@@ -265,7 +265,7 @@ export default async function NewsArticlePage({ params }: PageProps) {
               <a
                 href={source.url}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="mt-6 inline-flex items-center gap-2 bg-[#df2f2f]/12 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-[#df2f2f]/20"
               >
                 Read primary source
@@ -289,7 +289,7 @@ export default async function NewsArticlePage({ params }: PageProps) {
                   key={source.url}
                   href={source.url}
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   className="grid gap-2 bg-black/28 p-3 transition hover:bg-black/54 sm:grid-cols-[minmax(0,1fr)_auto]"
                 >
                   <span>

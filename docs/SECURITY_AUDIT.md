@@ -83,10 +83,6 @@ The new in-memory limiter is a local guard, not a distributed production abuse s
 Recommended fix:
 Move rate limiting to a durable Recursiv/edge-backed store, add a per-session daily budget, and consider auth or proof-of-work/CAPTCHA for agent-backed responses.
 
-### Medium: Markdown link rendering should include `noopener`
-
-The chat Markdown renderer limits links to `http(s)` and relative URLs and React escapes text, which reduces XSS risk. External links currently use `rel="noreferrer"`; add `noopener` explicitly for defense in depth.
-
 ### Medium: Public release/status endpoints expose operational metadata
 
 `/api/release` and `/api/pipeline` intentionally expose project/release/read-health information. This is useful for operations but gives attackers reconnaissance data.

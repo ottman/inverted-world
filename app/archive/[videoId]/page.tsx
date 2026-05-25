@@ -158,7 +158,7 @@ export default async function ArchiveVideoPage({ params }: PageProps) {
             <a
               href={youtubeUrl}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-2 bg-[#df2f2f]/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-[#df2f2f]/18"
             >
               Watch on YouTube

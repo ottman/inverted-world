@@ -130,7 +130,7 @@ export function XSignalPage({ topic, initialPosts }: { topic: ContentTopic; init
               id={xPostAnchorId(post)}
               href={xPostExternalHref(post)}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               className="group grid min-h-[172px] scroll-mt-36 gap-5 bg-[#050504]/46 p-4 transition target:ring-1 target:ring-[#df2f2f]/70 hover:bg-black/72"
             >
               <div>
@@ -154,7 +154,7 @@ export function XSignalPage({ topic, initialPosts }: { topic: ContentTopic; init
           <a
             href={getTopicXSearchUrl(topic)}
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             className="inline-flex h-10 items-center justify-center gap-2 bg-[#df2f2f]/12 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-[#df2f2f]/22"
           >
             Open X search
@@ -166,7 +166,7 @@ export function XSignalPage({ topic, initialPosts }: { topic: ContentTopic; init
                 key={link.href}
                 href={link.href}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="flex items-center justify-between gap-3 bg-[#050504]/36 p-3 text-xs uppercase tracking-[0.12em] text-[#f4efe2]/58 transition hover:bg-black/62 hover:text-[#fff8e6]"
               >
                 {link.label}

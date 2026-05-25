@@ -364,7 +364,7 @@ function renderInlineMarkdown(value: string) {
           key={`link-${match.index}`}
           href={match[3]}
           target={match[3].startsWith("http") ? "_blank" : undefined}
-          rel={match[3].startsWith("http") ? "noreferrer" : undefined}
+          rel={match[3].startsWith("http") ? "noopener noreferrer" : undefined}
           className="text-[#dff7ff] underline decoration-[#df2f2f]/45 underline-offset-4 transition hover:text-[#fff8e6]"
         >
           {match[2]}
@@ -394,7 +394,7 @@ function renderInlineMarkdown(value: string) {
           key={`url-${match.index}`}
           href={match[7]}
           target="_blank"
-          rel="noreferrer"
+          rel="noopener noreferrer"
           className="text-[#dff7ff] underline decoration-[#df2f2f]/45 underline-offset-4 transition hover:text-[#fff8e6]"
         >
           {match[7]}

@@ -241,7 +241,7 @@ export function ArchiveOnlyPage({
               <a
                 href={leadVideoIsArchiveItem ? `/archive/${leadVideo.videoId}` : leadVideo.href}
                 target={leadVideoIsArchiveItem ? undefined : "_blank"}
-                rel={leadVideoIsArchiveItem ? undefined : "noreferrer"}
+                rel={leadVideoIsArchiveItem ? undefined : "noopener noreferrer"}
                 className="inline-flex h-10 items-center gap-2 bg-[#df2f2f]/10 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-[#df2f2f]/18"
               >
                 {leadVideoIsArchiveItem ? "Details" : "Watch live"}
@@ -385,7 +385,7 @@ function EmbeddedTweetGrid({ posts, topicId }: { posts: ViralXPost[]; topicId: s
       <a
         href={topic ? getTopicXSearchUrl(topic) : `/x/${topicId}`}
         target={topic ? "_blank" : undefined}
-        rel={topic ? "noreferrer" : undefined}
+        rel={topic ? "noopener noreferrer" : undefined}
         className="block bg-black p-4 text-sm leading-6 text-[#f4efe2]/62 transition hover:text-[#fff8e6]"
       >
         Open live X search for this lane.
