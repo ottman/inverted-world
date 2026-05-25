@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { checkRateLimit, rateLimitResponse, readLimitedJsonBody, requestClientId } from "@/lib/api-security"
 import { createRecursivServerClient } from "@/lib/recursiv/client"
 import { fetchRecursivDossierChatMessages, getRecursivClaimDossier, type ClaimDossier } from "@/lib/recursiv/content"
 import { xPostExternalHref } from "@/lib/x-links"
@@ -14,10 +15,20 @@ type RouteContext = {
 
 type RecursivClient = ReturnType<typeof createRecursivServerClient>
 type ChatMode = "agent" | "context-fallback"
+const CHAT_BODY_LIMIT_BYTES = 16_384
+const CHAT_POST_RATE_LIMIT = { max: 8, windowMs: 60_000 }
+const CHAT_GET_RATE_LIMIT = { max: 60, windowMs: 60_000 }
 
 function trimMessage(value: unknown) {
   if (typeof value !== "string") return ""
   return value.replace(/\s+/g, " ").trim().slice(0, 1200)
+}
+
+function normalizeConversationId(value: unknown) {
+  if (typeof value !== "string") return undefined
+  const normalized = value.trim()
+  if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(normalized)) return undefined
+  return normalized
 }
 
 function dossierContext(dossier: ClaimDossier) {
@@ -223,6 +234,10 @@ function fallbackConversationId(dossier: ClaimDossier, conversationId?: string) 
 }
 
 export async function GET(request: Request, { params }: RouteContext) {
+  const clientId = requestClientId(request)
+  const rate = checkRateLimit(`dossier-chat:get:${clientId}`, CHAT_GET_RATE_LIMIT)
+  if (!rate.ok) return rateLimitResponse(rate)
+
   const dossier = await getRecursivClaimDossier(params.slug)
   if (!dossier) {
     return NextResponse.json({ error: "Dossier not found" }, { status: 404 })
@@ -230,10 +245,12 @@ export async function GET(request: Request, { params }: RouteContext) {
 
   const url = new URL(request.url)
   const limit = Number(url.searchParams.get("limit") || "8")
-  const messages = (await fetchRecursivDossierChatMessages(dossier.slug, { limit })) || []
+  const conversationId = normalizeConversationId(url.searchParams.get("conversationId"))
+  const messages = conversationId ? (await fetchRecursivDossierChatMessages(dossier.slug, { limit, conversationId })) || [] : []
 
   return NextResponse.json({
     dossierSlug: dossier.slug,
+    conversationId,
     generatedAt: new Date().toISOString(),
     count: messages.length,
     messages,
@@ -241,19 +258,26 @@ export async function GET(request: Request, { params }: RouteContext) {
 }
 
 export async function POST(request: Request, { params }: RouteContext) {
+  const clientId = requestClientId(request)
+  const rate = checkRateLimit(`dossier-chat:post:${params.slug}:${clientId}`, CHAT_POST_RATE_LIMIT)
+  if (!rate.ok) return rateLimitResponse(rate)
+
   const dossier = await getRecursivClaimDossier(params.slug)
   if (!dossier) {
     return NextResponse.json({ error: "Dossier not found" }, { status: 404 })
   }
 
-  const body = (await request.json().catch(() => ({}))) as {
+  const parsedBody = await readLimitedJsonBody<{
     message?: unknown
     conversationId?: unknown
     contextOnly?: unknown
     persist?: unknown
-  }
+  }>(request, CHAT_BODY_LIMIT_BYTES)
+  if (!parsedBody.ok) return parsedBody.response
+
+  const body = parsedBody.body
   const message = trimMessage(body.message)
-  const conversationId = typeof body.conversationId === "string" ? body.conversationId : undefined
+  const conversationId = normalizeConversationId(body.conversationId)
   const contextOnly = body.contextOnly === true
   const shouldPersist = body.persist !== false
   if (!message) {

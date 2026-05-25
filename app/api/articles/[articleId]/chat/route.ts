@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import type { IntelligenceArticle } from "@/data/intelligence-articles"
 import { featuredVideos, researchDocuments } from "@/data/inverted-world"
+import { checkRateLimit, rateLimitResponse, readLimitedJsonBody, requestClientId } from "@/lib/api-security"
 import { getArticleById } from "@/lib/live-articles"
 
 export const dynamic = "force-dynamic"
@@ -12,6 +13,9 @@ type RouteContext = {
   }
 }
 
+const CHAT_BODY_LIMIT_BYTES = 16_384
+const CHAT_POST_RATE_LIMIT = { max: 12, windowMs: 60_000 }
+
 type ArticleLink = {
   title: string
   url: string
@@ -21,6 +25,13 @@ type ArticleLink = {
 function trimMessage(value: unknown) {
   if (typeof value !== "string") return ""
   return value.replace(/\s+/g, " ").trim().slice(0, 1200)
+}
+
+function normalizeConversationId(value: unknown) {
+  if (typeof value !== "string") return undefined
+  const normalized = value.trim()
+  if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(normalized)) return undefined
+  return normalized
 }
 
 function isExternalUrl(value?: string) {
@@ -157,17 +168,24 @@ export async function GET(_request: Request, { params }: RouteContext) {
 }
 
 export async function POST(request: Request, { params }: RouteContext) {
+  const clientId = requestClientId(request)
+  const rate = checkRateLimit(`article-chat:post:${params.articleId}:${clientId}`, CHAT_POST_RATE_LIMIT)
+  if (!rate.ok) return rateLimitResponse(rate)
+
   const article = await getArticleById(params.articleId, { allowProviderFallbacks: false })
   if (!article) {
     return NextResponse.json({ error: "Article not found" }, { status: 404 })
   }
 
-  const body = (await request.json().catch(() => ({}))) as {
+  const parsedBody = await readLimitedJsonBody<{
     message?: unknown
     conversationId?: unknown
-  }
+  }>(request, CHAT_BODY_LIMIT_BYTES)
+  if (!parsedBody.ok) return parsedBody.response
+
+  const body = parsedBody.body
   const message = trimMessage(body.message)
-  const conversationId = typeof body.conversationId === "string" ? body.conversationId : undefined
+  const conversationId = normalizeConversationId(body.conversationId)
   if (!message) {
     return NextResponse.json({ error: "Message is required" }, { status: 400 })
   }

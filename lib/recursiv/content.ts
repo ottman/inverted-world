@@ -1865,8 +1865,11 @@ export async function getLatestRecursivPipelineRun(jobName = "full-pipeline") {
   return runs?.[0] ?? null
 }
 
-export async function fetchRecursivDossierChatMessages(slug: string, options: { limit?: number } = {}) {
+export async function fetchRecursivDossierChatMessages(slug: string, options: { limit?: number; conversationId?: string } = {}) {
   const limit = Math.max(1, Math.min(Math.trunc(options.limit || 8), 25))
+  const conversationId = options.conversationId?.trim()
+  if (!conversationId) return []
+
   const rows = await queryInvertedWorldDatabase<ClaimChatMessageRow>(
     `SELECT
       id,
@@ -1878,10 +1881,10 @@ export async function fetchRecursivDossierChatMessages(slug: string, options: { 
       metadata,
       created_at
     FROM claim_chat_messages
-    WHERE dossier_slug = $1
+    WHERE dossier_slug = $1 AND conversation_id = $2
     ORDER BY created_at DESC
-    LIMIT $2`,
-    [slug, limit],
+    LIMIT $3`,
+    [slug, conversationId, limit],
   )
 
   return rows?.map(claimChatMessageRowToMessage).reverse() ?? null

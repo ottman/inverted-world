@@ -243,6 +243,7 @@ export const INVERTED_WORLD_SCHEMA_SQL = [
     created_at TIMESTAMPTZ DEFAULT now()
   )`,
   "CREATE INDEX IF NOT EXISTS claim_chat_messages_dossier_created_idx ON claim_chat_messages (dossier_slug, created_at DESC)",
+  "CREATE INDEX IF NOT EXISTS claim_chat_messages_conversation_created_idx ON claim_chat_messages (dossier_slug, conversation_id, created_at DESC)",
   `CREATE TABLE IF NOT EXISTS front_page_editions (
     id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
     slug TEXT NOT NULL UNIQUE,

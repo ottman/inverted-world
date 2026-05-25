@@ -29,21 +29,39 @@ const DEFAULT_SUGGESTIONS = [
   "What does the Tales archive add?",
 ]
 
+function randomConversationId(slug: string) {
+  const suffix =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
+  return `chat-${slug}-${suffix}`.replace(/[^A-Za-z0-9_-]/g, "-").slice(0, 128)
+}
+
 export function DossierChat({ slug, endpoint, emptyText, suggestions }: DossierChatProps) {
   const chatEndpoint = endpoint || `/api/dossiers/${slug}/chat`
   const promptSuggestions = (suggestions?.length ? suggestions : DEFAULT_SUGGESTIONS).slice(0, 4)
   const [message, setMessage] = useState("")
-  const [conversationId, setConversationId] = useState<string | undefined>()
+  const [conversationId, setConversationId] = useState("")
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
   useEffect(() => {
+    const storageKey = `inverted-world-chat:${slug}`
+    const stored = window.localStorage.getItem(storageKey)
+    const nextConversationId = stored || randomConversationId(slug)
+    window.localStorage.setItem(storageKey, nextConversationId)
+    setConversationId(nextConversationId)
+  }, [slug])
+
+  useEffect(() => {
+    if (!conversationId) return
     let active = true
 
     async function loadMessages() {
       try {
-        const historyUrl = chatEndpoint.includes("?") ? `${chatEndpoint}&limit=6` : `${chatEndpoint}?limit=6`
+        const separator = chatEndpoint.includes("?") ? "&" : "?"
+        const historyUrl = `${chatEndpoint}${separator}limit=6&conversationId=${encodeURIComponent(conversationId)}`
         const response = await fetch(historyUrl, {
           headers: { accept: "application/json" },
         })
@@ -58,7 +76,7 @@ export function DossierChat({ slug, endpoint, emptyText, suggestions }: DossierC
         })
         setMessages(hydrated)
         const latestConversationId = [...data.messages].reverse().find((item) => item.conversationId)?.conversationId
-        setConversationId(latestConversationId)
+        if (latestConversationId) setConversationId(latestConversationId)
       } catch {
         // History is a convenience layer; posting a new question should still work if this read fails.
       }
@@ -69,11 +87,13 @@ export function DossierChat({ slug, endpoint, emptyText, suggestions }: DossierC
     return () => {
       active = false
     }
-  }, [chatEndpoint])
+  }, [chatEndpoint, conversationId])
 
   async function submit(nextMessage?: string) {
     const value = (nextMessage ?? message).replace(/\s+/g, " ").trim()
     if (!value || loading) return
+    const nextConversationId = conversationId || randomConversationId(slug)
+    if (!conversationId) setConversationId(nextConversationId)
 
     setLoading(true)
     setError("")
@@ -84,11 +104,13 @@ export function DossierChat({ slug, endpoint, emptyText, suggestions }: DossierC
       const response = await fetch(chatEndpoint, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ message: value, conversationId }),
+        body: JSON.stringify({ message: value, conversationId: nextConversationId }),
       })
       const data = (await response.json()) as { response?: string; conversationId?: string; error?: string }
       if (!response.ok) throw new Error(data.error || `Chat returned ${response.status}`)
-      setConversationId(data.conversationId)
+      const responseConversationId = data.conversationId || nextConversationId
+      window.localStorage.setItem(`inverted-world-chat:${slug}`, responseConversationId)
+      setConversationId(responseConversationId)
       setMessages((current) => [...current, { role: "assistant", text: data.response || "" }])
     } catch (error) {
       setError(error instanceof Error ? error.message : "Chat failed")
