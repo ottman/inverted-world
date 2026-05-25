@@ -3,7 +3,6 @@ import {
   decodeWorldwireEntities,
   hostName,
   isExternalUrl,
-  isGoogleNewsUrl,
   looksLikeArticleUrl,
   normalizeWorldwireText,
   readWorldwireXmlSource,
@@ -15,6 +14,24 @@ import {
   type WorldwireItem,
   type WorldwireLane,
 } from "@/lib/worldwire"
+
+const GOOGLE_LANE_QUERIES: Record<string, string> = {
+  "front-page": "breaking news live",
+  world: "world news crisis",
+  war: "war military strike",
+  america: "US politics investigation",
+  "law-courts": "court ruling trial",
+  "power-files": "classified documents leak",
+  money: "markets economy fraud",
+  "tech-ai": "AI cyberattack surveillance",
+  "energy-grid": "energy grid blackout",
+  "health-earth": "outbreak disaster weather",
+  "science-space": "NASA space discovery",
+  "crime-culture": "crime culture scandal",
+  "media-internet": "media internet censorship",
+  "sports-spectacle": "sports scandal controversy",
+  strange: "UFO UAP mystery",
+}
 
 async function fetchExaLane(lane: WorldwireLane): Promise<WorldwireItem[]> {
   const apiKey = process.env.EXA_API_KEY || process.env.EXA_SEARCH_API_KEY
@@ -127,9 +144,24 @@ async function fetchBraveLane(lane: WorldwireLane): Promise<WorldwireItem[]> {
     })
 }
 
+function decodeGoogleNewsArticleUrl(value: string) {
+  try {
+    const url = new URL(value)
+    const encoded = url.pathname.split("/").filter(Boolean).pop()
+    if (!encoded) return ""
+
+    const normalized = encoded.replace(/-/g, "+").replace(/_/g, "/")
+    const decoded = Buffer.from(normalized, "base64").toString("utf8")
+    const match = decoded.match(/https?:\/\/[^\s"'<>\\\u0000-\u001F]+/i)
+    return match ? decodeWorldwireEntities(match[0]) : ""
+  } catch {
+    return ""
+  }
+}
+
 async function fetchGoogleLane(lane: WorldwireLane): Promise<WorldwireItem[]> {
   const url = new URL("https://news.google.com/rss/search")
-  url.searchParams.set("q", `${lane.query} when:1d`)
+  url.searchParams.set("q", `${GOOGLE_LANE_QUERIES[lane.id] || lane.title} when:1d`)
   url.searchParams.set("hl", "en-US")
   url.searchParams.set("gl", "US")
   url.searchParams.set("ceid", "US:en")
@@ -151,12 +183,13 @@ async function fetchGoogleLane(lane: WorldwireLane): Promise<WorldwireItem[]> {
       const title = readWorldwireXmlTag(item, "title")
       const link = decodeWorldwireEntities(readWorldwireXmlTag(item, "link"))
       const source = readWorldwireXmlSource(item)
-      const directUrl = link && !isGoogleNewsUrl(link) ? link : source.url || ""
+      const decodedUrl = decodeGoogleNewsArticleUrl(link)
+      const directUrl = decodedUrl || (link && isExternalUrl(link) ? link : source.url || "")
       return {
         id: `google-${lane.id}-${index}`,
         title,
         url: directUrl || source.url || "https://news.google.com/",
-        source: sourceLabel(source.name, directUrl || link),
+        source: sourceLabel(source.name, decodedUrl || source.url || link),
         sectionId: lane.id,
         sectionTitle: lane.title,
         score: scoreWorldwireTitle(title, 92, index, { source: source.name, url: directUrl }),
@@ -164,13 +197,13 @@ async function fetchGoogleLane(lane: WorldwireLane): Promise<WorldwireItem[]> {
         excerpt: readWorldwireXmlTag(item, "description"),
       }
     })
-    .filter((item) => !isGoogleNewsUrl(item.url) && looksLikeArticleUrl(item.url))
+    .filter((item) => isExternalUrl(item.url) && looksLikeArticleUrl(item.url))
 }
 
 async function fetchLane(lane: WorldwireLane) {
   const results = await Promise.allSettled([fetchExaLane(lane), fetchBraveLane(lane), fetchGoogleLane(lane)])
   return uniqueWorldwireItems(results.flatMap((result) => (result.status === "fulfilled" ? result.value : [])))
-    .filter((item) => isExternalUrl(item.url) && !isGoogleNewsUrl(item.url) && looksLikeArticleUrl(item.url))
+    .filter((item) => isExternalUrl(item.url) && looksLikeArticleUrl(item.url))
     .sort((left, right) => right.score - left.score)
 }
 

@@ -8,12 +8,12 @@ import { fetchLiveArticlesByTopic } from "@/lib/live-articles"
 import {
   fetchRecursivClaimDossiers,
   fetchRecursivWorldwireItems,
-  getLatestRecursivFrontPageEdition,
   type ClaimDossier,
   type ClaimSourceLink,
 } from "@/lib/recursiv/content"
 import { cn } from "@/lib/utils"
 import {
+  WORLDWIRE_LANES,
   isExternalUrl,
   isGoogleNewsUrl,
   looksLikeArticleUrl,
@@ -89,8 +89,8 @@ function uniqueItems(items: NewsBoardItem[]) {
     const key = `${item.url.replace(/\/$/, "")}:${item.title.toLowerCase()}`
     if (seen.has(key)) continue
     seen.add(key)
-    if (isGoogleNewsUrl(item.url) || !looksLikeArticleUrl(item.url)) continue
-    unique.push({ ...item, source: sourceLabel(item.source, item.url) })
+    if (!looksLikeArticleUrl(item.url)) continue
+    unique.push({ ...item, source: sourceLabel(item.source, isGoogleNewsUrl(item.url) ? undefined : item.url) })
   }
   return unique
 }
@@ -101,6 +101,26 @@ function hostKey(value: string) {
   } catch {
     return "source"
   }
+}
+
+function dayKey(value: Date) {
+  return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`
+}
+
+function itemDate(item: NewsBoardItem) {
+  const date = item.publishedAt ? new Date(item.publishedAt) : null
+  return date && !Number.isNaN(date.getTime()) ? date : null
+}
+
+function isTodayItem(item: NewsBoardItem, today = dayKey(new Date())) {
+  const date = itemDate(item)
+  return Boolean(date && dayKey(date) === today)
+}
+
+function byHeatThenTime(left: NewsBoardItem, right: NewsBoardItem) {
+  const heat = right.score - left.score
+  if (heat) return heat
+  return (itemDate(right)?.getTime() || 0) - (itemDate(left)?.getTime() || 0)
 }
 
 function balancedItems(items: NewsBoardItem[], options: { limit: number; maxPerSection?: number; maxPerHost?: number }) {
@@ -132,11 +152,10 @@ function balancedItems(items: NewsBoardItem[], options: { limit: number; maxPerS
 }
 
 export default async function NewsPage() {
-  const [edition, dossiers, topicFeeds, worldwire] = await Promise.all([
-    getLatestRecursivFrontPageEdition(),
+  const [dossiers, topicFeeds, worldwire] = await Promise.all([
     fetchRecursivClaimDossiers({ limit: 48 }).then((items) => items || []),
     fetchLiveArticlesByTopic({ allowProviderFallbacks: false, limitPerTopic: 10 }).catch(() => ({})),
-    fetchRecursivWorldwireItems({ limitPerLane: 18 }).then((items) => items || []),
+    fetchRecursivWorldwireItems({ limitPerLane: 24 }).then((items) => items || []),
   ])
 
   const dossierItems = dossiers.flatMap((dossier) =>
@@ -146,16 +165,26 @@ export default async function NewsPage() {
     .flat()
     .map((article, index) => sourceItemFromArticle(article, index))
     .filter(isNewsBoardItem)
-  const allItems = uniqueItems([...dossierItems, ...topicItems, ...worldwire]).sort((left, right) => right.score - left.score)
-  const lead = allItems.find((item) => item.sectionId === "front-page") || allItems.find((item) => item.sectionId !== "inverted-files") || allItems[0]
+  const today = dayKey(new Date())
+  const currentWorldwire = worldwire.filter((item) => isTodayItem(item, today))
+  const currentTopicItems = topicItems.filter((item) => isTodayItem(item, today))
+  const boardItems = uniqueItems([
+    ...(currentWorldwire.length ? currentWorldwire : worldwire),
+    ...currentTopicItems,
+  ]).sort(byHeatThenTime)
+  const lead = boardItems.find((item) => item.sectionId === "front-page") || boardItems.find((item) => item.sectionId !== "inverted-files") || boardItems[0]
   const flashItems = balancedItems(
-    allItems.filter((item) => item !== lead),
-    { limit: 28, maxPerSection: 3, maxPerHost: 2 },
+    boardItems.filter((item) => item !== lead),
+    { limit: 36, maxPerSection: 4, maxPerHost: 2 },
   )
-  const sourceCount = new Set(allItems.map((item) => hostKey(item.url))).size
-  const laneCount = new Set(allItems.map((item) => item.sectionId)).size
+  const sourceCount = new Set(boardItems.map((item) => hostKey(item.url))).size
+  const laneCount = new Set(boardItems.map((item) => item.sectionId)).size
+  const laneGroups = WORLDWIRE_LANES.map((lane) => ({
+    lane,
+    items: boardItems.filter((item) => item.sectionId === lane.id).sort(byHeatThenTime),
+  })).filter((group) => group.items.length)
 
-  const breakingItems: BreakingItem[] = balancedItems(allItems, { limit: 28, maxPerSection: 3, maxPerHost: 2 }).map((item) => ({
+  const breakingItems: BreakingItem[] = balancedItems(boardItems, { limit: 36, maxPerSection: 4, maxPerHost: 2 }).map((item) => ({
     title: item.title,
     href: item.url,
     source: item.source,
@@ -167,37 +196,20 @@ export default async function NewsPage() {
       title="News"
       breakingItems={breakingItems}
       heroTitle="News"
-      heroDescription="Wars, power, money, crime, science, culture, tech, disasters, and the strange files underneath it all."
+      heroDescription=""
     >
+      {laneGroups.length ? <NewsCategoryStrip groups={laneGroups} /> : null}
+
       {lead ? (
         <section className={cn("grid gap-3 p-3 xl:grid-cols-[minmax(0,1.12fr)_minmax(260px,0.7fr)_minmax(260px,0.7fr)]", archiveSurface)}>
           <ExternalHeadline item={lead} size="lead" />
-          <NewsRail title="Just in" count={`${allItems.length} links`} items={flashItems.slice(0, 10)} />
+          <NewsRail title="Just in" count={`${boardItems.length} today`} items={flashItems.slice(0, 10)} />
           <NewsRail title="Heat" count={`${sourceCount} sources`} items={flashItems.slice(10, 20)} />
           <div className="grid gap-2 border-t border-[#f4efe2]/10 pt-3 md:grid-cols-3 xl:col-span-3">
             <NewsStat icon={<RadioTower className="h-4 w-4" />} label="lanes" value={laneCount} />
-            <NewsStat icon={<Flame className="h-4 w-4" />} label="ranked links" value={allItems.length} />
+            <NewsStat icon={<Flame className="h-4 w-4" />} label="today links" value={boardItems.length} />
             <NewsStat icon={<ArrowUpRight className="h-4 w-4" />} label="source hosts" value={sourceCount} />
           </div>
-          {edition ? (
-            <div className="grid gap-2 border-t border-[#f4efe2]/10 bg-black/18 p-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center xl:col-span-3">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#df2f2f]">
-                  {edition.editionDate} / {Number(edition.metrics.articleCount || 0)} story files / {Number(edition.metrics.xSignalCount || 0)} X signals
-                </p>
-                <p className="iw-serif mt-1 text-2xl leading-none text-[#fff8e6]">{edition.headline}</p>
-              </div>
-              {edition.leadDossierSlug ? (
-                <a
-                  href={`/news/${edition.leadDossierSlug}`}
-                  className="inline-flex h-10 items-center justify-center gap-2 bg-black/34 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-black/58"
-                >
-                  Deep read
-                  <ArrowUpRight className="h-4 w-4 text-[#df2f2f]" />
-                </a>
-              ) : null}
-            </div>
-          ) : null}
         </section>
       ) : (
         <section className={cn("grid gap-4 p-6 text-sm leading-6 text-[#f4efe2]/62", archiveSurface)}>
@@ -209,6 +221,35 @@ export default async function NewsPage() {
           </div>
         </section>
       )}
+
+      {laneGroups.length ? (
+        <section className={cn("mt-5 grid gap-3 p-3", archiveSurface)}>
+          <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[#f4efe2]/10 pb-3">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#df2f2f]">Today</p>
+              <h2 className="iw-serif text-4xl leading-none text-[#fff8e6]">All wires</h2>
+            </div>
+            <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/46">
+              {boardItems.length} links / {laneGroups.length} lanes
+            </div>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {laneGroups.map(({ lane, items }) => (
+              <section key={lane.id} id={`lane-${lane.id}`} className="scroll-mt-36 bg-[#050504]/34 p-3">
+                <div className="mb-2 flex items-center justify-between gap-3 border-b border-[#f4efe2]/10 pb-2">
+                  <h3 className="iw-serif text-3xl leading-none text-[#fff8e6]">{lane.title}</h3>
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#df2f2f]">{items.length}</span>
+                </div>
+                <div className="grid gap-1">
+                  {items.slice(0, 12).map((item) => (
+                    <ExternalHeadline key={item.id} item={item} size="list" />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {dossiers.length ? (
         <section className={cn("mt-5 grid gap-3 p-3", archiveSurface)}>
@@ -242,6 +283,23 @@ export default async function NewsPage() {
         </section>
       ) : null}
     </InvertedPageShell>
+  )
+}
+
+function NewsCategoryStrip({ groups }: { groups: Array<{ lane: (typeof WORLDWIRE_LANES)[number]; items: NewsBoardItem[] }> }) {
+  return (
+    <section className={cn("mb-3 flex gap-2 overflow-x-auto p-2", archiveSurface)} aria-label="News categories">
+      {groups.map(({ lane, items }) => (
+        <a
+          key={lane.id}
+          href={`#lane-${lane.id}`}
+          className="group grid min-w-[148px] gap-1 bg-[#050504]/44 px-3 py-2 transition hover:bg-black/72"
+        >
+          <span className="iw-serif text-xl leading-none text-[#fff8e6] group-hover:text-[#df2f2f]">{lane.title}</span>
+          <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/46">{items.length} today</span>
+        </a>
+      ))}
+    </section>
   )
 }
 
@@ -324,5 +382,8 @@ function ExternalHeadline({ item, size }: { item: NewsBoardItem; size: "lead" | 
 function formatDate(value: string) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value.slice(0, 16)
+  if (dayKey(date) === dayKey(new Date())) {
+    return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+  }
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
 }

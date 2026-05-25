@@ -5,12 +5,14 @@ import type { IntelligenceArticle } from "@/data/intelligence-articles"
 import { generatedSvgThumbnail, isGeneratedSvgThumbnailUrl } from "@/lib/generated-thumbnail"
 import { classifyInvertedWorldTopicMatch } from "@/lib/topic-classifier"
 import type { ViralXPost } from "@/lib/x-posts"
+import { xPostExternalHref } from "@/lib/x-links"
 import { queryInvertedWorldDatabase, type RecursivRow } from "@/lib/recursiv/database"
 import {
   WORLDWIRE_LANES,
   hostName,
   isExternalUrl,
   isGoogleNewsUrl,
+  looksLikeArticleUrl,
   scoreWorldwireTitle,
   uniqueWorldwireItems,
   type WorldwireItem,
@@ -663,8 +665,7 @@ function normalizeXSignalSource(source?: string): ViralXPost["source"] {
 
 function xRowToPost(row: XSignalRow): ViralXPost {
   const metrics = jsonObject(row.metrics)
-
-  return {
+  const post = {
     id: row.x_id || row.url || "x-signal",
     url: row.url || "#",
     text: row.text || "Inverted World X signal",
@@ -681,6 +682,11 @@ function xRowToPost(row: XSignalRow): ViralXPost {
       quotes: Number(metrics.quotes ?? metrics.quote_count ?? 0) || undefined,
       views: Number(metrics.views ?? metrics.impression_count ?? 0) || undefined,
     },
+  } satisfies ViralXPost
+
+  return {
+    ...post,
+    url: xPostExternalHref(post),
   }
 }
 
@@ -711,7 +717,7 @@ function postFromJson(value: unknown): ViralXPost | null {
   const text = typeof item.text === "string" ? item.text : ""
   if (!id || !url || !text) return null
 
-  return {
+  const post = {
     id,
     url,
     text,
@@ -725,6 +731,11 @@ function postFromJson(value: unknown): ViralXPost | null {
         : "x-api",
     score: Number(item.score || 0),
     metrics: jsonObject(item.metrics) as ViralXPost["metrics"],
+  } satisfies ViralXPost
+
+  return {
+    ...post,
+    url: xPostExternalHref(post),
   }
 }
 
@@ -1158,7 +1169,7 @@ function coverageRowToWorldwireItems(row: CoverageSnapshotRow, limitPerLane: num
       const item = jsonObject(value)
       const title = textValue(item.title)
       const url = textValue(item.url)
-      if (!title || !isExternalUrl(url) || isGoogleNewsUrl(url)) return null
+      if (!title || !isExternalUrl(url) || !looksLikeArticleUrl(url)) return null
 
       const score = numberValue(item.score) || scoreWorldwireTitle(title, rowVelocity || 100, index)
       return {
@@ -1169,7 +1180,7 @@ function coverageRowToWorldwireItems(row: CoverageSnapshotRow, limitPerLane: num
         sectionId: textValue(item.sectionId) || textValue(item.section_id) || laneId,
         sectionTitle: textValue(item.sectionTitle) || textValue(item.section_title) || laneTitle,
         score,
-        publishedAt: textValue(item.publishedAt) || textValue(item.published_at) || row.captured_at,
+        publishedAt: row.captured_at,
         excerpt: textValue(item.excerpt) || row.summary,
       }
     })

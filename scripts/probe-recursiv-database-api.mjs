@@ -90,6 +90,26 @@ function summarizeQueryBody(body) {
   }
 }
 
+function summarizeCredentialsBody(body) {
+  if (!body || typeof body !== "object") return body
+  if (body.error) return cleanErrorBody(body)
+
+  const url = body.data?.url
+  let host
+  try {
+    host = url ? new URL(url).host : undefined
+  } catch {
+    host = undefined
+  }
+
+  return {
+    data: {
+      credentialsAvailable: Boolean(url),
+      host,
+    },
+  }
+}
+
 async function fetchJson({ label, baseUrl, apiKey, path, method = "GET", body }) {
   const started = Date.now()
   const headers = {
@@ -118,7 +138,14 @@ async function fetchJson({ label, baseUrl, apiKey, path, method = "GET", body })
     status: response.status,
     ok: response.ok,
     ms: Date.now() - started,
-    body: label === "list" ? summarizeListBody(parsed) : label.startsWith("query") ? summarizeQueryBody(parsed) : cleanErrorBody(parsed),
+    body:
+      label === "list"
+        ? summarizeListBody(parsed)
+        : label === "credentials"
+          ? summarizeCredentialsBody(parsed)
+          : label.startsWith("query")
+            ? summarizeQueryBody(parsed)
+            : cleanErrorBody(parsed),
   }
 }
 

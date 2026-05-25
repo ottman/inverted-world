@@ -5,7 +5,7 @@ import { ArrowUpRight, RefreshCw } from "lucide-react"
 import { XIcon } from "@/components/inverted-page-shell"
 import type { ContentTopic } from "@/data/inverted-world"
 import { getTopicXQueries, getTopicXSearchUrl } from "@/lib/x-search"
-import { xPostAnchorId } from "@/lib/x-links"
+import { xPostAnchorId, xPostExternalHref } from "@/lib/x-links"
 import type { ViralXPost } from "@/lib/x-posts"
 import { cn } from "@/lib/utils"
 
@@ -128,7 +128,7 @@ export function XSignalPage({ topic, initialPosts }: { topic: ContentTopic; init
             <a
               key={post.id || post.url}
               id={xPostAnchorId(post)}
-              href={post.url}
+              href={xPostExternalHref(post)}
               target="_blank"
               rel="noreferrer"
               className="group grid min-h-[172px] scroll-mt-36 gap-5 bg-[#050504]/46 p-4 transition target:ring-1 target:ring-[#df2f2f]/70 hover:bg-black/72"

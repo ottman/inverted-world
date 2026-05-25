@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { createRecursivServerClient } from "@/lib/recursiv/client"
 import { fetchRecursivDossierChatMessages, getRecursivClaimDossier, type ClaimDossier } from "@/lib/recursiv/content"
+import { xPostExternalHref } from "@/lib/x-links"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -29,7 +30,7 @@ function dossierContext(dossier: ClaimDossier) {
     .join("\n")
   const xLines = dossier.xSignals
     .slice(0, 6)
-    .map((post, index) => `${index + 1}. @${post.username || "x"}: ${post.text}`)
+    .map((post, index) => `${index + 1}. @${post.username || "x"} (${xPostExternalHref(post)}): ${post.text}`)
     .join("\n")
   const videoLines = dossier.relatedVideos
     .slice(0, 4)
@@ -77,7 +78,7 @@ function topXSignalLines(dossier: ClaimDossier) {
   return dossier.xSignals.slice(0, 3).map((post) => {
     const author = post.username ? `@${post.username}` : post.authorName || "X signal"
     const text = post.text.replace(/\s+/g, " ").trim().slice(0, 180)
-    return `- ${markdownLink(author, post.url)}: ${text}`
+    return `- ${markdownLink(author, xPostExternalHref(post))}: ${text}`
   })
 }
 
