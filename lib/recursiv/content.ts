@@ -12,7 +12,9 @@ import {
   hostName,
   isExternalUrl,
   isGoogleNewsUrl,
+  isUsefulWorldwireTitle,
   looksLikeArticleUrl,
+  normalizeWorldwireText,
   scoreWorldwireTitle,
   uniqueWorldwireItems,
   type WorldwireItem,
@@ -1167,9 +1169,9 @@ function coverageRowToWorldwireItems(row: CoverageSnapshotRow, limitPerLane: num
   return jsonArray(row.items)
     .map<WorldwireItem | null>((value, index) => {
       const item = jsonObject(value)
-      const title = textValue(item.title)
+      const title = normalizeWorldwireText(textValue(item.title))
       const url = textValue(item.url)
-      if (!title || !isExternalUrl(url) || !looksLikeArticleUrl(url)) return null
+      if (!title || !isUsefulWorldwireTitle(title) || !isExternalUrl(url) || isGoogleNewsUrl(url) || !looksLikeArticleUrl(url)) return null
 
       const score = numberValue(item.score) || scoreWorldwireTitle(title, rowVelocity || 100, index)
       return {
@@ -1180,8 +1182,9 @@ function coverageRowToWorldwireItems(row: CoverageSnapshotRow, limitPerLane: num
         sectionId: textValue(item.sectionId) || textValue(item.section_id) || laneId,
         sectionTitle: textValue(item.sectionTitle) || textValue(item.section_title) || laneTitle,
         score,
-        publishedAt: row.captured_at,
+        publishedAt: textValue(item.publishedAt) || textValue(item.published_at) || row.captured_at,
         excerpt: textValue(item.excerpt) || row.summary,
+        imageUrl: textValue(item.imageUrl) || textValue(item.image_url),
       }
     })
     .filter((item): item is WorldwireItem => Boolean(item))
@@ -1225,7 +1228,8 @@ export async function fetchRecursivWorldwireItems(options: { limitPerLane?: numb
     ORDER BY captured_at DESC`,
   )
 
-  const sourceRows = rows?.length ? rows : snapshotCoverageRows().filter((row) => row.source === "worldwire")
+  const snapshotRows = snapshotCoverageRows().filter((row) => row.source === "worldwire")
+  const sourceRows = rows?.length ? [...rows, ...snapshotRows] : snapshotRows
   if (!sourceRows.length) return rows ? [] : null
 
   return uniqueWorldwireItems(sourceRows.flatMap((row) => coverageRowToWorldwireItems(row, limitPerLane))).sort(

@@ -14,6 +14,7 @@ export type WorldwireItem = {
   score: number
   publishedAt?: string
   excerpt?: string
+  imageUrl?: string
 }
 
 export const WORLDWIRE_LANES: WorldwireLane[] = [
@@ -150,8 +151,19 @@ const HOT_WORDS = [
   "whistleblower",
 ]
 
+function decodeUriEncodedText(value: string) {
+  const plusCount = (value.match(/\+/g) || []).length
+  if (!/%[0-9a-f]{2}/i.test(value) && plusCount < 2) return value
+
+  try {
+    return decodeURIComponent(value.replace(/\+/g, " "))
+  } catch {
+    return value
+  }
+}
+
 export function normalizeWorldwireText(value: string) {
-  return value.replace(/\s+/g, " ").trim()
+  return decodeWorldwireEntities(decodeUriEncodedText(value)).replace(/\s+/g, " ").trim()
 }
 
 export function decodeWorldwireEntities(value: string) {
@@ -163,6 +175,8 @@ export function decodeWorldwireEntities(value: string) {
     .replace(/&apos;/g, "'")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCodePoint(Number.parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, decimal) => String.fromCodePoint(Number.parseInt(decimal, 10)))
 }
 
 export function stripWorldwireTags(value: string) {
@@ -195,7 +209,12 @@ export function sourceLabel(source?: string, url?: string) {
   const cleaned = normalizeWorldwireText(source || "")
   const wordCount = cleaned ? cleaned.split(/\s+/).length : 0
   const looksLikeDomain = /\.[a-z]{2,}/i.test(cleaned)
-  const knownShortBrand = /^(ap|bbc|cnn|npr|reuters|axios|politico|bloomberg|propublica)$/i.test(cleaned)
+  const knownShortBrand =
+    /^(ap|bbc|bbc news|cnn|npr|reuters|axios|politico|bloomberg|propublica|al jazeera|associated press|the guardian|new york times|the new york times|washington post|the washington post|wall street journal|the wall street journal|fox news|nbc news|cbs news|abc news)$/i.test(
+      cleaned,
+    )
+  const cdnHost = /(azureedge|akamai|cloudfront|googleusercontent|gstatic|fbcdn|twimg|wp\.com)$/i.test(host)
+  if (cleaned && (knownShortBrand || cdnHost)) return cleaned
   const preferHost =
     Boolean(host) &&
     (!cleaned || /^by\b/i.test(cleaned) || cleaned.length > 42 || (wordCount > 1 && !looksLikeDomain && !knownShortBrand))
@@ -258,13 +277,42 @@ export function looksLikeArticleUrl(value: string) {
   try {
     const url = new URL(value)
     if (!/^https?:$/.test(url.protocol)) return false
+    const host = url.hostname.replace(/^www\./, "").toLowerCase()
+    if (
+      host === "news.google.com" ||
+      /(^|\.)facebook\.com$/.test(host) ||
+      /(^|\.)instagram\.com$/.test(host) ||
+      /(^|\.)tiktok\.com$/.test(host) ||
+      /(^|\.)linkedin\.com$/.test(host) ||
+      /(^|\.)pinterest\.com$/.test(host)
+    ) {
+      return false
+    }
     const pathParts = url.pathname.split("/").filter(Boolean)
     if (pathParts.length === 0) return false
-    if (/^(home|search|tag|topic|topics|category|categories|author|authors)$/i.test(pathParts[0] || "")) return false
+    if (/^(home|search|tag|tags|topic|topics|category|categories|author|authors|video|videos|watch|live|shows?)$/i.test(pathParts[0] || "")) return false
     return true
   } catch {
     return false
   }
+}
+
+const GENERIC_TITLE_PATTERNS = [
+  /^breaking news,\s*world news and video\b/i,
+  /^breaking news and latest headlines\b/i,
+  /^latest news( headlines)?\b/i,
+  /^world news( and video)?\b/i,
+  /^news, sport and opinion\b/i,
+  /^live updates?\s*$/i,
+  /^home\s*[-|]/i,
+  /^news\s*[-|]/i,
+]
+
+export function isUsefulWorldwireTitle(value: string) {
+  const title = normalizeWorldwireText(value)
+  if (title.length < 18) return false
+  if (GENERIC_TITLE_PATTERNS.some((pattern) => pattern.test(title))) return false
+  return true
 }
 
 export function scoreWorldwireTitle(title: string, baseScore: number, index: number, context: { source?: string; url?: string } = {}) {
@@ -278,7 +326,7 @@ export function scoreWorldwireTitle(title: string, baseScore: number, index: num
 export function uniqueWorldwireItems(items: WorldwireItem[]) {
   const seen = new Set<string>()
   return items.filter((item) => {
-    const key = `${item.url.replace(/\/$/, "")}:${item.title.toLowerCase()}`
+    const key = `${item.sectionId}:${item.url.replace(/\/$/, "")}:${item.title.toLowerCase()}`
     if (seen.has(key)) return false
     seen.add(key)
     return true

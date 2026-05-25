@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element -- Worldwire thumbnails come from arbitrary external sources. */
 import type { Metadata } from "next"
 import type { ReactNode } from "react"
 import { ArrowUpRight, Flame, RadioTower } from "lucide-react"
@@ -16,7 +17,9 @@ import {
   WORLDWIRE_LANES,
   isExternalUrl,
   isGoogleNewsUrl,
+  isUsefulWorldwireTitle,
   looksLikeArticleUrl,
+  normalizeWorldwireText,
   scoreWorldwireTitle,
   sourceLabel,
   type WorldwireItem,
@@ -86,11 +89,13 @@ function uniqueItems(items: NewsBoardItem[]) {
   const seen = new Set<string>()
   const unique: NewsBoardItem[] = []
   for (const item of items) {
-    const key = `${item.url.replace(/\/$/, "")}:${item.title.toLowerCase()}`
+    const title = normalizeWorldwireText(item.title)
+    if (!title || !isUsefulWorldwireTitle(title)) continue
+    if (isGoogleNewsUrl(item.url) || !looksLikeArticleUrl(item.url)) continue
+    const key = `${item.sectionId}:${item.url.replace(/\/$/, "")}:${title.toLowerCase()}`
     if (seen.has(key)) continue
     seen.add(key)
-    if (!looksLikeArticleUrl(item.url)) continue
-    unique.push({ ...item, source: sourceLabel(item.source, isGoogleNewsUrl(item.url) ? undefined : item.url) })
+    unique.push({ ...item, title, source: sourceLabel(item.source, item.url) })
   }
   return unique
 }
@@ -169,8 +174,10 @@ export default async function NewsPage() {
   const currentWorldwire = worldwire.filter((item) => isTodayItem(item, today))
   const currentTopicItems = topicItems.filter((item) => isTodayItem(item, today))
   const boardItems = uniqueItems([
-    ...(currentWorldwire.length ? currentWorldwire : worldwire),
+    ...currentWorldwire,
+    ...worldwire,
     ...currentTopicItems,
+    ...topicItems,
   ]).sort(byHeatThenTime)
   const lead = boardItems.find((item) => item.sectionId === "front-page") || boardItems.find((item) => item.sectionId !== "inverted-files") || boardItems[0]
   const flashItems = balancedItems(
@@ -226,7 +233,7 @@ export default async function NewsPage() {
         <section className={cn("mt-5 grid gap-3 p-3", archiveSurface)}>
           <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[#f4efe2]/10 pb-3">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#df2f2f]">Today</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#df2f2f]">Wires</p>
               <h2 className="iw-serif text-4xl leading-none text-[#fff8e6]">All wires</h2>
             </div>
             <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/46">
@@ -296,7 +303,7 @@ function NewsCategoryStrip({ groups }: { groups: Array<{ lane: (typeof WORLDWIRE
           className="group grid min-w-[148px] gap-1 bg-[#050504]/44 px-3 py-2 transition hover:bg-black/72"
         >
           <span className="iw-serif text-xl leading-none text-[#fff8e6] group-hover:text-[#df2f2f]">{lane.title}</span>
-          <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/46">{items.length} today</span>
+          <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/46">{items.length} links</span>
         </a>
       ))}
     </section>
@@ -340,6 +347,7 @@ function ExternalHeadline({ item, size }: { item: NewsBoardItem; size: "lead" | 
         : size === "compact"
           ? "text-sm font-semibold leading-5 text-[#fff8e6]"
           : "text-sm leading-5 text-[#fff8e6]"
+  const showThumb = Boolean(item.imageUrl && (size === "lead" || size === "compact" || size === "list"))
 
   return (
     <article
@@ -349,22 +357,31 @@ function ExternalHeadline({ item, size }: { item: NewsBoardItem; size: "lead" | 
         size === "compact" && "bg-[#050504]/34 px-2",
       )}
     >
-      <a href={item.url} target="_blank" rel="noreferrer" className="block" aria-label={`Open source: ${item.title}`}>
-        <span className="mb-2 flex flex-wrap items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.13em] text-[#df2f2f]">
-          <span>{item.source}</span>
-          <span>{Math.max(1, Math.round(item.score))}</span>
-          {item.publishedAt ? <span>{formatDate(item.publishedAt)}</span> : null}
-        </span>
-        <span className={cn("block group-hover:text-[#df2f2f]", headlineClass)}>{item.title}</span>
-        {size === "lead" && item.excerpt ? (
-          <span className="mt-5 block max-w-3xl text-base leading-7 text-[#f4efe2]/68">{item.excerpt}</span>
-        ) : null}
-        {size === "lead" ? (
-          <span className="mt-3 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/48 group-hover:text-[#fff8e6]">
-            source
-            <ArrowUpRight className="h-3.5 w-3.5 text-[#df2f2f]" />
+      <a
+        href={item.url}
+        target="_blank"
+        rel="noreferrer"
+        className={cn("block", showThumb && size !== "lead" && "grid grid-cols-[76px_minmax(0,1fr)] items-start gap-2")}
+        aria-label={`Open source: ${item.title}`}
+      >
+        {showThumb ? <HeadlineImage item={item} size={size} /> : null}
+        <span className="block min-w-0">
+          <span className="mb-2 flex flex-wrap items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.13em] text-[#df2f2f]">
+            <span>{item.source}</span>
+            <span>{Math.max(1, Math.round(item.score))}</span>
+            {item.publishedAt ? <span>{formatDate(item.publishedAt)}</span> : null}
           </span>
-        ) : null}
+          <span className={cn("block group-hover:text-[#df2f2f]", headlineClass)}>{item.title}</span>
+          {size === "lead" && item.excerpt ? (
+            <span className="mt-5 block max-w-3xl text-base leading-7 text-[#f4efe2]/68">{item.excerpt}</span>
+          ) : null}
+          {size === "lead" ? (
+            <span className="mt-3 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/48 group-hover:text-[#fff8e6]">
+              source
+              <ArrowUpRight className="h-3.5 w-3.5 text-[#df2f2f]" />
+            </span>
+          ) : null}
+        </span>
       </a>
       {item.contextHref && size !== "list" ? (
         <a
@@ -376,6 +393,25 @@ function ExternalHeadline({ item, size }: { item: NewsBoardItem; size: "lead" | 
         </a>
       ) : null}
     </article>
+  )
+}
+
+function HeadlineImage({ item, size }: { item: NewsBoardItem; size: "lead" | "major" | "compact" | "list" }) {
+  if (!item.imageUrl) return null
+  return (
+    <span
+      className={cn(
+        "relative block overflow-hidden bg-black/38",
+        size === "lead" ? "mb-4 aspect-[16/9] w-full" : "aspect-[4/3] w-[76px]",
+      )}
+    >
+      <img
+        src={item.imageUrl}
+        alt=""
+        loading={size === "lead" ? "eager" : "lazy"}
+        className="h-full w-full object-cover opacity-86 transition duration-300 group-hover:scale-[1.03] group-hover:opacity-100"
+      />
+    </span>
   )
 }
 
