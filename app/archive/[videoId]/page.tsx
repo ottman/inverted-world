@@ -10,9 +10,9 @@ import { cn } from "@/lib/utils"
 import type { ChannelVideo, ContentTopic } from "@/data/inverted-world"
 
 type PageProps = {
-  params: {
+  params: Promise<{
     videoId: string
-  }
+  }>
 }
 
 export const dynamic = "force-dynamic"
@@ -66,7 +66,8 @@ function transcriptDescription(video: ChannelVideo, transcript: YouTubeTranscrip
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const video = await getArchiveVideo(params.videoId, { allowProviderFallbacks: false })
+  const { videoId } = await params
+  const video = await getArchiveVideo(videoId, { allowProviderFallbacks: false })
   if (!video) {
     return {
       title: "Tales archive video",
@@ -83,7 +84,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     ? transcriptFromText(video.videoId, video.transcript)
     : await getYouTubeTranscript(video.videoId, { allowProviderFallbacks: false })
   const description = transcriptDescription(video, transcript, synopsis)
-  const url = `/archive/${params.videoId}`
+  const url = `/archive/${videoId}`
 
   return {
     title: video.title,
@@ -131,9 +132,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function ArchiveVideoPage({ params }: PageProps) {
-  const video = await getArchiveVideo(params.videoId, { allowProviderFallbacks: false })
+  const { videoId } = await params
+  const video = await getArchiveVideo(videoId, { allowProviderFallbacks: false })
   if (!video) {
-    const youtubeUrl = `https://www.youtube.com/watch?v=${encodeURIComponent(params.videoId)}`
+    const youtubeUrl = `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`
     return (
       <InvertedPageShell
         eyebrow="Tales archive"
@@ -179,7 +181,7 @@ export default async function ArchiveVideoPage({ params }: PageProps) {
   }
 
   const dossier = buildVideoDossier(video)
-  const canonicalUrl = `https://www.inverted.world/archive/${params.videoId}`
+  const canonicalUrl = `https://www.inverted.world/archive/${videoId}`
   const [transcript, liveArticles, xPosts, recommendedVideos] = await Promise.all([
     video.transcript
       ? Promise.resolve(transcriptFromText(video.videoId, video.transcript))

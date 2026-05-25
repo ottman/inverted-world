@@ -3,18 +3,20 @@ import type { IntelligenceArticle } from "@/data/intelligence-articles"
 import { featuredVideos, researchDocuments } from "@/data/inverted-world"
 import { checkRateLimit, rateLimitResponse, readLimitedJsonBody, requestClientId } from "@/lib/api-security"
 import { getArticleById } from "@/lib/live-articles"
+import { checkRecursivRateLimit, durableRateLimitKey, hashedRateLimitSubject } from "@/lib/recursiv/rate-limit"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
 type RouteContext = {
-  params: {
+  params: Promise<{
     articleId: string
-  }
+  }>
 }
 
 const CHAT_BODY_LIMIT_BYTES = 16_384
 const CHAT_POST_RATE_LIMIT = { max: 12, windowMs: 60_000 }
+const CHAT_CONVERSATION_DAILY_LIMIT = { max: 60, windowMs: 24 * 60 * 60_000 }
 
 type ArticleLink = {
   title: string
@@ -153,8 +155,34 @@ function fallbackArticleAnswer(article: IntelligenceArticle, message: string) {
   return sections.join("\n\n")
 }
 
+async function checkArticleChatBudget(articleId: string, clientId: string, conversationId?: string) {
+  const clientHash = hashedRateLimitSubject(clientId)
+  const checks = await Promise.all([
+    checkRecursivRateLimit(durableRateLimitKey("article-chat", "ip", articleId, clientHash), CHAT_POST_RATE_LIMIT, {
+      route: "article-chat",
+      scope: "ip-minute",
+    }),
+    conversationId
+      ? checkRecursivRateLimit(
+          durableRateLimitKey("article-chat", "conversation", articleId, conversationId),
+          CHAT_CONVERSATION_DAILY_LIMIT,
+          {
+            route: "article-chat",
+            scope: "conversation-day",
+          },
+        )
+      : Promise.resolve({ ok: true as const, remaining: CHAT_CONVERSATION_DAILY_LIMIT.max, resetAt: Date.now(), source: "recursiv-database" as const }),
+  ])
+
+  const blocked = checks.find((check) => check.ok === false)
+  if (blocked?.ok === false) return { ok: false as const, blocked }
+
+  return { ok: true as const }
+}
+
 export async function GET(_request: Request, { params }: RouteContext) {
-  const article = await getArticleById(params.articleId, { allowProviderFallbacks: false })
+  const { articleId } = await params
+  const article = await getArticleById(articleId, { allowProviderFallbacks: false })
   if (!article) {
     return NextResponse.json({ error: "Article not found" }, { status: 404 })
   }
@@ -168,11 +196,12 @@ export async function GET(_request: Request, { params }: RouteContext) {
 }
 
 export async function POST(request: Request, { params }: RouteContext) {
+  const { articleId } = await params
   const clientId = requestClientId(request)
-  const rate = checkRateLimit(`article-chat:post:${params.articleId}:${clientId}`, CHAT_POST_RATE_LIMIT)
+  const rate = checkRateLimit(`article-chat:post:${articleId}:${clientId}`, CHAT_POST_RATE_LIMIT)
   if (!rate.ok) return rateLimitResponse(rate)
 
-  const article = await getArticleById(params.articleId, { allowProviderFallbacks: false })
+  const article = await getArticleById(articleId, { allowProviderFallbacks: false })
   if (!article) {
     return NextResponse.json({ error: "Article not found" }, { status: 404 })
   }
@@ -189,6 +218,9 @@ export async function POST(request: Request, { params }: RouteContext) {
   if (!message) {
     return NextResponse.json({ error: "Message is required" }, { status: 400 })
   }
+
+  const budget = await checkArticleChatBudget(articleId, clientId, conversationId)
+  if (!budget.ok) return rateLimitResponse(budget.blocked)
 
   const responseText = fallbackArticleAnswer(article, message)
 

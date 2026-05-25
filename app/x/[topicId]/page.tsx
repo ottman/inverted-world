@@ -7,9 +7,9 @@ import { xPostInternalHref } from "@/lib/x-links"
 import { fetchViralXPostsForTopic } from "@/lib/x-posts"
 
 type PageProps = {
-  params: {
+  params: Promise<{
     topicId: string
-  }
+  }>
 }
 
 export const dynamic = "force-dynamic"
@@ -20,7 +20,8 @@ function getTopic(topicId: string) {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const topic = getTopic(params.topicId)
+  const { topicId } = await params
+  const topic = getTopic(topicId)
   if (!topic) return { title: "X Signals | Inverted World" }
 
   return {
@@ -33,7 +34,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function XTopicPage({ params }: PageProps) {
-  const topic = getTopic(params.topicId)
+  const { topicId } = await params
+  const topic = getTopic(topicId)
   if (!topic) notFound()
 
   const posts = await fetchViralXPostsForTopic(topic.id, { limit: 24, allowProviderFallbacks: false }).catch(() => [])

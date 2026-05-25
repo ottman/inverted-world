@@ -2,15 +2,16 @@ import { NextResponse } from "next/server"
 import { checkRateLimit, rateLimitResponse, readLimitedJsonBody, requestClientId } from "@/lib/api-security"
 import { createRecursivServerClient } from "@/lib/recursiv/client"
 import { fetchRecursivDossierChatMessages, getRecursivClaimDossier, type ClaimDossier } from "@/lib/recursiv/content"
+import { checkRecursivRateLimit, durableRateLimitKey, hashedRateLimitSubject } from "@/lib/recursiv/rate-limit"
 import { xPostExternalHref } from "@/lib/x-links"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
 type RouteContext = {
-  params: {
+  params: Promise<{
     slug: string
-  }
+  }>
 }
 
 type RecursivClient = ReturnType<typeof createRecursivServerClient>
@@ -18,6 +19,7 @@ type ChatMode = "agent" | "context-fallback"
 const CHAT_BODY_LIMIT_BYTES = 16_384
 const CHAT_POST_RATE_LIMIT = { max: 8, windowMs: 60_000 }
 const CHAT_GET_RATE_LIMIT = { max: 60, windowMs: 60_000 }
+const CHAT_CONVERSATION_DAILY_LIMIT = { max: 40, windowMs: 24 * 60 * 60_000 }
 
 function trimMessage(value: unknown) {
   if (typeof value !== "string") return ""
@@ -233,12 +235,41 @@ function fallbackConversationId(dossier: ClaimDossier, conversationId?: string) 
   return conversationId || `context-${dossier.slug}-${Date.now().toString(36)}`
 }
 
+async function checkDossierChatBudget(slug: string, clientId: string, conversationId?: string) {
+  const clientHash = hashedRateLimitSubject(clientId)
+  const checks = await Promise.all([
+    checkRecursivRateLimit(durableRateLimitKey("dossier-chat", "ip", slug, clientHash), CHAT_POST_RATE_LIMIT, {
+      route: "dossier-chat",
+      scope: "ip-minute",
+    }),
+    conversationId
+      ? checkRecursivRateLimit(
+          durableRateLimitKey("dossier-chat", "conversation", slug, conversationId),
+          CHAT_CONVERSATION_DAILY_LIMIT,
+          {
+            route: "dossier-chat",
+            scope: "conversation-day",
+          },
+        )
+      : Promise.resolve({ ok: true as const, remaining: CHAT_CONVERSATION_DAILY_LIMIT.max, resetAt: Date.now(), source: "recursiv-database" as const }),
+  ])
+
+  const blocked = checks.find((check) => check.ok === false)
+  if (blocked?.ok === false) return { ok: false as const, blocked }
+
+  return {
+    ok: true as const,
+    durableUnavailable: checks.some((check) => check.ok === null),
+  }
+}
+
 export async function GET(request: Request, { params }: RouteContext) {
+  const { slug } = await params
   const clientId = requestClientId(request)
   const rate = checkRateLimit(`dossier-chat:get:${clientId}`, CHAT_GET_RATE_LIMIT)
   if (!rate.ok) return rateLimitResponse(rate)
 
-  const dossier = await getRecursivClaimDossier(params.slug)
+  const dossier = await getRecursivClaimDossier(slug)
   if (!dossier) {
     return NextResponse.json({ error: "Dossier not found" }, { status: 404 })
   }
@@ -258,11 +289,12 @@ export async function GET(request: Request, { params }: RouteContext) {
 }
 
 export async function POST(request: Request, { params }: RouteContext) {
+  const { slug } = await params
   const clientId = requestClientId(request)
-  const rate = checkRateLimit(`dossier-chat:post:${params.slug}:${clientId}`, CHAT_POST_RATE_LIMIT)
+  const rate = checkRateLimit(`dossier-chat:post:${slug}:${clientId}`, CHAT_POST_RATE_LIMIT)
   if (!rate.ok) return rateLimitResponse(rate)
 
-  const dossier = await getRecursivClaimDossier(params.slug)
+  const dossier = await getRecursivClaimDossier(slug)
   if (!dossier) {
     return NextResponse.json({ error: "Dossier not found" }, { status: 404 })
   }
@@ -278,12 +310,15 @@ export async function POST(request: Request, { params }: RouteContext) {
   const body = parsedBody.body
   const message = trimMessage(body.message)
   const conversationId = normalizeConversationId(body.conversationId)
-  const contextOnly = body.contextOnly === true
   const shouldPersist = body.persist !== false
   if (!message) {
     return NextResponse.json({ error: "Message is required" }, { status: 400 })
   }
 
+  const budget = await checkDossierChatBudget(slug, clientId, conversationId)
+  if (!budget.ok) return rateLimitResponse(budget.blocked)
+
+  const contextOnly = body.contextOnly === true || budget.durableUnavailable
   const agentAnswer = contextOnly ? null : await askRecursivAgent(dossier, message, conversationId).catch(() => null)
   const mode: ChatMode = agentAnswer ? "agent" : "context-fallback"
   const responseText = agentAnswer?.content || fallbackDossierAnswer(dossier, message)
@@ -297,6 +332,7 @@ export async function POST(request: Request, { params }: RouteContext) {
         {
           mode,
           ...(contextOnly ? { contextOnly: true } : {}),
+          ...(budget.durableUnavailable ? { durableRateLimitUnavailable: true } : {}),
           ...(agentAnswer?.agentId ? { agentId: agentAnswer.agentId } : {}),
         },
         agentAnswer?.client,

@@ -5,8 +5,9 @@ import { fetchViralXPostsForTopic, X_FRESHNESS_WINDOW_HOURS } from "@/lib/x-post
 export const dynamic = "force-dynamic"
 export const revalidate = 300
 
-export async function GET(request: Request, { params }: { params: { topicId: string } }) {
-  const topic = topics.find((item) => item.id === params.topicId)
+export async function GET(request: Request, { params }: { params: Promise<{ topicId: string }> }) {
+  const { topicId } = await params
+  const topic = topics.find((item) => item.id === topicId)
   if (!topic) {
     return NextResponse.json({ error: "Topic not found" }, { status: 404 })
   }

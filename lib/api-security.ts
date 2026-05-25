@@ -5,9 +5,11 @@ type RateLimitOptions = {
   windowMs: number
 }
 
-type RateLimitResult =
+export type RateLimitResult =
   | { ok: true; remaining: number; resetAt: number }
   | { ok: false; retryAfterSeconds: number; resetAt: number }
+
+export type RateLimitOptionsInput = RateLimitOptions
 
 type Bucket = {
   count: number

@@ -12,9 +12,9 @@ import { xPostInternalHref } from "@/lib/x-links"
 import { cn } from "@/lib/utils"
 
 type PageProps = {
-  params: {
+  params: Promise<{
     articleId: string
-  }
+  }>
 }
 
 const articlePrimarySources: Record<string, ClaimSourceLink> = {
@@ -138,7 +138,8 @@ function storyParagraphs(article?: IntelligenceArticle | null, dossier?: ClaimDo
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { article, dossier } = await getStoryData(params.articleId)
+  const { articleId } = await params
+  const { article, dossier } = await getStoryData(articleId)
   const title = article?.title || dossier?.title
   const description = article?.deck || dossier?.deck || dossier?.summary
   const imageUrl = articleDisplayImage(article)
@@ -158,14 +159,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title,
     description,
     alternates: {
-      canonical: `/news/${dossier?.slug || params.articleId}`,
+      canonical: `/news/${dossier?.slug || articleId}`,
     },
     openGraph: {
       title,
       description,
       type: "article",
       publishedTime: article?.publishedAt || dossier?.publishedAt || undefined,
-      url: `/news/${dossier?.slug || params.articleId}`,
+      url: `/news/${dossier?.slug || articleId}`,
       images: imageUrl ? [imageUrl] : relatedVideoThumbnail ? [relatedVideoThumbnail] : undefined,
     },
     twitter: {
@@ -178,7 +179,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function NewsArticlePage({ params }: PageProps) {
-  const { article, dossier } = await getStoryData(params.articleId)
+  const { articleId } = await params
+  const { article, dossier } = await getStoryData(articleId)
 
   if (!article && !dossier) {
     return (
@@ -186,7 +188,7 @@ export default async function NewsArticlePage({ params }: PageProps) {
         eyebrow="Research desk"
         title="Story Recovery"
         breakingItems={[]}
-        heroTitle={titleFromSlug(params.articleId) || "Story Recovery"}
+        heroTitle={titleFromSlug(articleId) || "Story Recovery"}
         heroDescription="This story is being refreshed. Continue through the current desk or the Tales archive."
       >
         <section className={cn("grid gap-4 p-5 text-sm leading-6 text-[#f4efe2]/68", archiveSurface)}>
@@ -404,7 +406,7 @@ export default async function NewsArticlePage({ params }: PageProps) {
       {chatEndpoint ? (
         <div className="mt-6">
           <DossierChat
-            slug={dossier?.slug || article?.id || params.articleId}
+            slug={dossier?.slug || article?.id || articleId}
             endpoint={chatEndpoint}
             emptyText="Ask what is documented, which sources matter most, what is missing, or how the Tales archive changes the read."
             suggestions={[

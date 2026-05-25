@@ -9,6 +9,7 @@ export const INVERTED_WORLD_TABLES = [
   "source_documents",
   "media_items",
   "claim_chat_messages",
+  "public_rate_limits",
   "front_page_editions",
   "pipeline_runs",
 ] as const
@@ -244,6 +245,16 @@ export const INVERTED_WORLD_SCHEMA_SQL = [
   )`,
   "CREATE INDEX IF NOT EXISTS claim_chat_messages_dossier_created_idx ON claim_chat_messages (dossier_slug, created_at DESC)",
   "CREATE INDEX IF NOT EXISTS claim_chat_messages_conversation_created_idx ON claim_chat_messages (dossier_slug, conversation_id, created_at DESC)",
+  `CREATE TABLE IF NOT EXISTS public_rate_limits (
+    bucket_key TEXT PRIMARY KEY,
+    count INTEGER NOT NULL DEFAULT 0,
+    window_start TIMESTAMPTZ NOT NULL DEFAULT now(),
+    reset_at TIMESTAMPTZ NOT NULL,
+    metadata JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+  )`,
+  "CREATE INDEX IF NOT EXISTS public_rate_limits_reset_idx ON public_rate_limits (reset_at)",
   `CREATE TABLE IF NOT EXISTS front_page_editions (
     id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
     slug TEXT NOT NULL UNIQUE,
