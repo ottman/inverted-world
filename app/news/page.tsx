@@ -240,16 +240,16 @@ export default async function NewsPage() {
               {boardItems.length} links / {laneGroups.length} lanes
             </div>
           </div>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-3">
             {laneGroups.map(({ lane, items }) => (
-              <section key={lane.id} id={`lane-${lane.id}`} className="scroll-mt-36 bg-[#050504]/34 p-3">
+              <section key={lane.id} id={`lane-${lane.id}`} className="min-w-0 scroll-mt-36 overflow-hidden bg-[#050504]/34 p-3">
                 <div className="mb-2 flex items-center justify-between gap-3 border-b border-[#f4efe2]/10 pb-2">
                   <h3 className="iw-serif text-3xl leading-none text-[#fff8e6]">{lane.title}</h3>
                   <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#df2f2f]">{items.length}</span>
                 </div>
-                <div className="grid gap-1">
-                  {items.slice(0, 12).map((item) => (
-                    <ExternalHeadline key={item.id} item={item} size="list" />
+                <div className="grid gap-1.5">
+                  {items.slice(0, 12).map((item, index) => (
+                    <ExternalHeadline key={item.id} item={item} size={index === 0 ? "major" : index < 4 ? "compact" : "list"} />
                   ))}
                 </div>
               </section>
@@ -341,37 +341,46 @@ function NewsStat({ icon, label, value }: { icon: ReactNode; label: string; valu
 function ExternalHeadline({ item, size }: { item: NewsBoardItem; size: "lead" | "major" | "compact" | "list" }) {
   const headlineClass =
     size === "lead"
-      ? "iw-serif text-5xl leading-[0.88] text-[#fff8e6] sm:text-7xl"
+      ? "iw-serif text-5xl font-semibold leading-[0.88] text-[#fff8e6] sm:text-7xl"
       : size === "major"
-        ? "iw-serif text-3xl leading-none text-[#fff8e6]"
+        ? "iw-serif text-[2rem] font-semibold leading-[0.92] text-[#fff8e6] sm:text-[2.45rem]"
         : size === "compact"
-          ? "text-sm font-semibold leading-5 text-[#fff8e6]"
-          : "text-sm leading-5 text-[#fff8e6]"
-  const showThumb = Boolean(item.imageUrl && (size === "lead" || size === "compact" || size === "list"))
+          ? "text-base font-bold leading-[1.12] text-[#fff8e6]"
+          : "text-[15px] font-semibold leading-[1.18] text-[#fff8e6]"
+  const showThumb = Boolean(item.imageUrl && (size === "lead" || size === "major" || size === "compact" || size === "list"))
 
   return (
     <article
       className={cn(
-        "group transition hover:bg-black/70",
-        size === "lead" ? "grid content-between gap-10 bg-[#050504]/42 p-5" : "border-b border-[#f4efe2]/10 py-2 last:border-b-0",
-        size === "compact" && "bg-[#050504]/34 px-2",
+        "group min-w-0 transition hover:bg-black/70",
+        size === "lead"
+          ? "grid content-between gap-10 bg-[#050504]/42 p-5"
+          : size === "major"
+            ? "mb-1 bg-black/30 p-3 ring-1 ring-[#f4efe2]/10"
+            : "border-b border-[#f4efe2]/10 py-2 last:border-b-0",
+        size === "compact" && "bg-[#050504]/34 px-2 py-2.5",
       )}
     >
       <a
         href={item.url}
         target="_blank"
         rel="noreferrer"
-        className={cn("block", showThumb && size !== "lead" && "grid grid-cols-[76px_minmax(0,1fr)] items-start gap-2")}
+        className={cn(
+          "block min-w-0",
+          showThumb && size !== "lead" && size !== "major" && "grid grid-cols-[76px_minmax(0,1fr)] items-start gap-2",
+        )}
         aria-label={`Open source: ${item.title}`}
       >
         {showThumb ? <HeadlineImage item={item} size={size} /> : null}
         <span className="block min-w-0">
-          <span className="mb-2 flex flex-wrap items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.13em] text-[#df2f2f]">
-            <span>{item.source}</span>
+          <span className="mb-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[10px] font-bold uppercase leading-4 tracking-[0.13em] text-[#df2f2f]">
+            <span className="min-w-0 break-words [overflow-wrap:anywhere]">{item.source}</span>
             <span>{Math.max(1, Math.round(item.score))}</span>
             {item.publishedAt ? <span>{formatDate(item.publishedAt)}</span> : null}
           </span>
-          <span className={cn("block group-hover:text-[#df2f2f]", headlineClass)}>{item.title}</span>
+          <span className={cn("block min-w-0 break-words hyphens-auto [overflow-wrap:anywhere] group-hover:text-[#df2f2f]", headlineClass)}>
+            {item.title}
+          </span>
           {size === "lead" && item.excerpt ? (
             <span className="mt-5 block max-w-3xl text-base leading-7 text-[#f4efe2]/68">{item.excerpt}</span>
           ) : null}
@@ -402,7 +411,7 @@ function HeadlineImage({ item, size }: { item: NewsBoardItem; size: "lead" | "ma
     <span
       className={cn(
         "relative block overflow-hidden bg-black/38",
-        size === "lead" ? "mb-4 aspect-[16/9] w-full" : "aspect-[4/3] w-[76px]",
+        size === "lead" ? "mb-4 aspect-[16/9] w-full" : size === "major" ? "mb-3 aspect-[16/9] w-full" : "aspect-[4/3] w-[76px]",
       )}
     >
       <img
