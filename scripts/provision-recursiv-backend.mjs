@@ -284,17 +284,17 @@ const SCHEMA_SQL = [
 const JOBS = [
   {
     name: "inverted-world-youtube-archive-sync",
-    cron: "*/30 * * * *",
+    cron: "17 */6 * * *",
     endpoint: "/api/recursiv/jobs/youtube-archive-sync?async=1",
   },
   {
     name: "inverted-world-topic-pulse",
-    cron: "*/20 * * * *",
+    cron: "22 */6 * * *",
     endpoint: "/api/recursiv/jobs/topic-pulse?limit=24&profileReader=1&async=1",
   },
   {
     name: "inverted-world-worldwire",
-    cron: "*/10 * * * *",
+    cron: "26 */6 * * *",
     endpoint: "/api/recursiv/jobs/worldwire?limitPerLane=12&async=1",
   },
   {

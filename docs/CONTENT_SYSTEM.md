@@ -205,7 +205,7 @@ npm run recursiv:snapshot
 
 `recursiv:provision` creates the Recursiv database, schema, storage bucket, and agent access. `recursiv:sync` writes `data/generated/channel-archive.json` and upserts the current public YouTube archive into `channel_items`.
 
-`recursiv:provision -- --with-jobs` is the desired-state scheduled-job manifest. It points Recursiv cron at the hosted job endpoints with `async=1` so long ingestion tasks acknowledge quickly and do not leave scheduler `last_error` noise while the app continues work. Direct operator proof should call the same endpoint without `async=1` when the full JSON result is needed.
+`recursiv:provision -- --with-jobs` is the desired-state scheduled-job manifest. The canonical public news refresh is the hourly `full-pipeline` job; granular archive/topic/worldwire jobs are lower-frequency recovery and backfill paths so they do not burn the hosted Recursiv API key. It points Recursiv cron at the hosted job endpoints with `async=1` so long ingestion tasks acknowledge quickly and do not leave scheduler `last_error` noise while the app continues work. Direct operator proof should call the same endpoint without `async=1` when the full JSON result is needed.
 
 `recursiv:snapshot` exports persisted Recursiv rows into the committed public fallbacks `data/generated/recursiv-news-snapshot.json` and `data/generated/recursiv-public-snapshot.json`. It is for local/proof refreshes when the hosted runtime database key is unhealthy or rate-limited. The command reads a direct database URL from `RECURSIV_DATABASE_URL`, `RECURSIV_DATABASE_URL_FILE`, or the protected local file `/private/tmp/inverted-world-database-url`; it passes the password to `psql` through environment variables and prints only redacted counts.
 
