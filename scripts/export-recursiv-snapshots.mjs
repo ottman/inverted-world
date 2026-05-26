@@ -7,7 +7,7 @@ import { Recursiv } from "@recursiv/sdk"
 const NEWS_SNAPSHOT_FILE = path.resolve("data/generated/recursiv-news-snapshot.json")
 const PUBLIC_SNAPSHOT_FILE = path.resolve("data/generated/recursiv-public-snapshot.json")
 const DEFAULT_DATABASE_URL_FILE = "/private/tmp/inverted-world-database-url"
-const DEFAULT_SNAPSHOT_MAX_AGE_HOURS = 36
+const DEFAULT_SNAPSHOT_MAX_AGE_HOURS = 2
 const DEFAULT_RECURSIV_BASE_URL = "https://api.recursiv.io/api/v1"
 const DEFAULT_RECURSIV_DATABASE_NAME = "inverted_world_research"
 const LOCAL_RECURSIV_KEY = "/private/tmp/inverted-world-recursiv-key"

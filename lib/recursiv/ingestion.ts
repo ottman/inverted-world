@@ -272,16 +272,6 @@ function shorten(value: unknown, maxLength: number) {
   return text.length > maxLength ? `${text.slice(0, maxLength - 1).trim()}...` : text
 }
 
-function sqlDollarQuotedLiteral(value: string) {
-  for (let index = 0; index < 20; index += 1) {
-    const tag = `iw_json_${index}`
-    const boundary = `$${tag}$`
-    if (!value.includes(boundary)) return `${boundary}${value}${boundary}`
-  }
-
-  throw new Error("Unable to build safe SQL literal")
-}
-
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 }
@@ -1080,36 +1070,14 @@ export async function syncWorldwireCoverageToRecursiv(options: { limitPerLane?: 
   })).filter((lane) => lane.items.length > 0)
 
   if (lanes.length) {
-    const params: string[] = []
-    const valuesSql = lanes
-      .map((lane, index) => {
-        const sourceHosts = Array.from(new Set(lane.items.map((item) => item.source).filter(Boolean))).slice(0, 12)
-        const velocityScore = Math.round(lane.items.reduce((sum, item) => sum + (item.score || 0), 0))
-        const safeVelocityScore = Number.isFinite(velocityScore) ? velocityScore : 0
-        const itemsLiteral = sqlDollarQuotedLiteral(JSON.stringify(lane.items))
-        const metadataLiteral = sqlDollarQuotedLiteral(
-          JSON.stringify({
-            generatedBy: "recursiv-worldwire-crawler-v1",
-            laneTitle: lane.title,
-            itemCount: lane.items.length,
-            sourceHosts,
-          }),
-        )
-        const offset = index * 4
-        params.push(
-          lane.laneId,
-          lane.query,
-          `${lane.title} worldwire snapshot from Recursiv crawler output.`,
-          String(safeVelocityScore),
-        )
-        return `($${offset + 1}, $${offset + 2}, 'worldwire', ${itemsLiteral}::jsonb, $${offset + 3}, $${offset + 4}, ${metadataLiteral}::jsonb)`
-      })
-      .join(",\n")
-
-    await sdk.databases.query({
-      project_id: config.projectId,
-      database_name: config.databaseName,
-      sql: `INSERT INTO coverage_snapshots (
+    for (const lane of lanes) {
+      const sourceHosts = Array.from(new Set(lane.items.map((item) => item.source).filter(Boolean))).slice(0, 12)
+      const velocityScore = Math.round(lane.items.reduce((sum, item) => sum + (item.score || 0), 0))
+      const safeVelocityScore = Number.isFinite(velocityScore) ? velocityScore : 0
+      await sdk.databases.query({
+        project_id: config.projectId,
+        database_name: config.databaseName,
+        sql: `INSERT INTO coverage_snapshots (
           topic_id,
           query,
           source,
@@ -1118,9 +1086,22 @@ export async function syncWorldwireCoverageToRecursiv(options: { limitPerLane?: 
           velocity_score,
           metadata
         )
-        VALUES ${valuesSql}`,
-      params,
-    })
+        VALUES ($1, $2, 'worldwire', $3::jsonb, $4, $5, $6::jsonb)`,
+        params: [
+          lane.laneId,
+          lane.query,
+          JSON.stringify(lane.items),
+          `${lane.title} worldwire snapshot from Recursiv crawler output.`,
+          String(safeVelocityScore),
+          JSON.stringify({
+            generatedBy: "recursiv-worldwire-crawler-v1",
+            laneTitle: lane.title,
+            itemCount: lane.items.length,
+            sourceHosts,
+          }),
+        ],
+      })
+    }
   }
 
   return {

@@ -17,7 +17,7 @@ const ARTICLE_CHAT_PROOF_QUESTION = "What is actually documented in this article
 const X_SIGNAL_PROOF_TOPIC = "secret-programs"
 const X_SIGNAL_MIN_POSTS = Number(process.env.CUTOVER_X_SIGNAL_MIN_POSTS || "12")
 const X_SIGNAL_MAX_AGE_HOURS = Number(process.env.CUTOVER_X_SIGNAL_MAX_AGE_HOURS || "192")
-const PIPELINE_MAX_AGE_HOURS = Number(process.env.CUTOVER_PIPELINE_MAX_AGE_HOURS || "36")
+const PIPELINE_MAX_AGE_HOURS = Number(process.env.CUTOVER_PIPELINE_MAX_AGE_HOURS || "2")
 const ARCHIVE_REQUIRED_TOPIC_IDS = [
   "uap-disclosure",
   "secret-programs",
