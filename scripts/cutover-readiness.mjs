@@ -17,7 +17,8 @@ const ARTICLE_CHAT_PROOF_QUESTION = "What is actually documented in this article
 const X_SIGNAL_PROOF_TOPIC = "secret-programs"
 const X_SIGNAL_MIN_POSTS = Number(process.env.CUTOVER_X_SIGNAL_MIN_POSTS || "12")
 const X_SIGNAL_MAX_AGE_HOURS = Number(process.env.CUTOVER_X_SIGNAL_MAX_AGE_HOURS || "192")
-const PIPELINE_MAX_AGE_HOURS = Number(process.env.CUTOVER_PIPELINE_MAX_AGE_HOURS || "2")
+const PIPELINE_MAX_AGE_HOURS = Number(process.env.CUTOVER_PIPELINE_MAX_AGE_HOURS || "8")
+const FRONT_PAGE_MAX_AGE_HOURS = Number(process.env.CUTOVER_FRONT_PAGE_MAX_AGE_HOURS || "2")
 const ARCHIVE_REQUIRED_TOPIC_IDS = [
   "uap-disclosure",
   "secret-programs",
@@ -1256,7 +1257,7 @@ async function main() {
       pipelineApiFresh,
   )
   const frontPageApiFresh =
-    frontPageApi.freshnessAgeMinutes !== null && Number(frontPageApi.freshnessAgeMinutes) <= PIPELINE_MAX_AGE_HOURS * 60
+    frontPageApi.freshnessAgeMinutes !== null && Number(frontPageApi.freshnessAgeMinutes) <= FRONT_PAGE_MAX_AGE_HOURS * 60
   const frontPageApiReady = Boolean(
     frontPageApi.ok &&
       RECURSIV_BACKED_SOURCE_MODES.has(frontPageApi.sourceMode) &&
@@ -1441,7 +1442,7 @@ async function main() {
   }
   if (!frontPageApiReady) {
     nextActions.push(
-      `Do not touch DNS until /api/front-page returns a Recursiv-backed edition from inside ${PIPELINE_MAX_AGE_HOURS} hours with direct news, X, and archive ticker targets.`,
+      `Do not touch DNS until /api/front-page returns a Recursiv-backed edition from inside ${FRONT_PAGE_MAX_AGE_HOURS} hours with direct news, X, and archive ticker targets.`,
     )
   }
   if (!autopostApiReady) {

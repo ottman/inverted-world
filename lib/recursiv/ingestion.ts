@@ -10,6 +10,7 @@ import { fetchLiveArticlesForTopic } from "@/lib/live-articles"
 import { fetchMediaSeedItemsForSync, mediaItemMetadata } from "@/lib/media-library"
 import { generatedSvgThumbnail } from "@/lib/generated-thumbnail"
 import { createRecursivServerClient } from "@/lib/recursiv/client"
+import { executeDirectInvertedWorldDatabaseSql, hasDirectInvertedWorldDatabase } from "@/lib/recursiv/database"
 import { buildDailyAutopostJobResult } from "@/lib/recursiv/daily-autopost"
 import { INVERTED_WORLD_SCHEMA_SQL } from "@/lib/recursiv/schema"
 import { extractSourceText } from "@/lib/source-extraction"
@@ -583,6 +584,14 @@ async function generateDossierArticleDraft(
 }
 
 export async function ensureInvertedWorldSchema() {
+  if (hasDirectInvertedWorldDatabase()) {
+    const client = getInvertedWorldDatabase()
+    for (const sql of INVERTED_WORLD_SCHEMA_SQL) {
+      await executeDirectInvertedWorldDatabaseSql(sql)
+    }
+    return client
+  }
+
   const { sdk, config } = createRecursivServerClient({ timeout: 120000 })
   await sdk.databases.ensure({ project_id: config.projectId, name: config.databaseName })
   for (const sql of INVERTED_WORLD_SCHEMA_SQL) {
@@ -592,7 +601,16 @@ export async function ensureInvertedWorldSchema() {
 }
 
 function getInvertedWorldDatabase() {
-  return createRecursivServerClient({ timeout: 120000 })
+  const client = createRecursivServerClient({ timeout: 120000 })
+  if (!hasDirectInvertedWorldDatabase()) return client
+
+  const originalQuery = client.sdk.databases.query.bind(client.sdk.databases)
+  client.sdk.databases.query = (async (input) => {
+    const directResult = await executeDirectInvertedWorldDatabaseSql(input.sql, input.params || [])
+    return directResult ? { data: directResult } : originalQuery(input)
+  }) as typeof client.sdk.databases.query
+
+  return client
 }
 
 export async function syncSourceDocumentsToRecursiv() {

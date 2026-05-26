@@ -1,6 +1,6 @@
 {
-  "source": "recursiv-database-api-export",
-  "generatedAt": "2026-05-25T16:10:40.514Z",
+  "source": "recursiv-database-direct-export",
+  "generatedAt": "2026-05-26T18:32:18.602Z",
   "exportedBy": "scripts/export-recursiv-snapshots.mjs",
   "mediaItems": [
     {
@@ -56,7 +56,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T04:24:30.636999+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.aud#NASA-UAP-D010-Mercury-Atlas-9-Audio-Excerpt-May-15-1963",
-      "updated_at": "2026-05-25T16:03:14.980468+00:00",
+      "updated_at": "2026-05-26T09:22:04.251749+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -113,7 +113,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T04:24:30.636999+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.aud#NASA-UAP-D011-Mercury-Atlas-9-Audio-Excerpt-May-15-1963",
-      "updated_at": "2026-05-25T16:03:14.980468+00:00",
+      "updated_at": "2026-05-26T09:22:04.251749+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -170,7 +170,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T04:24:30.636999+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.aud#NASA-UAP-D012-Mercury-Atlas-8-Audio-Excerpt-October-3-1962",
-      "updated_at": "2026-05-25T16:03:14.980468+00:00",
+      "updated_at": "2026-05-26T09:22:04.251749+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -227,7 +227,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T04:24:30.636999+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.aud#NASA-UAP-D013-Mercury-Atlas-7-May-24-1962",
-      "updated_at": "2026-05-25T16:03:14.980468+00:00",
+      "updated_at": "2026-05-26T09:22:04.251749+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -284,7 +284,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T04:24:30.636999+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.aud#NASA-UAP-D014-Mercury-Redstone-4-July-21-1961",
-      "updated_at": "2026-05-25T16:03:14.980468+00:00",
+      "updated_at": "2026-05-26T09:22:04.251749+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -341,7 +341,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T04:24:29.814661+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.aud#NASA-UAP-D009-Apollo-17-Audio-Excerpt-December-7-1972",
-      "updated_at": "2026-05-25T16:03:14.38103+00:00",
+      "updated_at": "2026-05-26T09:22:03.410803+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -399,7 +399,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:24:02.255347+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR095-May-05-2020-Gulf-of-Arabia-CALLSIGN-Platform-Dual-UAP",
-      "updated_at": "2026-05-25T16:03:06.956819+00:00",
+      "updated_at": "2026-05-26T09:21:04.797983+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -457,7 +457,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:24:02.255347+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR096-HH11-03-July-2018-UAPs",
-      "updated_at": "2026-05-25T16:03:06.956819+00:00",
+      "updated_at": "2026-05-26T09:21:04.797983+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -515,7 +515,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:24:03.066777+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR097-Hi-Res-CALLSIGN-Observes-UAP-on-25SEP19-at-2135Z",
-      "updated_at": "2026-05-25T16:03:06.956819+00:00",
+      "updated_at": "2026-05-26T09:21:04.797983+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -572,7 +572,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:24:03.066777+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR098-UFOs-in-formation-over-Persian-Gulf",
-      "updated_at": "2026-05-25T16:03:06.956819+00:00",
+      "updated_at": "2026-05-26T09:21:04.797983+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -630,7 +630,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:24:03.066777+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR099-Hi-Res-CALLSIGN-Observes-UAP-on-25SEP19-at-1715Z",
-      "updated_at": "2026-05-25T16:03:06.956819+00:00",
+      "updated_at": "2026-05-26T09:21:04.797983+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -688,7 +688,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:24:01.664275+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR090-24-AUG-2020-CALLSIGN-Mission-Observes-UAP",
-      "updated_at": "2026-05-25T16:03:06.10638+00:00",
+      "updated_at": "2026-05-26T09:21:03.73283+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -746,7 +746,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:24:01.664275+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR091-21-AUG-CALLSIGN-Observes-UAP-in-Persian-Gulf",
-      "updated_at": "2026-05-25T16:03:06.10638+00:00",
+      "updated_at": "2026-05-26T09:21:03.73283+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -804,7 +804,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:24:02.255347+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR092-08-AUG-2020-CALLSIGN-CALLSIGN-UAP-observation",
-      "updated_at": "2026-05-25T16:03:06.10638+00:00",
+      "updated_at": "2026-05-26T09:21:03.73283+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -862,7 +862,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:24:02.255347+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR093-May-05-2020-Gulf-of-Arabia-CALLSIGN-Platform-Dual-UAP",
-      "updated_at": "2026-05-25T16:03:06.10638+00:00",
+      "updated_at": "2026-05-26T09:21:03.73283+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -920,7 +920,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:24:02.255347+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR094-CALLSIGN-Mission-HD-2020-02-13",
-      "updated_at": "2026-05-25T16:03:06.10638+00:00",
+      "updated_at": "2026-05-26T09:21:03.73283+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -978,7 +978,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:24:01.049798+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR085-16-Sept-2020-CALLSIGN-CALLSIGN-observes-UAP",
-      "updated_at": "2026-05-25T16:03:05.504831+00:00",
+      "updated_at": "2026-05-26T09:21:02.378881+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -1036,7 +1036,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:24:01.049798+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR086-UAP-from-Dec-2019-East-Coast",
-      "updated_at": "2026-05-25T16:03:05.504831+00:00",
+      "updated_at": "2026-05-26T09:21:02.378881+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -1094,7 +1094,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:24:01.664275+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR087-05-September-2020-CALLSIGN-UAP",
-      "updated_at": "2026-05-25T16:03:05.504831+00:00",
+      "updated_at": "2026-05-26T09:21:02.378881+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -1152,7 +1152,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:24:01.664275+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR088-31-AUG-CALLSIGN-CALLSIGN-Observes-UAP",
-      "updated_at": "2026-05-25T16:03:05.504831+00:00",
+      "updated_at": "2026-05-26T09:21:02.378881+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -1210,7 +1210,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:24:01.664275+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR089-31-AUG-CALLSIGN-CALLSIGN-Observes-UAP-part2",
-      "updated_at": "2026-05-25T16:03:05.504831+00:00",
+      "updated_at": "2026-05-26T09:21:02.378881+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -1268,7 +1268,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:44.862316+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR080-20-October-2020-CALLSIGN-CALLSIGN-Observes-UAP",
-      "updated_at": "2026-05-25T16:03:04.569553+00:00",
+      "updated_at": "2026-05-26T09:21:01.764247+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -1326,7 +1326,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:44.862316+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR081-18-Oct-2020-CALLSIGN-observes-UAP",
-      "updated_at": "2026-05-25T16:03:04.569553+00:00",
+      "updated_at": "2026-05-26T09:21:01.764247+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -1384,7 +1384,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:24:01.049798+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR082-16-OCT-2020-CALLSIGN-views-UAP",
-      "updated_at": "2026-05-25T16:03:04.569553+00:00",
+      "updated_at": "2026-05-26T09:21:01.764247+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -1442,7 +1442,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:24:01.049798+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR083-7-October-2020-CALLSIGN-observes-UAP",
-      "updated_at": "2026-05-25T16:03:04.569553+00:00",
+      "updated_at": "2026-05-26T09:21:01.764247+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -1500,7 +1500,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:24:01.049798+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR084-17-Sept-2020-CALLSIGN-observes-UAP",
-      "updated_at": "2026-05-25T16:03:04.569553+00:00",
+      "updated_at": "2026-05-26T09:21:01.764247+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -1558,7 +1558,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:44.27828+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR075-09JUN2021-Platform-observed-UAP-in-the-ECS",
-      "updated_at": "2026-05-25T16:03:03.977128+00:00",
+      "updated_at": "2026-05-26T09:21:01.131508+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -1616,7 +1616,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:44.27828+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR076-03-January-2021-CALLSIGN-Mission-observes-UAP",
-      "updated_at": "2026-05-25T16:03:03.977128+00:00",
+      "updated_at": "2026-05-26T09:21:01.131508+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -1674,7 +1674,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:44.862316+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR077-2-November-2020-CALLSIGN-CALLSIGN-Observes-and-tracks-UAP-1-of-2",
-      "updated_at": "2026-05-25T16:03:03.977128+00:00",
+      "updated_at": "2026-05-26T09:21:01.131508+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -1732,7 +1732,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:44.862316+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR078-2-November-2020-CALLSIGN-CALLSIGN-Observes-and-tracks-UAP-2-of-2",
-      "updated_at": "2026-05-25T16:03:03.977128+00:00",
+      "updated_at": "2026-05-26T09:21:01.131508+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -1790,7 +1790,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:44.862316+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR079-29-October-2020-CALLSIGN-Mission-observes-3-fast-moving-UAPs",
-      "updated_at": "2026-05-25T16:03:03.977128+00:00",
+      "updated_at": "2026-05-26T09:21:01.131508+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -1848,7 +1848,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:43.209904+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR070-IIR-1-655-S0301-23Eglin-AFB-Aircrew-Observed-Unidentified-Aerial-Phenomena-UAP-on-13-Feb-23",
-      "updated_at": "2026-05-25T16:03:03.130168+00:00",
+      "updated_at": "2026-05-26T09:20:11.169261+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -1906,7 +1906,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:43.209904+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR071-USAF-ANG-F-16C-callsign-CALLSIGN-Shoots-Down-UAP-over-Lake-Huron-with-Weapon-System-12-Feb-2023",
-      "updated_at": "2026-05-25T16:03:03.130168+00:00",
+      "updated_at": "2026-05-26T09:20:11.169261+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -1964,7 +1964,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:44.27828+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR072-ADMINISTRATIVE-REVISION-IIR-1777-J0032-22-Kazakhstan-UAP-in-the-vicinity-of-Karaganda-International-Airport",
-      "updated_at": "2026-05-25T16:03:03.130168+00:00",
+      "updated_at": "2026-05-26T09:20:11.169261+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -2022,7 +2022,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:44.27828+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR073-IIR-1-655-S0053-23Several-Unidentified-Aerial-Phenomenon-Encountered-In-The-Vicinity-of-Columbus-OH",
-      "updated_at": "2026-05-25T16:03:03.130168+00:00",
+      "updated_at": "2026-05-26T09:20:11.169261+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -2080,7 +2080,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:44.27828+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR074-CALLSIGN-MissionHD_20220613",
-      "updated_at": "2026-05-25T16:03:03.130168+00:00",
+      "updated_at": "2026-05-26T09:20:11.169261+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -2138,7 +2138,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:42.382342+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR065-USCG-C-144-Tyndall-UAP-2-TIC-TAC-IR-hot-24-April-2024",
-      "updated_at": "2026-05-25T16:03:02.284012+00:00",
+      "updated_at": "2026-05-26T09:20:10.461894+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -2196,7 +2196,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:42.382342+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR066-USCG-C-144-Tyndall-UAP-1-TIC-TAC-IR-hot-24-April-2024",
-      "updated_at": "2026-05-25T16:03:02.284012+00:00",
+      "updated_at": "2026-05-26T09:20:10.461894+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -2252,7 +2252,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:43.209904+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR067-Multiple-Spherical-UAP-USO-near-Sub-CALLSIGN-20220325-in-and-out-of-water",
-      "updated_at": "2026-05-25T16:03:02.284012+00:00",
+      "updated_at": "2026-05-26T09:20:10.461894+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -2310,7 +2310,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:43.209904+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR068-IIR-1-666-S0151-23Video-Footage-of-Unidentified-Aerial-Phenomenon-UAP-captured-by-fifth-generation-aircraft-on-20-Jan-23",
-      "updated_at": "2026-05-25T16:03:02.284012+00:00",
+      "updated_at": "2026-05-26T09:20:10.461894+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -2367,7 +2367,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:43.209904+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR069-FA-18-FLIR-UAP",
-      "updated_at": "2026-05-25T16:03:02.284012+00:00",
+      "updated_at": "2026-05-26T09:20:10.461894+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -2425,7 +2425,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:41.567153+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR060-Spherical-UAP-CALLSIGN-20210412-obj-2",
-      "updated_at": "2026-05-25T16:03:01.448014+00:00",
+      "updated_at": "2026-05-26T09:20:09.373239+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -2483,7 +2483,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:41.567153+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR061-Spherical-UAP-CALLSIGN-20210412-vid-0",
-      "updated_at": "2026-05-25T16:03:01.448014+00:00",
+      "updated_at": "2026-05-26T09:20:09.373239+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -2541,7 +2541,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:42.382342+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR062-Spherical-UAP-CALLSIGN-20210412-vid-1",
-      "updated_at": "2026-05-25T16:03:01.448014+00:00",
+      "updated_at": "2026-05-26T09:20:09.373239+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -2599,7 +2599,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:42.382342+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR063-Spherical-UAP-CALLSIGN-20210412-vid-2",
-      "updated_at": "2026-05-25T16:03:01.448014+00:00",
+      "updated_at": "2026-05-26T09:20:09.373239+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -2656,7 +2656,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:42.382342+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR064-AFSOC-Kabul-UAP-Jul-2017",
-      "updated_at": "2026-05-25T16:03:01.448014+00:00",
+      "updated_at": "2026-05-26T09:20:09.373239+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -2712,7 +2712,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:40.738756+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR056-Spherical-UAP-pulsing-over-water-CALLSIGN",
-      "updated_at": "2026-05-25T16:02:20.544479+00:00",
+      "updated_at": "2026-05-26T09:20:08.491176+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -2770,7 +2770,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:40.738756+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR057a-Spherical-UAP-in-clouds",
-      "updated_at": "2026-05-25T16:02:20.544479+00:00",
+      "updated_at": "2026-05-26T09:20:08.491176+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -2828,7 +2828,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:41.567153+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR057b-Platform-Observes-UAP-in-East-China-Sea-05-JAN-2023-INDOPACOM",
-      "updated_at": "2026-05-25T16:02:20.544479+00:00",
+      "updated_at": "2026-05-26T09:20:08.491176+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -2885,7 +2885,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:41.567153+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR058-CALLSIGN-Mission-UAP",
-      "updated_at": "2026-05-25T16:02:20.544479+00:00",
+      "updated_at": "2026-05-26T09:20:08.491176+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -2943,7 +2943,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:41.567153+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR059-NAG-UAP-1-Jun-20",
-      "updated_at": "2026-05-25T16:02:20.544479+00:00",
+      "updated_at": "2026-05-26T09:20:08.491176+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -2999,7 +2999,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:39.889155+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR052-UAP-USO-Formation-CALLSIGN-Mission",
-      "updated_at": "2026-05-25T16:02:19.926942+00:00",
+      "updated_at": "2026-05-26T09:20:07.565223+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -3057,7 +3057,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:40.738756+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR053-Cigar-Shaped-or-Fast-Sherical-UAP-clip-15-OCT-22",
-      "updated_at": "2026-05-25T16:02:19.926942+00:00",
+      "updated_at": "2026-05-26T09:20:07.565223+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -3115,7 +3115,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:40.738756+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR054-Spherical-UAP-Erratic-movement-CALLSIGN-Mission-2022",
-      "updated_at": "2026-05-25T16:02:19.926942+00:00",
+      "updated_at": "2026-05-26T09:20:07.565223+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -3173,7 +3173,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:40.738756+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR055-Spherical-UAP-over-AFG-in-and-out-of-clouds-23-Nov-2020",
-      "updated_at": "2026-05-25T16:02:19.926942+00:00",
+      "updated_at": "2026-05-26T09:20:07.565223+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -3229,7 +3229,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:28.624533+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.pdf#DOE-UAP-D002-James-Tuck-Correspondence-1970s",
-      "updated_at": "2026-05-25T16:02:08.029828+00:00",
+      "updated_at": "2026-05-26T09:19:08.250335+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -3286,7 +3286,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:28.624533+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.pdf#DOE-UAP-D003-Pajarito-Astronomers-Invitation-1986",
-      "updated_at": "2026-05-25T16:02:08.029828+00:00",
+      "updated_at": "2026-05-26T09:19:08.250335+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -3341,7 +3341,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:23.749259+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.pdf#DOE-UAP-D001-Enhanced-PANTEX-Imagery",
-      "updated_at": "2026-05-25T16:02:01.794452+00:00",
+      "updated_at": "2026-05-26T09:19:02.524893+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -3398,7 +3398,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:22.936998+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.aud#NASA-UAP-D008-Apollo-12-Medical-Debriefing-Tape-12-1969",
-      "updated_at": "2026-05-25T16:02:01.794452+00:00",
+      "updated_at": "2026-05-26T09:19:02.524893+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -3455,7 +3455,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:22.936998+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.pdf#ODNI-UAP-D001-USPER-Narrative-Senior-USIC-Official",
-      "updated_at": "2026-05-25T16:02:01.794452+00:00",
+      "updated_at": "2026-05-26T09:19:02.524893+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -3512,7 +3512,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:22.936998+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.pdf#CIA-UAP-D001-Intelligence-Information-Report-USSR-1973",
-      "updated_at": "2026-05-25T16:02:01.085356+00:00",
+      "updated_at": "2026-05-26T09:19:01.674938+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -3569,7 +3569,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:22.936998+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.pdf#DOW-UAP-D017-UAP-Reported-at-Sandia-Base-1948-1950",
-      "updated_at": "2026-05-25T16:02:01.085356+00:00",
+      "updated_at": "2026-05-26T09:19:01.674938+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -3627,7 +3627,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:22.118126+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR050-4-UAP-Formation-Iran-26-Aug-2022-over-water-CALLSIGN",
-      "updated_at": "2026-05-25T16:02:01.085356+00:00",
+      "updated_at": "2026-05-26T09:19:01.674938+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -3685,7 +3685,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T02:23:22.936998+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid#DOW-UAP-PR051-Syrian-UAP-instant-acceleration",
-      "updated_at": "2026-05-25T16:02:01.085356+00:00",
+      "updated_at": "2026-05-26T09:19:01.674938+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -3731,7 +3731,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T01:26:28.147032+00:00",
       "source_url": "https://www.war.gov/UFO/?type=.vid&releaseDate=Release+02#DOW-UAP-PR052-UAP-USO-Formation-CALLSIGN-Mission",
-      "updated_at": "2026-05-25T16:01:11.165219+00:00",
+      "updated_at": "2026-05-26T09:18:18.419558+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -3781,7 +3781,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T01:26:27.068029+00:00",
       "source_url": "https://www.war.gov/UFO/?type=.vid&releaseDate=Release+02#DOW-UAP-PR072-ADMINISTRATIVE-REVISION-IIR-1777-J0032-22-Kazakhstan-UAP-in-the-vicinity-of-Karaganda-International-Airport",
-      "updated_at": "2026-05-25T16:01:11.165219+00:00",
+      "updated_at": "2026-05-26T09:18:18.419558+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -3827,7 +3827,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T01:26:28.147032+00:00",
       "source_url": "https://www.war.gov/UFO/?type=.vid&releaseDate=Release+02#DOW-UAP-PR086-UAP-from-Dec-2019-East-Coast",
-      "updated_at": "2026-05-25T16:01:11.165219+00:00",
+      "updated_at": "2026-05-26T09:18:18.419558+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -3873,7 +3873,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T01:26:28.147032+00:00",
       "source_url": "https://www.war.gov/UFO/?type=.vid&releaseDate=Release+02#DOW-UAP-PR095-May-05-2020-Gulf-of-Arabia-CALLSIGN-Platform-Dual-UAP",
-      "updated_at": "2026-05-25T16:01:11.165219+00:00",
+      "updated_at": "2026-05-26T09:18:18.419558+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -3923,7 +3923,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T04:23:47.039024+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.aud",
-      "updated_at": "2026-05-25T16:01:10.559654+00:00",
+      "updated_at": "2026-05-26T09:18:17.346547+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -3973,7 +3973,7 @@
       "collection": "PURSUE",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02",
-      "updated_at": "2026-05-25T16:01:09.948328+00:00",
+      "updated_at": "2026-05-26T09:18:16.504134+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -4024,7 +4024,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T01:26:27.068029+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.pdf",
-      "updated_at": "2026-05-25T16:01:09.948328+00:00",
+      "updated_at": "2026-05-26T09:18:16.504134+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -4074,7 +4074,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T04:23:46.225636+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.img",
-      "updated_at": "2026-05-25T16:01:09.948328+00:00",
+      "updated_at": "2026-05-26T09:18:16.504134+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -4125,7 +4125,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-23T01:26:27.068029+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+02&type=.vid",
-      "updated_at": "2026-05-25T16:01:09.948328+00:00",
+      "updated_at": "2026-05-26T09:18:16.504134+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -4181,7 +4181,7 @@
       "collection": "PURSUE Release 02",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://www.war.gov/medialink/ufo/052226/release_02/documents/ODNI-UAP-D001_USPER_Narrative_Senior_USIC.pdf",
-      "updated_at": "2026-05-25T16:01:09.948328+00:00",
+      "updated_at": "2026-05-26T09:18:16.504134+00:00",
       "published_at": "2026-05-22T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -4205,7 +4205,7 @@
       "collection": "Tales archive",
       "created_at": "2026-05-23T00:05:08.448967+00:00",
       "source_url": "https://www.youtube.com/watch?v=ApaRfQOuUO4",
-      "updated_at": "2026-05-25T16:03:18.425733+00:00",
+      "updated_at": "2026-05-26T09:22:08.097994+00:00",
       "published_at": "2026-05-18T00:00:00+00:00",
       "thumbnail_url": "https://i2.ytimg.com/vi/ApaRfQOuUO4/hqdefault.jpg"
     },
@@ -4229,7 +4229,7 @@
       "collection": "Tales archive",
       "created_at": "2026-05-23T00:05:07.829655+00:00",
       "source_url": "https://www.youtube.com/watch?v=8cSaStj158I",
-      "updated_at": "2026-05-25T16:03:18.425733+00:00",
+      "updated_at": "2026-05-26T09:22:08.097994+00:00",
       "published_at": "2026-05-18T00:00:00+00:00",
       "thumbnail_url": "https://i1.ytimg.com/vi/8cSaStj158I/hqdefault.jpg"
     },
@@ -4253,7 +4253,7 @@
       "collection": "Tales archive",
       "created_at": "2026-05-23T00:05:06.964451+00:00",
       "source_url": "https://www.youtube.com/watch?v=buV734vffR0",
-      "updated_at": "2026-05-25T16:03:17.523391+00:00",
+      "updated_at": "2026-05-26T09:22:07.480325+00:00",
       "published_at": "2026-05-18T00:00:00+00:00",
       "thumbnail_url": "https://i3.ytimg.com/vi/buV734vffR0/hqdefault.jpg"
     },
@@ -4277,7 +4277,7 @@
       "collection": "Tales archive",
       "created_at": "2026-05-23T00:05:06.119695+00:00",
       "source_url": "https://www.youtube.com/watch?v=N1t2XSzrnfk",
-      "updated_at": "2026-05-25T16:03:17.523391+00:00",
+      "updated_at": "2026-05-26T09:22:07.480325+00:00",
       "published_at": "2026-05-18T00:00:00+00:00",
       "thumbnail_url": "https://i3.ytimg.com/vi/N1t2XSzrnfk/hqdefault.jpg"
     },
@@ -4397,7 +4397,7 @@
       "collection": "Tales archive",
       "created_at": "2026-05-23T00:05:09.251483+00:00",
       "source_url": "https://www.youtube.com/shorts/3WyKJa_F_Wg",
-      "updated_at": "2026-05-25T16:03:18.425733+00:00",
+      "updated_at": "2026-05-26T09:22:08.097994+00:00",
       "published_at": "2026-05-16T00:00:00+00:00",
       "thumbnail_url": "https://i4.ytimg.com/vi/3WyKJa_F_Wg/hqdefault.jpg"
     },
@@ -4445,7 +4445,7 @@
       "collection": "Tales archive",
       "created_at": "2026-05-23T00:05:10.081427+00:00",
       "source_url": "https://www.youtube.com/shorts/BxI3cT1k45w",
-      "updated_at": "2026-05-25T16:03:18.425733+00:00",
+      "updated_at": "2026-05-26T09:22:08.097994+00:00",
       "published_at": "2026-05-15T00:00:00+00:00",
       "thumbnail_url": "https://i3.ytimg.com/vi/BxI3cT1k45w/hqdefault.jpg"
     },
@@ -4469,7 +4469,7 @@
       "collection": "Tales archive",
       "created_at": "2026-05-23T00:06:01.207259+00:00",
       "source_url": "https://www.youtube.com/watch?v=oiMLnd_4aHY",
-      "updated_at": "2026-05-25T16:03:18.425733+00:00",
+      "updated_at": "2026-05-26T09:22:08.097994+00:00",
       "published_at": "2026-05-15T00:00:00+00:00",
       "thumbnail_url": "https://i4.ytimg.com/vi/oiMLnd_4aHY/hqdefault.jpg"
     },
@@ -4541,7 +4541,7 @@
       "collection": "Tales archive",
       "created_at": "2026-05-23T00:06:03.155439+00:00",
       "source_url": "https://www.youtube.com/watch?v=D2-R8FERWoM",
-      "updated_at": "2026-05-25T16:03:19.314997+00:00",
+      "updated_at": "2026-05-26T09:22:09.20007+00:00",
       "published_at": "2026-05-14T00:00:00+00:00",
       "thumbnail_url": "https://i1.ytimg.com/vi/D2-R8FERWoM/hqdefault.jpg"
     },
@@ -4565,7 +4565,7 @@
       "collection": "Tales archive",
       "created_at": "2026-05-23T00:06:02.061332+00:00",
       "source_url": "https://www.youtube.com/shorts/f_bplTaaDJQ",
-      "updated_at": "2026-05-25T16:03:19.314997+00:00",
+      "updated_at": "2026-05-26T09:22:09.20007+00:00",
       "published_at": "2026-05-14T00:00:00+00:00",
       "thumbnail_url": "https://i3.ytimg.com/vi/f_bplTaaDJQ/hqdefault.jpg"
     },
@@ -4637,7 +4637,7 @@
       "collection": "Tales archive",
       "created_at": "2026-05-23T00:06:04.566476+00:00",
       "source_url": "https://www.youtube.com/watch?v=5v5RPBw7oos",
-      "updated_at": "2026-05-25T16:03:19.314997+00:00",
+      "updated_at": "2026-05-26T09:22:09.20007+00:00",
       "published_at": "2026-05-13T00:00:00+00:00",
       "thumbnail_url": "https://i2.ytimg.com/vi/5v5RPBw7oos/hqdefault.jpg"
     },
@@ -4661,7 +4661,7 @@
       "collection": "Tales archive",
       "created_at": "2026-05-23T00:06:03.979703+00:00",
       "source_url": "https://www.youtube.com/shorts/czJEpZvDJ3A",
-      "updated_at": "2026-05-25T16:03:19.314997+00:00",
+      "updated_at": "2026-05-26T09:22:09.20007+00:00",
       "published_at": "2026-05-13T00:00:00+00:00",
       "thumbnail_url": "https://i4.ytimg.com/vi/czJEpZvDJ3A/hqdefault.jpg"
     },
@@ -4733,7 +4733,7 @@
       "collection": "Tales archive",
       "created_at": "2026-05-23T00:06:06.434989+00:00",
       "source_url": "https://www.youtube.com/watch?v=Jn4SAKfonCQ",
-      "updated_at": "2026-05-25T16:03:20.164628+00:00",
+      "updated_at": "2026-05-26T09:23:01.133414+00:00",
       "published_at": "2026-05-12T00:00:00+00:00",
       "thumbnail_url": "https://i3.ytimg.com/vi/Jn4SAKfonCQ/hqdefault.jpg"
     },
@@ -4757,7 +4757,7 @@
       "collection": "Tales archive",
       "created_at": "2026-05-23T00:06:05.388057+00:00",
       "source_url": "https://www.youtube.com/shorts/cLgGJWS6abM",
-      "updated_at": "2026-05-25T16:03:19.314997+00:00",
+      "updated_at": "2026-05-26T09:22:09.20007+00:00",
       "published_at": "2026-05-12T00:00:00+00:00",
       "thumbnail_url": "https://i4.ytimg.com/vi/cLgGJWS6abM/hqdefault.jpg"
     },
@@ -4829,7 +4829,7 @@
       "collection": "Tales archive",
       "created_at": "2026-05-23T00:06:11.317755+00:00",
       "source_url": "https://www.youtube.com/watch?v=k27iBDWl0DI",
-      "updated_at": "2026-05-25T16:03:21.015985+00:00",
+      "updated_at": "2026-05-26T09:23:01.733983+00:00",
       "published_at": "2026-05-11T00:00:00+00:00",
       "thumbnail_url": "https://i4.ytimg.com/vi/k27iBDWl0DI/hqdefault.jpg"
     },
@@ -4853,7 +4853,7 @@
       "collection": "Tales archive",
       "created_at": "2026-05-23T00:06:07.240376+00:00",
       "source_url": "https://www.youtube.com/watch?v=gBH6UjvSXnQ",
-      "updated_at": "2026-05-25T16:03:20.164628+00:00",
+      "updated_at": "2026-05-26T09:23:01.133414+00:00",
       "published_at": "2026-05-11T00:00:00+00:00",
       "thumbnail_url": "https://i4.ytimg.com/vi/gBH6UjvSXnQ/hqdefault.jpg"
     },
@@ -4925,7 +4925,7 @@
       "collection": "Tales archive",
       "created_at": "2026-05-23T00:06:08.033076+00:00",
       "source_url": "https://www.youtube.com/shorts/-5b5DSUTAZg",
-      "updated_at": "2026-05-25T16:03:20.164628+00:00",
+      "updated_at": "2026-05-26T09:23:01.133414+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": "https://i.ytimg.com/vi/-5b5DSUTAZg/hqdefault.jpg"
     },
@@ -4982,7 +4982,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:33.405443+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#State-Department-UAP-Cable-005-Mexico-September-16-2003",
-      "updated_at": "2026-05-25T16:03:17.523391+00:00",
+      "updated_at": "2026-05-26T09:22:07.480325+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -5039,7 +5039,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:33.405443+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#USPER-Statement-about-UAP-Sighting",
-      "updated_at": "2026-05-25T16:03:17.523391+00:00",
+      "updated_at": "2026-05-26T09:22:07.480325+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -5096,7 +5096,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:33.405443+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#Western-US-Event",
-      "updated_at": "2026-05-25T16:03:17.523391+00:00",
+      "updated_at": "2026-05-26T09:22:07.480325+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -5154,7 +5154,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:32.52984+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.img#NASA-UAP-VM006-Apollo-17-1972",
-      "updated_at": "2026-05-25T16:03:16.66969+00:00",
+      "updated_at": "2026-05-26T09:22:06.399052+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -5211,7 +5211,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:32.52984+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#State-Department-UAP-Cable-001-Papua-New-Guinea-January-28-1985",
-      "updated_at": "2026-05-25T16:03:16.66969+00:00",
+      "updated_at": "2026-05-26T09:22:06.399052+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -5268,7 +5268,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:32.52984+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#State-Department-UAP-Cable-002-Kazakhstan-January-31-1994",
-      "updated_at": "2026-05-25T16:03:16.66969+00:00",
+      "updated_at": "2026-05-26T09:22:06.399052+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -5325,7 +5325,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:32.52984+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#State-Department-UAP-Cable-003-Tbilisi-Georgia-October-30-2001",
-      "updated_at": "2026-05-25T16:03:16.66969+00:00",
+      "updated_at": "2026-05-26T09:22:06.399052+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -5382,7 +5382,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:32.52984+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#State-Department-UAP-Cable-004-Ashgabat-Turkmenistan-November-5-2004",
-      "updated_at": "2026-05-25T16:03:16.66969+00:00",
+      "updated_at": "2026-05-26T09:22:06.399052+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -5440,7 +5440,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:31.708225+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.img#NASA-UAP-VM001-Apollo-12-1969",
-      "updated_at": "2026-05-25T16:03:15.823969+00:00",
+      "updated_at": "2026-05-26T09:22:05.487579+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -5498,7 +5498,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:31.708225+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.img#NASA-UAP-VM002-Apollo-12-1969",
-      "updated_at": "2026-05-25T16:03:15.823969+00:00",
+      "updated_at": "2026-05-26T09:22:05.487579+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -5556,7 +5556,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:31.708225+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.img#NASA-UAP-VM003-Apollo-12-1969",
-      "updated_at": "2026-05-25T16:03:15.823969+00:00",
+      "updated_at": "2026-05-26T09:22:05.487579+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -5614,7 +5614,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:31.708225+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.img#NASA-UAP-VM004-Apollo-12-1969",
-      "updated_at": "2026-05-25T16:03:15.823969+00:00",
+      "updated_at": "2026-05-26T09:22:05.487579+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -5672,7 +5672,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:31.708225+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.img#NASA-UAP-VM005-Apollo-12-1969",
-      "updated_at": "2026-05-25T16:03:15.823969+00:00",
+      "updated_at": "2026-05-26T09:22:05.487579+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -5728,7 +5728,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:29.814661+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#NASA-UAP-D004-Apollo-11-Technical-Crew-Debriefing-1969",
-      "updated_at": "2026-05-25T16:03:14.38103+00:00",
+      "updated_at": "2026-05-26T09:22:03.410803+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -5784,7 +5784,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:29.814661+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#NASA-UAP-D005-Apollo-17-Crew-Debriefing-for-Science-1973",
-      "updated_at": "2026-05-25T16:03:14.38103+00:00",
+      "updated_at": "2026-05-26T09:22:03.410803+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -5840,7 +5840,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:29.814661+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#NASA-UAP-D006-Apollo-17-Technical-Crew-Debriefing-1973",
-      "updated_at": "2026-05-25T16:03:14.38103+00:00",
+      "updated_at": "2026-05-26T09:22:03.410803+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -5896,7 +5896,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:29.814661+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#NASA-UAP-D007-Skylab-Techincal-Crew-Debriefing-1973",
-      "updated_at": "2026-05-25T16:03:14.38103+00:00",
+      "updated_at": "2026-05-26T09:22:03.410803+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -5953,7 +5953,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:28.98751+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#FBI-September-2023-Sighting-Serial-005",
-      "updated_at": "2026-05-25T16:03:13.522731+00:00",
+      "updated_at": "2026-05-26T09:22:02.29654+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -6010,7 +6010,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:28.98751+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#NASA-UAP-D001-Apollo-12-Transcript-1969",
-      "updated_at": "2026-05-25T16:03:13.522731+00:00",
+      "updated_at": "2026-05-26T09:22:02.29654+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -6067,7 +6067,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:28.98751+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#NASA-UAP-D002-Apollo-17-Transcript-1972",
-      "updated_at": "2026-05-25T16:03:13.522731+00:00",
+      "updated_at": "2026-05-26T09:22:02.29654+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -6124,7 +6124,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:28.98751+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#NASA-UAP-D003-Gemini-7-Transcript-1965",
-      "updated_at": "2026-05-25T16:03:13.522731+00:00",
+      "updated_at": "2026-05-26T09:22:02.29654+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -6181,7 +6181,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:28.98751+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.aud#NASA-UAP-D003A-Gemini-7-Audio-Excerpt-1965",
-      "updated_at": "2026-05-25T16:03:13.522731+00:00",
+      "updated_at": "2026-05-26T09:22:02.29654+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -6238,7 +6238,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:28.165828+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#FBI-Photo-B023",
-      "updated_at": "2026-05-25T16:03:12.66479+00:00",
+      "updated_at": "2026-05-26T09:22:01.354097+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -6295,7 +6295,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:28.165828+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#FBI-Photo-B024",
-      "updated_at": "2026-05-25T16:03:12.66479+00:00",
+      "updated_at": "2026-05-26T09:22:01.354097+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -6352,7 +6352,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:28.165828+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#FBI-September-2023-Sighting-Composite-Sketch",
-      "updated_at": "2026-05-25T16:03:12.66479+00:00",
+      "updated_at": "2026-05-26T09:22:01.354097+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -6409,7 +6409,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:28.165828+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#FBI-September-2023-Sighting-Serial-003",
-      "updated_at": "2026-05-25T16:03:12.66479+00:00",
+      "updated_at": "2026-05-26T09:22:01.354097+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -6466,7 +6466,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:28.165828+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#FBI-September-2023-Sighting-Serial-004",
-      "updated_at": "2026-05-25T16:03:12.66479+00:00",
+      "updated_at": "2026-05-26T09:22:01.354097+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -6523,7 +6523,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:27.326917+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#FBI-Photo-B018",
-      "updated_at": "2026-05-25T16:03:11.806718+00:00",
+      "updated_at": "2026-05-26T09:21:10.182995+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -6580,7 +6580,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:27.326917+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#FBI-Photo-B019",
-      "updated_at": "2026-05-25T16:03:11.806718+00:00",
+      "updated_at": "2026-05-26T09:21:10.182995+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -6637,7 +6637,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:27.326917+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#FBI-Photo-B020",
-      "updated_at": "2026-05-25T16:03:11.806718+00:00",
+      "updated_at": "2026-05-26T09:21:10.182995+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -6694,7 +6694,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:27.326917+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#FBI-Photo-B021",
-      "updated_at": "2026-05-25T16:03:11.806718+00:00",
+      "updated_at": "2026-05-26T09:21:10.182995+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -6751,7 +6751,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:27.326917+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#FBI-Photo-B022",
-      "updated_at": "2026-05-25T16:03:11.806718+00:00",
+      "updated_at": "2026-05-26T09:21:10.182995+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -6808,7 +6808,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:26.491094+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#FBI-Photo-B013",
-      "updated_at": "2026-05-25T16:03:11.199099+00:00",
+      "updated_at": "2026-05-26T09:21:09.107318+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -6865,7 +6865,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:26.491094+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#FBI-Photo-B014",
-      "updated_at": "2026-05-25T16:03:11.199099+00:00",
+      "updated_at": "2026-05-26T09:21:09.107318+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -6922,7 +6922,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:26.491094+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#FBI-Photo-B015",
-      "updated_at": "2026-05-25T16:03:11.199099+00:00",
+      "updated_at": "2026-05-26T09:21:09.107318+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -6979,7 +6979,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:26.491094+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#FBI-Photo-B016",
-      "updated_at": "2026-05-25T16:03:11.199099+00:00",
+      "updated_at": "2026-05-26T09:21:09.107318+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -7036,7 +7036,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:26.491094+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#FBI-Photo-B017",
-      "updated_at": "2026-05-25T16:03:11.199099+00:00",
+      "updated_at": "2026-05-26T09:21:09.107318+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -7093,7 +7093,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:25.663926+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#FBI-Photo-B008",
-      "updated_at": "2026-05-25T16:03:10.109743+00:00",
+      "updated_at": "2026-05-26T09:21:08.24781+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -7150,7 +7150,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:25.663926+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#FBI-Photo-B009",
-      "updated_at": "2026-05-25T16:03:10.109743+00:00",
+      "updated_at": "2026-05-26T09:21:08.24781+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -7207,7 +7207,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:25.663926+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#FBI-Photo-B010",
-      "updated_at": "2026-05-25T16:03:10.109743+00:00",
+      "updated_at": "2026-05-26T09:21:08.24781+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -7264,7 +7264,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:25.663926+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#FBI-Photo-B011",
-      "updated_at": "2026-05-25T16:03:10.109743+00:00",
+      "updated_at": "2026-05-26T09:21:08.24781+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -7321,7 +7321,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:25.663926+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#FBI-Photo-B012",
-      "updated_at": "2026-05-25T16:03:10.109743+00:00",
+      "updated_at": "2026-05-26T09:21:08.24781+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -7378,7 +7378,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:24.858706+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#FBI-Photo-B003",
-      "updated_at": "2026-05-25T16:03:09.265184+00:00",
+      "updated_at": "2026-05-26T09:21:07.386929+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -7435,7 +7435,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:24.858706+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#FBI-Photo-B004",
-      "updated_at": "2026-05-25T16:03:09.265184+00:00",
+      "updated_at": "2026-05-26T09:21:07.386929+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -7492,7 +7492,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:24.858706+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#FBI-Photo-B005",
-      "updated_at": "2026-05-25T16:03:09.265184+00:00",
+      "updated_at": "2026-05-26T09:21:07.386929+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -7549,7 +7549,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:24.858706+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#FBI-Photo-B006",
-      "updated_at": "2026-05-25T16:03:09.265184+00:00",
+      "updated_at": "2026-05-26T09:21:07.386929+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -7606,7 +7606,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:24.858706+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#FBI-Photo-B007",
-      "updated_at": "2026-05-25T16:03:09.265184+00:00",
+      "updated_at": "2026-05-26T09:21:07.386929+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -7664,7 +7664,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:24.018393+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.img#FBI-Photo-A006",
-      "updated_at": "2026-05-25T16:03:08.423938+00:00",
+      "updated_at": "2026-05-26T09:21:06.510428+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -7722,7 +7722,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:24.018393+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.img#FBI-Photo-A007",
-      "updated_at": "2026-05-25T16:03:08.423938+00:00",
+      "updated_at": "2026-05-26T09:21:06.510428+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -7780,7 +7780,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:24.018393+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.img#FBI-Photo-A008",
-      "updated_at": "2026-05-25T16:03:08.423938+00:00",
+      "updated_at": "2026-05-26T09:21:06.510428+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -7837,7 +7837,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:24.018393+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#FBI-Photo-B001",
-      "updated_at": "2026-05-25T16:03:08.423938+00:00",
+      "updated_at": "2026-05-26T09:21:06.510428+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -7894,7 +7894,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:24.018393+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#FBI-Photo-B002",
-      "updated_at": "2026-05-25T16:03:08.423938+00:00",
+      "updated_at": "2026-05-26T09:21:06.510428+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -7952,7 +7952,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:24:03.066777+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.img#FBI-Photo-A001",
-      "updated_at": "2026-05-25T16:03:07.821381+00:00",
+      "updated_at": "2026-05-26T09:21:05.413879+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -8010,7 +8010,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:23.418742+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.img#FBI-Photo-A002",
-      "updated_at": "2026-05-25T16:03:07.821381+00:00",
+      "updated_at": "2026-05-26T09:21:05.413879+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -8068,7 +8068,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:23.418742+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.img#FBI-Photo-A003",
-      "updated_at": "2026-05-25T16:03:07.821381+00:00",
+      "updated_at": "2026-05-26T09:21:05.413879+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -8126,7 +8126,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:23.418742+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.img#FBI-Photo-A004",
-      "updated_at": "2026-05-25T16:03:07.821381+00:00",
+      "updated_at": "2026-05-26T09:21:05.413879+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -8184,7 +8184,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T04:24:23.418742+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.img#FBI-Photo-A005",
-      "updated_at": "2026-05-25T16:03:07.821381+00:00",
+      "updated_at": "2026-05-26T09:21:05.413879+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -8242,7 +8242,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:39.889155+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.vid#DOW-UAP-PR049-Unresolved-UAP-Report-Department-of-the-Army-2026",
-      "updated_at": "2026-05-25T16:02:19.926942+00:00",
+      "updated_at": "2026-05-26T09:20:07.565223+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -8300,7 +8300,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:39.044801+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.vid#DOW-UAP-PR044-Unresolved-UAP-Report-Middle-East-2020",
-      "updated_at": "2026-05-25T16:02:19.068907+00:00",
+      "updated_at": "2026-05-26T09:20:06.504387+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -8358,7 +8358,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:39.044801+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.vid#DOW-UAP-PR045-Unresolved-UAP-Report-Middle-East-2020",
-      "updated_at": "2026-05-25T16:02:19.068907+00:00",
+      "updated_at": "2026-05-26T09:20:06.504387+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -8416,7 +8416,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:39.889155+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.vid#DOW-UAP-PR046-Unresolved-UAP-Report-INDOPACOM-2024",
-      "updated_at": "2026-05-25T16:02:19.068907+00:00",
+      "updated_at": "2026-05-26T09:20:06.504387+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -8474,7 +8474,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:39.889155+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.vid#DOW-UAP-PR047-Unresolved-UAP-Report-INDOPACOM-2023",
-      "updated_at": "2026-05-25T16:02:19.068907+00:00",
+      "updated_at": "2026-05-26T09:20:06.504387+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -8532,7 +8532,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:39.889155+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.vid#DOW-UAP-PR048-Unresolved-UAP-Report-INDOPACOM-2024",
-      "updated_at": "2026-05-25T16:02:19.068907+00:00",
+      "updated_at": "2026-05-26T09:20:06.504387+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -8590,7 +8590,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:38.227887+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.vid#DOW-UAP-PR039-Unresolved-UAP-Report-Middle-East-2020",
-      "updated_at": "2026-05-25T16:02:18.183422+00:00",
+      "updated_at": "2026-05-26T09:20:05.639721+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -8648,7 +8648,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:38.227887+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.vid#DOW-UAP-PR040-Unresolved-UAP-Report-Middle-East-2020",
-      "updated_at": "2026-05-25T16:02:18.183422+00:00",
+      "updated_at": "2026-05-26T09:20:05.639721+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -8706,7 +8706,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:39.044801+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.vid#DOW-UAP-PR041-Unresolved-UAP-Report-Middle-East-2020",
-      "updated_at": "2026-05-25T16:02:18.183422+00:00",
+      "updated_at": "2026-05-26T09:20:05.639721+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -8764,7 +8764,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:39.044801+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.vid#DOW-UAP-PR042-Unresolved-UAP-Report-Middle-East-2020",
-      "updated_at": "2026-05-25T16:02:18.183422+00:00",
+      "updated_at": "2026-05-26T09:20:05.639721+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -8822,7 +8822,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:39.044801+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.vid#DOW-UAP-PR043-Unresolved-UAP-Report-Africa-2025",
-      "updated_at": "2026-05-25T16:02:18.183422+00:00",
+      "updated_at": "2026-05-26T09:20:05.639721+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -8880,7 +8880,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:37.397914+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.vid#DOW-UAP-PR034-Unresolved-UAP-Report-Greece-October-2023",
-      "updated_at": "2026-05-25T16:02:17.302089+00:00",
+      "updated_at": "2026-05-26T09:20:05.013956+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -8938,7 +8938,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:37.397914+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.vid#DOW-UAP-PR035-Unresolved-UAP-Report-Greece-October-2023",
-      "updated_at": "2026-05-25T16:02:17.302089+00:00",
+      "updated_at": "2026-05-26T09:20:05.013956+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -8996,7 +8996,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:38.227887+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.vid#DOW-UAP-PR036-Unresolved-UAP-Report-Middle-East-May-2020",
-      "updated_at": "2026-05-25T16:02:17.302089+00:00",
+      "updated_at": "2026-05-26T09:20:05.013956+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -9054,7 +9054,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:38.227887+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.vid#DOW-UAP-PR037-Unresolved-UAP-Report-Middle-East-2020",
-      "updated_at": "2026-05-25T16:02:17.302089+00:00",
+      "updated_at": "2026-05-26T09:20:05.013956+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -9112,7 +9112,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:38.227887+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.vid#DOW-UAP-PR038-Unresolved-UAP-Report-Middle-East-2013",
-      "updated_at": "2026-05-25T16:02:17.302089+00:00",
+      "updated_at": "2026-05-26T09:20:05.013956+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -9170,7 +9170,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:36.830106+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.vid#DOW-UAP-PR028-Unresolved-UAP-Report-Greece-January-2024",
-      "updated_at": "2026-05-25T16:02:16.420444+00:00",
+      "updated_at": "2026-05-26T09:20:03.93108+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -9228,7 +9228,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:36.830106+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.vid#DOW-UAP-PR029-Unresolved-UAP-Report-United-Arab-Emirates-June-2024",
-      "updated_at": "2026-05-25T16:02:16.420444+00:00",
+      "updated_at": "2026-05-26T09:20:03.93108+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -9286,7 +9286,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:37.397914+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.vid#DOW-UAP-PR031-Unresolved-UAP-Report-Syria-October-2024",
-      "updated_at": "2026-05-25T16:02:16.420444+00:00",
+      "updated_at": "2026-05-26T09:20:03.93108+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -9344,7 +9344,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:37.397914+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.vid#DOW-UAP-PR032-Unresolved-UAP-Report-Syria-October-2024",
-      "updated_at": "2026-05-25T16:02:16.420444+00:00",
+      "updated_at": "2026-05-26T09:20:03.93108+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -9402,7 +9402,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:37.397914+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.vid#DOW-UAP-PR033-Unresolved-UAP-Report-Syria-October-2024",
-      "updated_at": "2026-05-25T16:02:16.420444+00:00",
+      "updated_at": "2026-05-26T09:20:03.93108+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -9460,7 +9460,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:35.778157+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.vid#DOW-UAP-PR021-Unresolved-UAP-Report-Iraq-May-2022",
-      "updated_at": "2026-05-25T16:02:15.57873+00:00",
+      "updated_at": "2026-05-26T09:20:03.054357+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -9518,7 +9518,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:35.778157+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.vid#DOW-UAP-PR022-Unresolved-UAP-Report-Syria-July-2022",
-      "updated_at": "2026-05-25T16:02:15.57873+00:00",
+      "updated_at": "2026-05-26T09:20:03.054357+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -9576,7 +9576,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:36.830106+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.vid#DOW-UAP-PR023-Unresolved-UAP-Report-Iraq-December-2022",
-      "updated_at": "2026-05-25T16:02:15.57873+00:00",
+      "updated_at": "2026-05-26T09:20:03.054357+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -9634,7 +9634,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:36.830106+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.vid#DOW-UAP-PR026-Unresolved-UAP-Report-United-Arab-Emirates-October-2023",
-      "updated_at": "2026-05-25T16:02:15.57873+00:00",
+      "updated_at": "2026-05-26T09:20:03.054357+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -9692,7 +9692,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:36.830106+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.vid#DOW-UAP-PR027-Unresolved-UAP-Report-United-Arab-Emirates-October-2023",
-      "updated_at": "2026-05-25T16:02:15.57873+00:00",
+      "updated_at": "2026-05-26T09:20:03.054357+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -9749,7 +9749,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:35.206651+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D065-Mission-Report-Arabian-Gulf-July-2020",
-      "updated_at": "2026-05-25T16:02:14.711217+00:00",
+      "updated_at": "2026-05-26T09:20:02.156049+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -9806,7 +9806,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:35.206651+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D074-Mission-Report-Syria-November-2023",
-      "updated_at": "2026-05-25T16:02:14.711217+00:00",
+      "updated_at": "2026-05-26T09:20:02.156049+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -9863,7 +9863,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:35.778157+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D075-Mission-Report-Gulf-of-Aden-July-2024",
-      "updated_at": "2026-05-25T16:02:14.711217+00:00",
+      "updated_at": "2026-05-26T09:20:02.156049+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -9921,7 +9921,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:35.778157+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.vid#DOW-UAP-PR019-Unresolved-UAP-Report-Middle-East-May-2022",
-      "updated_at": "2026-05-25T16:02:14.711217+00:00",
+      "updated_at": "2026-05-26T09:20:02.156049+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -9978,7 +9978,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:35.778157+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-PR020-Unresolved-UAP-Report-Kuwait-May-2022",
-      "updated_at": "2026-05-25T16:02:14.711217+00:00",
+      "updated_at": "2026-05-26T09:20:02.156049+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -10035,7 +10035,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:34.377682+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D060-Mission-Report-Arabian-Gulf-August-2020",
-      "updated_at": "2026-05-25T16:02:13.877544+00:00",
+      "updated_at": "2026-05-26T09:20:01.243024+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -10092,7 +10092,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:34.377682+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D061-Mission-Report-Arabian-Gulf-August-2020",
-      "updated_at": "2026-05-25T16:02:13.877544+00:00",
+      "updated_at": "2026-05-26T09:20:01.243024+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -10149,7 +10149,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:35.206651+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D062-Mission-Report-Strait-of-Hormuz-September-2020",
-      "updated_at": "2026-05-25T16:02:13.877544+00:00",
+      "updated_at": "2026-05-26T09:20:01.243024+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -10206,7 +10206,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:35.206651+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D063-Mission-Report-Strait-of-Hormuz-October-2020",
-      "updated_at": "2026-05-25T16:02:13.877544+00:00",
+      "updated_at": "2026-05-26T09:20:01.243024+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -10263,7 +10263,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:35.206651+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D064-Mission-Report-Iran-November-2020",
-      "updated_at": "2026-05-25T16:02:13.877544+00:00",
+      "updated_at": "2026-05-26T09:20:01.243024+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -10320,7 +10320,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:33.565525+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D054-Mission-Report-Mediterranean-Sea-NA",
-      "updated_at": "2026-05-25T16:02:13.268573+00:00",
+      "updated_at": "2026-05-26T09:19:13.966098+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -10377,7 +10377,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:33.565525+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D055-Mission-Report-Syria-November-2016",
-      "updated_at": "2026-05-25T16:02:13.268573+00:00",
+      "updated_at": "2026-05-26T09:19:13.966098+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -10434,7 +10434,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:34.377682+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D056-Range-Fouler-Debrief-Arabian-Sea-August-2020",
-      "updated_at": "2026-05-25T16:02:13.268573+00:00",
+      "updated_at": "2026-05-26T09:19:13.966098+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -10491,7 +10491,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:34.377682+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D057-Range-Fouler-Reporting-Form-Gulf-of-Aden-September-2020",
-      "updated_at": "2026-05-25T16:02:13.268573+00:00",
+      "updated_at": "2026-05-26T09:19:13.966098+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -10548,7 +10548,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:34.377682+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D058-Range-Fouler-Debrief-NA-October-2020",
-      "updated_at": "2026-05-25T16:02:13.268573+00:00",
+      "updated_at": "2026-05-26T09:19:13.966098+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -10605,7 +10605,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:32.70354+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D048-Department-of-the-Air-Force-Report-1996",
-      "updated_at": "2026-05-25T16:02:12.323768+00:00",
+      "updated_at": "2026-05-26T09:19:13.358048+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -10662,7 +10662,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:32.70354+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D049-Launch-Summary-Vandenberg-AFB-2000",
-      "updated_at": "2026-05-25T16:02:12.323768+00:00",
+      "updated_at": "2026-05-26T09:19:13.358048+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -10719,7 +10719,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:33.565525+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D050-Email-Correspondence-INDOPACOM-April-2025",
-      "updated_at": "2026-05-25T16:02:12.323768+00:00",
+      "updated_at": "2026-05-26T09:19:13.358048+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -10776,7 +10776,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:33.565525+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D051-Email-Correspondence-Pacific-Time-Zone-March-2023",
-      "updated_at": "2026-05-25T16:02:12.323768+00:00",
+      "updated_at": "2026-05-26T09:19:13.358048+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -10833,7 +10833,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:33.565525+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D052-Email-Correspondance-NA-August-2024",
-      "updated_at": "2026-05-25T16:02:12.323768+00:00",
+      "updated_at": "2026-05-26T09:19:13.358048+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -10890,7 +10890,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:31.878743+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D033-Mission-Report-Greece-October-2023",
-      "updated_at": "2026-05-25T16:02:11.415626+00:00",
+      "updated_at": "2026-05-26T09:19:12.270764+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -10947,7 +10947,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:31.878743+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D035-Mission-Report-Greece-October-2023",
-      "updated_at": "2026-05-25T16:02:11.415626+00:00",
+      "updated_at": "2026-05-26T09:19:12.270764+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -11004,7 +11004,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:32.70354+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D038-Range-Fouler-Debrief-Middle-East-May-2020",
-      "updated_at": "2026-05-25T16:02:11.415626+00:00",
+      "updated_at": "2026-05-26T09:19:12.270764+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -11061,7 +11061,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:32.70354+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D042-Range-Fouler-Debrief-Japan-2023",
-      "updated_at": "2026-05-25T16:02:11.415626+00:00",
+      "updated_at": "2026-05-26T09:19:12.270764+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -11118,7 +11118,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:32.70354+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D044-Range-Fouler-Reporting-Form-Gulf-of-Aden-October-2020",
-      "updated_at": "2026-05-25T16:02:11.415626+00:00",
+      "updated_at": "2026-05-26T09:19:12.270764+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -11175,7 +11175,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:31.069121+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D023-Mission-Report-United-Arab-Emirates-October-2023",
-      "updated_at": "2026-05-25T16:02:10.567391+00:00",
+      "updated_at": "2026-05-26T09:19:11.181132+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -11232,7 +11232,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:31.069121+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D025-Mission-Report-Greece-January-2024",
-      "updated_at": "2026-05-25T16:02:10.567391+00:00",
+      "updated_at": "2026-05-26T09:19:11.181132+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -11289,7 +11289,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:31.878743+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D027-Mission-Report-United-Arab-Emirates-October-2023",
-      "updated_at": "2026-05-25T16:02:10.567391+00:00",
+      "updated_at": "2026-05-26T09:19:11.181132+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -11346,7 +11346,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:31.878743+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D028-Mission-Report-Iraq-September-2024",
-      "updated_at": "2026-05-25T16:02:10.567391+00:00",
+      "updated_at": "2026-05-26T09:19:11.181132+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -11403,7 +11403,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:31.878743+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D032-Mission-Report-Syria-October-2024",
-      "updated_at": "2026-05-25T16:02:10.567391+00:00",
+      "updated_at": "2026-05-26T09:19:11.181132+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -11460,7 +11460,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:30.229028+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D014-Mission-Report-Iraq-May-2022",
-      "updated_at": "2026-05-25T16:02:09.723833+00:00",
+      "updated_at": "2026-05-26T09:19:10.344712+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -11517,7 +11517,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:30.229028+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D016-Mission-Report-Syria-July-2022",
-      "updated_at": "2026-05-25T16:02:09.723833+00:00",
+      "updated_at": "2026-05-26T09:19:10.344712+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -11574,7 +11574,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:31.069121+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D018-Mission-Report-Iraq-December-2022",
-      "updated_at": "2026-05-25T16:02:09.723833+00:00",
+      "updated_at": "2026-05-26T09:19:10.344712+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -11631,7 +11631,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:31.069121+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D019-Mission-Report-Syria-February-21-2023",
-      "updated_at": "2026-05-25T16:02:09.723833+00:00",
+      "updated_at": "2026-05-26T09:19:10.344712+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -11688,7 +11688,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:31.069121+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D020-Mission-Report-Iraq-2023",
-      "updated_at": "2026-05-25T16:02:09.723833+00:00",
+      "updated_at": "2026-05-26T09:19:10.344712+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -11745,7 +11745,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:29.428782+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D006-Mission-Report-Arabian-Gulf-2020",
-      "updated_at": "2026-05-25T16:02:08.879884+00:00",
+      "updated_at": "2026-05-26T09:19:09.383348+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -11802,7 +11802,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:29.428782+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D007-Mission-Report-Arabian-Gulf-2020",
-      "updated_at": "2026-05-25T16:02:08.879884+00:00",
+      "updated_at": "2026-05-26T09:19:09.383348+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -11859,7 +11859,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:30.229028+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D008-Mission-Report-Djibouti-2025",
-      "updated_at": "2026-05-25T16:02:08.879884+00:00",
+      "updated_at": "2026-05-26T09:19:09.383348+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -11916,7 +11916,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:30.229028+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D010-Mission-Report-Middle-East-May-2022",
-      "updated_at": "2026-05-25T16:02:08.879884+00:00",
+      "updated_at": "2026-05-26T09:19:09.383348+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -11973,7 +11973,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:30.229028+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D012-Mission-Report-Iraq-May-2022",
-      "updated_at": "2026-05-25T16:02:08.879884+00:00",
+      "updated_at": "2026-05-26T09:19:09.383348+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -12030,7 +12030,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:29.428782+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D003-Mission-Report-Arabian-Gulf-2020",
-      "updated_at": "2026-05-25T16:02:08.029828+00:00",
+      "updated_at": "2026-05-26T09:19:08.250335+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -12087,7 +12087,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:29.428782+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D004-Mission-Report-Arabian-Gulf-2020",
-      "updated_at": "2026-05-25T16:02:08.029828+00:00",
+      "updated_at": "2026-05-26T09:19:08.250335+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -12144,7 +12144,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:29.428782+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#DOW-UAP-D005-Mission-Report-Arabian-Gulf-2020",
-      "updated_at": "2026-05-25T16:02:08.029828+00:00",
+      "updated_at": "2026-05-26T09:19:08.250335+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -12201,7 +12201,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:28.624533+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#65_HS1-834228961_62-HQ-83894_SUB_A",
-      "updated_at": "2026-05-25T16:02:07.179128+00:00",
+      "updated_at": "2026-05-26T09:19:07.422443+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -12258,7 +12258,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:27.815228+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#65_HS1-834228961_62-HQ-83894_Serial_220",
-      "updated_at": "2026-05-25T16:02:07.179128+00:00",
+      "updated_at": "2026-05-26T09:19:07.422443+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -12315,7 +12315,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:27.815228+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#65_HS1-834228961_62-HQ-83894_Serial_403",
-      "updated_at": "2026-05-25T16:02:07.179128+00:00",
+      "updated_at": "2026-05-26T09:19:07.422443+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -12372,7 +12372,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:28.624533+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#65_HS1-834228961_62-HQ-83894_Serial_438",
-      "updated_at": "2026-05-25T16:02:07.179128+00:00",
+      "updated_at": "2026-05-26T09:19:07.422443+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -12429,7 +12429,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:28.624533+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#65_HS1-834228961_62-HQ-83894_Serial_449",
-      "updated_at": "2026-05-25T16:02:07.179128+00:00",
+      "updated_at": "2026-05-26T09:19:07.422443+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -12486,7 +12486,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:27.007036+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#65_HS1-834228961_62-HQ-83894_Section_009",
-      "updated_at": "2026-05-25T16:02:06.109737+00:00",
+      "updated_at": "2026-05-26T09:19:06.563927+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -12543,7 +12543,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:27.007036+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#65_HS1-834228961_62-HQ-83894_Section_010",
-      "updated_at": "2026-05-25T16:02:06.109737+00:00",
+      "updated_at": "2026-05-26T09:19:06.563927+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -12600,7 +12600,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:27.815228+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#65_HS1-834228961_62-HQ-83894_Serial_130",
-      "updated_at": "2026-05-25T16:02:06.109737+00:00",
+      "updated_at": "2026-05-26T09:19:06.563927+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -12657,7 +12657,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:27.815228+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#65_HS1-834228961_62-HQ-83894_Serial_153",
-      "updated_at": "2026-05-25T16:02:06.109737+00:00",
+      "updated_at": "2026-05-26T09:19:06.563927+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -12714,7 +12714,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:27.815228+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#65_HS1-834228961_62-HQ-83894_Serial_164",
-      "updated_at": "2026-05-25T16:02:06.109737+00:00",
+      "updated_at": "2026-05-26T09:19:06.563927+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -12771,7 +12771,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:26.20104+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#65_HS1-834228961_62-HQ-83894_Section_004",
-      "updated_at": "2026-05-25T16:02:05.270821+00:00",
+      "updated_at": "2026-05-26T09:19:05.717457+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -12828,7 +12828,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:26.20104+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#65_HS1-834228961_62-HQ-83894_Section_005",
-      "updated_at": "2026-05-25T16:02:05.270821+00:00",
+      "updated_at": "2026-05-26T09:19:05.717457+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -12885,7 +12885,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:27.007036+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#65_HS1-834228961_62-HQ-83894_Section_006",
-      "updated_at": "2026-05-25T16:02:05.270821+00:00",
+      "updated_at": "2026-05-26T09:19:05.717457+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -12942,7 +12942,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:27.007036+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#65_HS1-834228961_62-HQ-83894_Section_007",
-      "updated_at": "2026-05-25T16:02:05.270821+00:00",
+      "updated_at": "2026-05-26T09:19:05.717457+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -12999,7 +12999,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:27.007036+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#65_HS1-834228961_62-HQ-83894_Section_008",
-      "updated_at": "2026-05-25T16:02:05.270821+00:00",
+      "updated_at": "2026-05-26T09:19:05.717457+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -13056,7 +13056,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:25.363951+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#65_HS1-101634279_100-DE-18221_Serial_844",
-      "updated_at": "2026-05-25T16:02:04.432677+00:00",
+      "updated_at": "2026-05-26T09:19:04.864114+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -13113,7 +13113,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:25.363951+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#65_HS1-101634279_100-DE-26505",
-      "updated_at": "2026-05-25T16:02:04.432677+00:00",
+      "updated_at": "2026-05-26T09:19:04.864114+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -13170,7 +13170,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:26.20104+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#65_HS1-834228961_62-HQ-83894_Section_001",
-      "updated_at": "2026-05-25T16:02:04.432677+00:00",
+      "updated_at": "2026-05-26T09:19:04.864114+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -13227,7 +13227,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:26.20104+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#65_HS1-834228961_62-HQ-83894_Section_002",
-      "updated_at": "2026-05-25T16:02:04.432677+00:00",
+      "updated_at": "2026-05-26T09:19:04.864114+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -13284,7 +13284,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:26.20104+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#65_HS1-834228961_62-HQ-83894_Section_003",
-      "updated_at": "2026-05-25T16:02:04.432677+00:00",
+      "updated_at": "2026-05-26T09:19:04.864114+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -13341,7 +13341,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:25.363951+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#38_143685_box7_Incident_Summaries_1-100",
-      "updated_at": "2026-05-25T16:02:03.814942+00:00",
+      "updated_at": "2026-05-26T09:19:04.246316+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -13398,7 +13398,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:24.564598+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#38_143685_box_Incident_Summaries_101-172",
-      "updated_at": "2026-05-25T16:02:03.814942+00:00",
+      "updated_at": "2026-05-26T09:19:04.246316+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -13455,7 +13455,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:24.564598+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#38_143685_box_Incident_Summaries_173-233",
-      "updated_at": "2026-05-25T16:02:03.814942+00:00",
+      "updated_at": "2026-05-26T09:19:04.246316+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -13512,7 +13512,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:25.363951+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#59_214434_SP-16-7181963",
-      "updated_at": "2026-05-25T16:02:03.814942+00:00",
+      "updated_at": "2026-05-26T09:19:04.246316+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -13569,7 +13569,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:25.363951+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#59_64634_71156127-2852",
-      "updated_at": "2026-05-25T16:02:03.814942+00:00",
+      "updated_at": "2026-05-26T09:19:04.246316+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -13625,7 +13625,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:23.749259+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#255_413270_UFOs_and_Defense_What_Should_we_Prepare_For",
-      "updated_at": "2026-05-25T16:02:02.955223+00:00",
+      "updated_at": "2026-05-26T09:19:03.381791+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -13682,7 +13682,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:23.749259+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#331_120752_Numeric_Files_19441945_37153_German_Armament_Equipment_Documents",
-      "updated_at": "2026-05-25T16:02:02.955223+00:00",
+      "updated_at": "2026-05-26T09:19:03.381791+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -13739,7 +13739,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:24.564598+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#341_110448_Records_Relating_to_the_Collection_and_Dissemination_of_Intelligence_1948-1955-TS_CONT_No2_2-5300-2-5399",
-      "updated_at": "2026-05-25T16:02:02.955223+00:00",
+      "updated_at": "2026-05-26T09:19:03.381791+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -13796,7 +13796,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:24.564598+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#341_110677_Numerical_File_5-2500",
-      "updated_at": "2026-05-25T16:02:02.955223+00:00",
+      "updated_at": "2026-05-26T09:19:03.381791+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -13853,7 +13853,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:24.564598+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#342_HS1-416511228_3191-Flying-Discs-1949",
-      "updated_at": "2026-05-25T16:02:02.955223+00:00",
+      "updated_at": "2026-05-26T09:19:03.381791+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -13910,7 +13910,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:23.749259+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#18_100754_-General-1946-7_Vol_2",
-      "updated_at": "2026-05-25T16:02:01.794452+00:00",
+      "updated_at": "2026-05-26T09:19:02.524893+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -13967,7 +13967,7 @@
       "collection": "5/8/26",
       "created_at": "2026-05-23T02:23:23.749259+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01&type=.pdf#18_6369445_General_1948_Vol_1",
-      "updated_at": "2026-05-25T16:02:01.794452+00:00",
+      "updated_at": "2026-05-26T09:19:02.524893+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -14018,7 +14018,7 @@
       "collection": "PURSUE Release 01",
       "created_at": "2026-05-23T04:23:47.039024+00:00",
       "source_url": "https://www.war.gov/UFO/?releaseDate=Release+01",
-      "updated_at": "2026-05-25T16:01:10.559654+00:00",
+      "updated_at": "2026-05-26T09:18:17.346547+00:00",
       "published_at": "2026-05-08T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -14066,7 +14066,7 @@
       "collection": "Tales archive",
       "created_at": "2026-05-23T00:06:08.856258+00:00",
       "source_url": "https://www.youtube.com/watch?v=p-mB7J32RzI",
-      "updated_at": "2026-05-25T16:03:20.164628+00:00",
+      "updated_at": "2026-05-26T09:23:01.133414+00:00",
       "published_at": "2026-04-29T00:00:00+00:00",
       "thumbnail_url": "https://i.ytimg.com/vi/p-mB7J32RzI/hqdefault.jpg"
     },
@@ -14114,7 +14114,7 @@
       "collection": "Tales archive",
       "created_at": "2026-05-23T00:06:09.666587+00:00",
       "source_url": "https://www.youtube.com/shorts/7ONgJMfIeT0",
-      "updated_at": "2026-05-25T16:03:20.164628+00:00",
+      "updated_at": "2026-05-26T09:23:01.133414+00:00",
       "published_at": "2026-04-16T00:00:00+00:00",
       "thumbnail_url": "https://i.ytimg.com/vi/7ONgJMfIeT0/hqdefault.jpg"
     },
@@ -14162,7 +14162,7 @@
       "collection": "Tales archive",
       "created_at": "2026-05-23T00:06:10.509055+00:00",
       "source_url": "https://www.youtube.com/shorts/YRj1xgYHG9A",
-      "updated_at": "2026-05-25T16:03:21.015985+00:00",
+      "updated_at": "2026-05-26T09:23:01.733983+00:00",
       "published_at": "2026-04-03T00:00:00+00:00",
       "thumbnail_url": "https://i.ytimg.com/vi/YRj1xgYHG9A/hqdefault.jpg"
     },
@@ -14235,7 +14235,7 @@
       "collection": "MKULTRA",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://nsarchive.gwu.edu/briefing-book/intelligence/2025-09-04/top-secret-testimony-cias-mkultra-chief-50-years-later",
-      "updated_at": "2026-05-25T16:02:01.085356+00:00",
+      "updated_at": "2026-05-26T09:19:01.674938+00:00",
       "published_at": "2025-09-04T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -14286,7 +14286,7 @@
       "collection": "Historical Record Report",
       "created_at": "2026-05-23T04:23:47.039024+00:00",
       "source_url": "https://www.aaro.mil/Portals/136/PDFs/AARO_Historical_Record_Report_Vol_1_2024.pdf",
-      "updated_at": "2026-05-25T16:01:10.559654+00:00",
+      "updated_at": "2026-05-26T09:18:17.346547+00:00",
       "published_at": "2024-02-01T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -14338,7 +14338,7 @@
       "collection": "UAP Independent Study",
       "created_at": "2026-05-23T04:23:47.039024+00:00",
       "source_url": "https://science.nasa.gov/wp-content/uploads/2023/09/uap-independent-study-team-final-report.pdf",
-      "updated_at": "2026-05-25T16:01:10.559654+00:00",
+      "updated_at": "2026-05-26T09:18:17.346547+00:00",
       "published_at": "2023-09-14T00:00:00+00:00",
       "thumbnail_url": ""
     },
@@ -14389,7 +14389,7 @@
       "collection": "UAP Independent Study",
       "created_at": "2026-05-23T04:23:47.039024+00:00",
       "source_url": "https://www.youtube.com/watch?v=eoY2sGo7ZiY",
-      "updated_at": "2026-05-25T16:01:10.559654+00:00",
+      "updated_at": "2026-05-26T09:18:17.346547+00:00",
       "published_at": "2023-09-14T00:00:00+00:00",
       "thumbnail_url": "https://i.ytimg.com/vi/eoY2sGo7ZiY/hqdefault.jpg"
     },
@@ -14418,7 +14418,7 @@
       "collection": "",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://commoncrawl.org/",
-      "updated_at": "2026-05-25T16:04:04.646367+00:00",
+      "updated_at": "2026-05-26T09:23:08.228742+00:00",
       "published_at": null,
       "thumbnail_url": ""
     },
@@ -14447,7 +14447,7 @@
       "collection": "",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://www.gdeltproject.org/",
-      "updated_at": "2026-05-25T16:04:04.646367+00:00",
+      "updated_at": "2026-05-26T09:23:08.228742+00:00",
       "published_at": null,
       "thumbnail_url": ""
     },
@@ -14476,7 +14476,7 @@
       "collection": "",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://archive.org/details/tv",
-      "updated_at": "2026-05-25T16:04:04.044131+00:00",
+      "updated_at": "2026-05-26T09:23:07.374996+00:00",
       "published_at": null,
       "thumbnail_url": ""
     },
@@ -14500,7 +14500,7 @@
       "collection": "",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://www.loc.gov/folklife/",
-      "updated_at": "2026-05-25T16:04:04.044131+00:00",
+      "updated_at": "2026-05-26T09:23:07.374996+00:00",
       "published_at": null,
       "thumbnail_url": ""
     },
@@ -14524,7 +14524,7 @@
       "collection": "",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://www.swpc.noaa.gov/",
-      "updated_at": "2026-05-25T16:04:04.044131+00:00",
+      "updated_at": "2026-05-26T09:23:07.374996+00:00",
       "published_at": null,
       "thumbnail_url": ""
     },
@@ -14549,7 +14549,7 @@
       "collection": "",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://www.si.edu/search/collection-images",
-      "updated_at": "2026-05-25T16:04:04.044131+00:00",
+      "updated_at": "2026-05-26T09:23:07.374996+00:00",
       "published_at": null,
       "thumbnail_url": ""
     },
@@ -14573,7 +14573,7 @@
       "collection": "",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://earthquake.usgs.gov/",
-      "updated_at": "2026-05-25T16:04:04.044131+00:00",
+      "updated_at": "2026-05-26T09:23:07.374996+00:00",
       "published_at": null,
       "thumbnail_url": ""
     },
@@ -14597,7 +14597,7 @@
       "collection": "",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://ui.adsabs.harvard.edu/",
-      "updated_at": "2026-05-25T16:04:02.871214+00:00",
+      "updated_at": "2026-05-26T09:23:06.542314+00:00",
       "published_at": null,
       "thumbnail_url": ""
     },
@@ -14621,7 +14621,7 @@
       "collection": "",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://cneos.jpl.nasa.gov/fireballs/",
-      "updated_at": "2026-05-25T16:04:02.871214+00:00",
+      "updated_at": "2026-05-26T09:23:06.542314+00:00",
       "published_at": null,
       "thumbnail_url": ""
     },
@@ -14645,7 +14645,7 @@
       "collection": "",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://exoplanetarchive.ipac.caltech.edu/",
-      "updated_at": "2026-05-25T16:04:02.871214+00:00",
+      "updated_at": "2026-05-26T09:23:06.542314+00:00",
       "published_at": null,
       "thumbnail_url": ""
     },
@@ -14670,7 +14670,7 @@
       "collection": "",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://ntrs.nasa.gov/",
-      "updated_at": "2026-05-25T16:04:02.871214+00:00",
+      "updated_at": "2026-05-26T09:23:06.542314+00:00",
       "published_at": null,
       "thumbnail_url": ""
     },
@@ -14695,7 +14695,7 @@
       "collection": "",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://pubmed.ncbi.nlm.nih.gov/",
-      "updated_at": "2026-05-25T16:04:02.871214+00:00",
+      "updated_at": "2026-05-26T09:23:06.542314+00:00",
       "published_at": null,
       "thumbnail_url": ""
     },
@@ -14719,7 +14719,7 @@
       "collection": "",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://www.cisa.gov/ai",
-      "updated_at": "2026-05-25T16:04:02.006237+00:00",
+      "updated_at": "2026-05-26T09:23:05.886517+00:00",
       "published_at": null,
       "thumbnail_url": ""
     },
@@ -14744,7 +14744,7 @@
       "collection": "",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://www.justice.gov/oip/doj-reference-guide",
-      "updated_at": "2026-05-25T16:04:02.006237+00:00",
+      "updated_at": "2026-05-26T09:23:05.886517+00:00",
       "published_at": null,
       "thumbnail_url": ""
     },
@@ -14768,7 +14768,7 @@
       "collection": "",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://www.nist.gov/itl/ai-risk-management-framework",
-      "updated_at": "2026-05-25T16:04:02.006237+00:00",
+      "updated_at": "2026-05-26T09:23:05.886517+00:00",
       "published_at": null,
       "thumbnail_url": ""
     },
@@ -14793,7 +14793,7 @@
       "collection": "",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://www.nist.gov/publications",
-      "updated_at": "2026-05-25T16:04:02.006237+00:00",
+      "updated_at": "2026-05-26T09:23:05.886517+00:00",
       "published_at": null,
       "thumbnail_url": ""
     },
@@ -14818,7 +14818,7 @@
       "collection": "",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://www.sec.gov/edgar/search/",
-      "updated_at": "2026-05-25T16:04:02.006237+00:00",
+      "updated_at": "2026-05-26T09:23:05.886517+00:00",
       "published_at": null,
       "thumbnail_url": ""
     },
@@ -14843,7 +14843,7 @@
       "collection": "",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://www.courtlistener.com/",
-      "updated_at": "2026-05-25T16:04:01.383733+00:00",
+      "updated_at": "2026-05-26T09:23:04.744883+00:00",
       "published_at": null,
       "thumbnail_url": ""
     },
@@ -14869,7 +14869,7 @@
       "collection": "",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://www.federalregister.gov/",
-      "updated_at": "2026-05-25T16:04:01.383733+00:00",
+      "updated_at": "2026-05-26T09:23:04.744883+00:00",
       "published_at": null,
       "thumbnail_url": ""
     },
@@ -14894,7 +14894,7 @@
       "collection": "",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://pacer.uscourts.gov/",
-      "updated_at": "2026-05-25T16:04:01.383733+00:00",
+      "updated_at": "2026-05-26T09:23:04.744883+00:00",
       "published_at": null,
       "thumbnail_url": ""
     },
@@ -14919,7 +14919,7 @@
       "collection": "",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://www.regulations.gov/",
-      "updated_at": "2026-05-25T16:04:01.383733+00:00",
+      "updated_at": "2026-05-26T09:23:04.744883+00:00",
       "published_at": null,
       "thumbnail_url": ""
     },
@@ -14944,7 +14944,7 @@
       "collection": "",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://www.justice.gov/usao-sdny",
-      "updated_at": "2026-05-25T16:04:01.383733+00:00",
+      "updated_at": "2026-05-26T09:23:04.744883+00:00",
       "published_at": null,
       "thumbnail_url": ""
     },
@@ -14970,7 +14970,7 @@
       "collection": "",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://www.foia.gov/",
-      "updated_at": "2026-05-25T16:03:22.48053+00:00",
+      "updated_at": "2026-05-26T09:23:03.671369+00:00",
       "published_at": null,
       "thumbnail_url": ""
     },
@@ -14996,7 +14996,7 @@
       "collection": "",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://www.govinfo.gov/",
-      "updated_at": "2026-05-25T16:03:22.48053+00:00",
+      "updated_at": "2026-05-26T09:23:03.671369+00:00",
       "published_at": null,
       "thumbnail_url": ""
     },
@@ -15022,7 +15022,7 @@
       "collection": "",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://www.muckrock.com/foi/",
-      "updated_at": "2026-05-25T16:03:22.48053+00:00",
+      "updated_at": "2026-05-26T09:23:03.671369+00:00",
       "published_at": null,
       "thumbnail_url": ""
     },
@@ -15048,7 +15048,7 @@
       "collection": "",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://catalog.archives.gov/",
-      "updated_at": "2026-05-25T16:03:22.48053+00:00",
+      "updated_at": "2026-05-26T09:23:03.671369+00:00",
       "published_at": null,
       "thumbnail_url": ""
     },
@@ -15073,7 +15073,7 @@
       "collection": "",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://nsarchive.gwu.edu/",
-      "updated_at": "2026-05-25T16:03:22.48053+00:00",
+      "updated_at": "2026-05-26T09:23:03.671369+00:00",
       "published_at": null,
       "thumbnail_url": ""
     },
@@ -15098,7 +15098,7 @@
       "collection": "",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://www.cia.gov/readingroom/",
-      "updated_at": "2026-05-25T16:03:21.626139+00:00",
+      "updated_at": "2026-05-26T09:23:02.828053+00:00",
       "published_at": null,
       "thumbnail_url": ""
     },
@@ -15122,7 +15122,7 @@
       "collection": "",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://www.cia.gov/readingroom/search/site/MKULTRA",
-      "updated_at": "2026-05-25T16:03:21.626139+00:00",
+      "updated_at": "2026-05-26T09:23:02.828053+00:00",
       "published_at": null,
       "thumbnail_url": ""
     },
@@ -15146,7 +15146,7 @@
       "collection": "",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://vault.fbi.gov/jeffrey-epstein",
-      "updated_at": "2026-05-25T16:03:21.626139+00:00",
+      "updated_at": "2026-05-26T09:23:02.828053+00:00",
       "published_at": null,
       "thumbnail_url": ""
     },
@@ -15171,7 +15171,7 @@
       "collection": "",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://science.nasa.gov/uap/",
-      "updated_at": "2026-05-25T16:03:21.626139+00:00",
+      "updated_at": "2026-05-26T09:23:02.828053+00:00",
       "published_at": null,
       "thumbnail_url": ""
     },
@@ -15196,7 +15196,7 @@
       "collection": "",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://vault.fbi.gov/",
-      "updated_at": "2026-05-25T16:03:21.626139+00:00",
+      "updated_at": "2026-05-26T09:23:02.828053+00:00",
       "published_at": null,
       "thumbnail_url": ""
     },
@@ -15220,7 +15220,7 @@
       "collection": "",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://www.aaro.mil/",
-      "updated_at": "2026-05-25T16:03:21.015985+00:00",
+      "updated_at": "2026-05-26T09:23:01.733983+00:00",
       "published_at": null,
       "thumbnail_url": ""
     },
@@ -15245,7 +15245,7 @@
       "collection": "",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://www.congress.gov/search?q=%7B%22search%22%3A%22UAP%22%7D",
-      "updated_at": "2026-05-25T16:03:21.015985+00:00",
+      "updated_at": "2026-05-26T09:23:01.733983+00:00",
       "published_at": null,
       "thumbnail_url": ""
     },
@@ -15270,7 +15270,7 @@
       "collection": "",
       "created_at": "2026-05-22T22:35:50.385969+00:00",
       "source_url": "https://www.dni.gov/index.php/newsroom/reports-publications",
-      "updated_at": "2026-05-25T16:03:21.015985+00:00",
+      "updated_at": "2026-05-26T09:23:01.733983+00:00",
       "published_at": null,
       "thumbnail_url": ""
     },
@@ -15321,7 +15321,7 @@
       "collection": "Jeffrey Epstein Vault",
       "created_at": "2026-05-23T04:23:47.865744+00:00",
       "source_url": "https://vault.fbi.gov/jeffrey-epstein/Jeffrey%20Epstein%20Part%2001/at_download/file",
-      "updated_at": "2026-05-25T16:01:11.165219+00:00",
+      "updated_at": "2026-05-26T09:18:18.419558+00:00",
       "published_at": null,
       "thumbnail_url": ""
     }
@@ -15344,7 +15344,7 @@
         "uap-disclosure"
       ],
       "created_at": "2026-05-19T15:32:46.08208+00:00",
-      "updated_at": "2026-05-25T16:03:04.268572+00:00"
+      "updated_at": "2026-05-26T09:18:17.48616+00:00"
     },
     {
       "id": "doc_www-cia-gov-readingroom-search-site-mkultra",
@@ -15362,7 +15362,7 @@
         "secret-programs"
       ],
       "created_at": "2026-05-19T15:32:47.043834+00:00",
-      "updated_at": "2026-05-25T16:03:05.334246+00:00"
+      "updated_at": "2026-05-26T09:18:18.322766+00:00"
     },
     {
       "id": "doc_commoncrawl-org",
@@ -15385,7 +15385,7 @@
         "space-anomalies"
       ],
       "created_at": "2026-05-19T15:33:14.091341+00:00",
-      "updated_at": "2026-05-25T16:04:05.851421+00:00"
+      "updated_at": "2026-05-26T09:20:11.050785+00:00"
     },
     {
       "id": "doc_vault-fbi-gov-jeffrey-epstein",
@@ -15403,7 +15403,7 @@
         "epstein-networks"
       ],
       "created_at": "2026-05-19T15:32:48.99665+00:00",
-      "updated_at": "2026-05-25T16:03:07.051323+00:00"
+      "updated_at": "2026-05-26T09:19:02.46466+00:00"
     },
     {
       "id": "doc_www-loc-gov-folklife",
@@ -15421,7 +15421,7 @@
         "cryptids-paranormal"
       ],
       "created_at": "2026-05-19T15:33:11.126339+00:00",
-      "updated_at": "2026-05-25T16:04:03.299914+00:00"
+      "updated_at": "2026-05-26T09:20:08.743866+00:00"
     },
     {
       "id": "doc_www-muckrock-com-foi",
@@ -15441,7 +15441,7 @@
         "ai-technocracy"
       ],
       "created_at": "2026-05-19T15:32:53.61598+00:00",
-      "updated_at": "2026-05-25T16:03:11.329708+00:00"
+      "updated_at": "2026-05-26T09:19:06.261453+00:00"
     },
     {
       "id": "doc_catalog-archives-gov",
@@ -15461,7 +15461,7 @@
         "space-anomalies"
       ],
       "created_at": "2026-05-19T15:32:51.622835+00:00",
-      "updated_at": "2026-05-25T16:03:09.632158+00:00"
+      "updated_at": "2026-05-26T09:19:04.580026+00:00"
     },
     {
       "id": "doc_nsarchive-gwu-edu",
@@ -15480,7 +15480,7 @@
         "uap-disclosure"
       ],
       "created_at": "2026-05-19T15:32:50.890994+00:00",
-      "updated_at": "2026-05-25T16:03:08.788902+00:00"
+      "updated_at": "2026-05-26T09:19:03.717188+00:00"
     },
     {
       "id": "doc_www-si-edu-search-collection-images",
@@ -15499,7 +15499,7 @@
         "space-anomalies"
       ],
       "created_at": "2026-05-19T15:33:12.107608+00:00",
-      "updated_at": "2026-05-25T16:04:04.14469+00:00"
+      "updated_at": "2026-05-26T09:20:09.593769+00:00"
     },
     {
       "id": "doc_vault-fbi-gov",
@@ -15518,7 +15518,7 @@
         "epstein-networks"
       ],
       "created_at": "2026-05-19T15:32:48.03253+00:00",
-      "updated_at": "2026-05-25T16:03:06.173998+00:00"
+      "updated_at": "2026-05-26T09:19:01.612863+00:00"
     },
     {
       "id": "doc_www-aaro-mil",
@@ -15536,7 +15536,7 @@
         "uap-disclosure"
       ],
       "created_at": "2026-05-19T15:32:42.186865+00:00",
-      "updated_at": "2026-05-25T16:03:01.121126+00:00"
+      "updated_at": "2026-05-26T09:18:13.820039+00:00"
     },
     {
       "id": "doc_www-cisa-gov-ai",
@@ -15554,7 +15554,7 @@
         "ai-technocracy"
       ],
       "created_at": "2026-05-19T15:33:02.374303+00:00",
-      "updated_at": "2026-05-25T16:03:18.747184+00:00"
+      "updated_at": "2026-05-26T09:19:13.605621+00:00"
     },
     {
       "id": "doc_www-congress-gov-search-q-7b-22search-22-3a-22uap-22-7d",
@@ -15573,7 +15573,7 @@
         "secret-programs"
       ],
       "created_at": "2026-05-19T15:32:44.131504+00:00",
-      "updated_at": "2026-05-25T16:03:02.585865+00:00"
+      "updated_at": "2026-05-26T09:18:15.278219+00:00"
     },
     {
       "id": "doc_www-justice-gov-oip-doj-reference-guide",
@@ -15592,7 +15592,7 @@
         "secret-programs"
       ],
       "created_at": "2026-05-19T15:32:59.436431+00:00",
-      "updated_at": "2026-05-25T16:03:16.391554+00:00"
+      "updated_at": "2026-05-26T09:19:11.061835+00:00"
     },
     {
       "id": "doc_www-foia-gov",
@@ -15612,7 +15612,7 @@
         "ai-technocracy"
       ],
       "created_at": "2026-05-19T15:32:49.95347+00:00",
-      "updated_at": "2026-05-25T16:03:07.920765+00:00"
+      "updated_at": "2026-05-26T09:19:03.086281+00:00"
     },
     {
       "id": "doc_www-federalregister-gov",
@@ -15632,7 +15632,7 @@
         "space-anomalies"
       ],
       "created_at": "2026-05-19T15:32:54.607117+00:00",
-      "updated_at": "2026-05-25T16:03:12.153202+00:00"
+      "updated_at": "2026-05-26T09:19:07.086927+00:00"
     },
     {
       "id": "doc_www-govinfo-gov",
@@ -15652,7 +15652,7 @@
         "uap-disclosure"
       ],
       "created_at": "2026-05-19T15:32:52.580087+00:00",
-      "updated_at": "2026-05-25T16:03:10.480224+00:00"
+      "updated_at": "2026-05-26T09:19:05.661803+00:00"
     },
     {
       "id": "doc_science-nasa-gov-uap",
@@ -15671,7 +15671,7 @@
         "space-anomalies"
       ],
       "created_at": "2026-05-19T15:32:45.099339+00:00",
-      "updated_at": "2026-05-25T16:03:03.432396+00:00"
+      "updated_at": "2026-05-26T09:18:16.641804+00:00"
     },
     {
       "id": "doc_www-nist-gov-itl-ai-risk-management-framework",
@@ -15689,7 +15689,7 @@
         "ai-technocracy"
       ],
       "created_at": "2026-05-19T15:33:01.405062+00:00",
-      "updated_at": "2026-05-25T16:03:18.100122+00:00"
+      "updated_at": "2026-05-26T09:19:12.512626+00:00"
     },
     {
       "id": "doc_www-dni-gov-index-php-newsroom-reports-publications",
@@ -15708,7 +15708,7 @@
         "secret-programs"
       ],
       "created_at": "2026-05-19T15:32:43.162514+00:00",
-      "updated_at": "2026-05-25T16:03:01.738356+00:00"
+      "updated_at": "2026-05-26T09:18:14.428065+00:00"
     },
     {
       "id": "8651a4f9-98e9-4308-b399-8608fc871e9d",
@@ -15727,7 +15727,7 @@
         "secret-programs"
       ],
       "created_at": "2026-05-22T22:35:50.385969+00:00",
-      "updated_at": "2026-05-25T16:02:20.89644+00:00"
+      "updated_at": "2026-05-26T09:18:12.981923+00:00"
     },
     {
       "id": "c87d013a-116c-4d05-a037-5723dc79f49a",
@@ -15746,7 +15746,7 @@
         "secret-programs"
       ],
       "created_at": "2026-05-22T22:35:50.385969+00:00",
-      "updated_at": "2026-05-25T16:02:20.305568+00:00"
+      "updated_at": "2026-05-26T09:18:12.093808+00:00"
     },
     {
       "id": "doc_www-regulations-gov",
@@ -15765,7 +15765,7 @@
         "secret-programs"
       ],
       "created_at": "2026-05-19T15:32:55.575055+00:00",
-      "updated_at": "2026-05-25T16:03:12.997369+00:00"
+      "updated_at": "2026-05-26T09:19:07.701736+00:00"
     },
     {
       "id": "doc_www-courtlistener-com",
@@ -15784,7 +15784,7 @@
         "secret-programs"
       ],
       "created_at": "2026-05-19T15:32:56.538328+00:00",
-      "updated_at": "2026-05-25T16:03:13.869726+00:00"
+      "updated_at": "2026-05-26T09:19:08.315856+00:00"
     },
     {
       "id": "doc_pacer-uscourts-gov",
@@ -15803,7 +15803,7 @@
         "secret-programs"
       ],
       "created_at": "2026-05-19T15:32:57.501537+00:00",
-      "updated_at": "2026-05-25T16:03:14.707734+00:00"
+      "updated_at": "2026-05-26T09:19:09.200027+00:00"
     },
     {
       "id": "doc_www-sec-gov-edgar-search",
@@ -15822,7 +15822,7 @@
         "ai-technocracy"
       ],
       "created_at": "2026-05-19T15:33:00.457365+00:00",
-      "updated_at": "2026-05-25T16:03:17.223578+00:00"
+      "updated_at": "2026-05-26T09:19:11.666086+00:00"
     },
     {
       "id": "doc_www-justice-gov-usao-sdny",
@@ -15841,7 +15841,7 @@
         "secret-programs"
       ],
       "created_at": "2026-05-19T15:32:58.486139+00:00",
-      "updated_at": "2026-05-25T16:03:15.541457+00:00"
+      "updated_at": "2026-05-26T09:19:09.974781+00:00"
     },
     {
       "id": "doc_www-gdeltproject-org",
@@ -15864,7 +15864,7 @@
         "space-anomalies"
       ],
       "created_at": "2026-05-19T15:33:15.147004+00:00",
-      "updated_at": "2026-05-25T16:04:06.727318+00:00"
+      "updated_at": "2026-05-26T09:21:01.279277+00:00"
     },
     {
       "id": "doc_archive-org-details-tv",
@@ -15887,7 +15887,7 @@
         "space-anomalies"
       ],
       "created_at": "2026-05-19T15:33:13.126262+00:00",
-      "updated_at": "2026-05-25T16:04:04.984031+00:00"
+      "updated_at": "2026-05-26T09:20:10.219165+00:00"
     },
     {
       "id": "doc_ui-adsabs-harvard-edu",
@@ -15905,7 +15905,7 @@
         "space-anomalies"
       ],
       "created_at": "2026-05-19T15:33:06.231487+00:00",
-      "updated_at": "2026-05-25T16:03:22.097237+00:00"
+      "updated_at": "2026-05-26T09:20:04.429984+00:00"
     },
     {
       "id": "doc_cneos-jpl-nasa-gov-fireballs",
@@ -15923,7 +15923,7 @@
         "space-anomalies"
       ],
       "created_at": "2026-05-19T15:33:07.184467+00:00",
-      "updated_at": "2026-05-25T16:03:22.948821+00:00"
+      "updated_at": "2026-05-26T09:20:05.307771+00:00"
     },
     {
       "id": "doc_exoplanetarchive-ipac-caltech-edu",
@@ -15941,7 +15941,7 @@
         "space-anomalies"
       ],
       "created_at": "2026-05-19T15:33:08.445831+00:00",
-      "updated_at": "2026-05-25T16:04:01.165632+00:00"
+      "updated_at": "2026-05-26T09:20:06.139178+00:00"
     },
     {
       "id": "doc_ntrs-nasa-gov",
@@ -15960,7 +15960,7 @@
         "ai-technocracy"
       ],
       "created_at": "2026-05-19T15:33:05.266276+00:00",
-      "updated_at": "2026-05-25T16:03:21.257277+00:00"
+      "updated_at": "2026-05-26T09:20:03.814707+00:00"
     },
     {
       "id": "doc_pubmed-ncbi-nlm-nih-gov",
@@ -15979,7 +15979,7 @@
         "ai-technocracy"
       ],
       "created_at": "2026-05-19T15:33:04.308099+00:00",
-      "updated_at": "2026-05-25T16:03:20.655465+00:00"
+      "updated_at": "2026-05-26T09:20:02.680904+00:00"
     },
     {
       "id": "doc_www-nist-gov-publications",
@@ -15998,7 +15998,7 @@
         "secret-programs"
       ],
       "created_at": "2026-05-19T15:33:03.346849+00:00",
-      "updated_at": "2026-05-25T16:03:19.822931+00:00"
+      "updated_at": "2026-05-26T09:20:01.767404+00:00"
     },
     {
       "id": "doc_www-swpc-noaa-gov",
@@ -16016,7 +16016,7 @@
         "space-anomalies"
       ],
       "created_at": "2026-05-19T15:33:09.165056+00:00",
-      "updated_at": "2026-05-25T16:04:01.797879+00:00"
+      "updated_at": "2026-05-26T09:20:06.969055+00:00"
     },
     {
       "id": "doc_earthquake-usgs-gov",
@@ -16034,7 +16034,7 @@
         "space-anomalies"
       ],
       "created_at": "2026-05-19T15:33:10.147206+00:00",
-      "updated_at": "2026-05-25T16:04:02.666969+00:00"
+      "updated_at": "2026-05-26T09:20:07.849681+00:00"
     }
   ]
 }

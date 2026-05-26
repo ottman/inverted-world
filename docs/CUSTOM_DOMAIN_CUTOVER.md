@@ -34,7 +34,7 @@ The command prints a redacted JSON report with:
 - published article API proof from `/api/articles`, including Recursiv-backed source mode, direct external source links, generated thumbnails, topic spread, and clean non-templated full-story bodies;
 - removed public source-shelf proof requiring `/documents` and `/api/documents` to return 404 until that experience is rebuilt;
 - Ask This Story proof from `/api/dossiers/[slug]/chat` and `/api/articles/[articleId]/chat`, requiring no-write sourced Markdown with source and archive links;
-- latest full-pipeline status and `sourceMode` from `/api/pipeline`, including a completion timestamp inside two hours;
+- latest full-pipeline status and `sourceMode` from `/api/pipeline`, including a completion timestamp inside eight hours;
 - front-page edition and site ticker proof from `/api/front-page`, including direct news, X, archive targets, and an edition or pipeline timestamp inside two hours;
 - daily autopost packet proof from `/api/autopost/daily`, including Recursiv-backed source mode, publish-ready status, source pack, headline variants, X thread copy, image prompts, guardrails, and direct story/X/archive links;
 - removed public media-surface proof requiring `/media` and `/api/media` to return 404 until that experience is rebuilt;
@@ -67,7 +67,7 @@ The output file contains the same no-secret report printed to stdout.
 - `recursivArchiveDataReady` must be `true`. This can be live `recursiv-database` or `recursiv-snapshot`, but it must not be `seed`, `static`, RSS, YouTube API, or direct provider fallback data.
 - `recursivArchiveTopicCoverage` must pass, proving the archive has at least 12 videos in each core topic and no single topic is more than 70% of the archive.
 - `articlesApi` must pass, proving `/api/articles` returns at least 12 Recursiv-backed full-story articles across at least four topics, with at least eight direct external source links, generated thumbnails, no repeated lane prefixes in headlines, and no templated `Signal` / `Source split` / `Viral frame` bodies.
-- `pipelineApi` and `pipelineFreshness` must pass, proving `/api/pipeline` exposes a succeeded full-pipeline run from live Recursiv database rows or the committed Recursiv snapshot fallback completed inside two hours.
+- `pipelineApi` and `pipelineFreshness` must pass, proving `/api/pipeline` exposes a succeeded full-pipeline run from live Recursiv database rows or the committed Recursiv snapshot fallback completed inside eight hours.
 - `frontPageApi` and `frontPageFreshness` must pass, proving `/api/front-page` exposes a Recursiv-backed edition tied to an edition or pipeline timestamp inside two hours and direct ticker targets into stories, X signals, and archive items.
 - `autopostApi` must pass, proving `/api/autopost/daily` exposes a Recursiv-backed, publish-ready daily distribution packet with enough sources, headlines, thread posts, image prompts, guardrails, and direct story/X/archive links.
 - `publicSourceShelfRemoved` must pass, proving the disabled public source shelf is not reachable on the hosted build.

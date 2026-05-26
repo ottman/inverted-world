@@ -21,6 +21,23 @@ const REQUIRED_JOB_ENDPOINT_OPTIONS = {
   "inverted-world-full-pipeline": ["async=1", "profileReader=1"],
 }
 
+const REQUIRED_JOB_CRONS = {
+  "inverted-world-youtube-archive-sync": "17 */6 * * *",
+  "inverted-world-topic-pulse": "22 */3 * * *",
+  "inverted-world-worldwire": "7 * * * *",
+  "inverted-world-article-generation": "35 */6 * * *",
+  "inverted-world-claim-dossiers": "45 */6 * * *",
+  "inverted-world-source-documents": "10 */12 * * *",
+  "inverted-world-media-library": "20 */12 * * *",
+  "inverted-world-image-generation": "55 */6 * * *",
+  "inverted-world-publishing": "10 */3 * * *",
+  "inverted-world-front-page-edition": "20 * * * *",
+  "inverted-world-daily-autopost": "40 */6 * * *",
+  "inverted-world-full-pipeline": "2 */6 * * *",
+  "inverted-world-pipeline-maintenance": "*/30 * * * *",
+  "inverted-world-provider-health": "0 */6 * * *",
+}
+
 function read(file) {
   return fs.readFileSync(file, "utf8")
 }
@@ -42,8 +59,9 @@ function createTableNames(content) {
 
 function provisionJobs(block) {
   const names = [...block.matchAll(/name:\s*"([^"]+)"/g)].map((match) => match[1])
+  const crons = [...block.matchAll(/cron:\s*"([^"]+)"/g)].map((match) => match[1])
   const endpoints = [...block.matchAll(/endpoint:\s*"([^"]+)"/g)].map((match) => match[1])
-  return names.map((name, index) => ({ name, endpoint: endpoints[index] || "" }))
+  return names.map((name, index) => ({ name, cron: crons[index] || "", endpoint: endpoints[index] || "" }))
 }
 
 function difference(left, right) {
@@ -120,6 +138,16 @@ function main() {
     endpointOptionFindings.length
       ? fail("scheduled job endpoints include required async/profile options", { findings: endpointOptionFindings })
       : pass("scheduled job endpoints include required async/profile options", { count: jobs.length }),
+  )
+
+  const cronFindings = jobs
+    .map((job) => ({ job: job.name, expected: REQUIRED_JOB_CRONS[job.name], actual: job.cron }))
+    .filter((job) => job.expected && job.actual !== job.expected)
+  const missingCronRequirements = difference(Object.keys(REQUIRED_JOB_CRONS), provisionJobNames)
+  checks.push(
+    cronFindings.length || missingCronRequirements.length
+      ? fail("scheduled job crons match rate-limit budget", { findings: cronFindings, missing: missingCronRequirements })
+      : pass("scheduled job crons match rate-limit budget", { count: Object.keys(REQUIRED_JOB_CRONS).length }),
   )
 
   checks.push(

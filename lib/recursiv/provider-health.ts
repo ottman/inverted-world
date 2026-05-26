@@ -1,6 +1,7 @@
 import { channelProfile } from "@/data/inverted-world"
 import { createRecursivServerClient } from "@/lib/recursiv/client"
 import { getRecursivRuntimeConfig } from "@/lib/recursiv/config"
+import { executeDirectInvertedWorldDatabaseSql, hasDirectInvertedWorldDatabase } from "@/lib/recursiv/database"
 import { getYouTubeApiKey } from "@/lib/youtube-config"
 import { fetchYouTubePublicChannelVideos } from "@/lib/youtube-public-archive"
 
@@ -449,19 +450,27 @@ export async function runProviderHealthCheck(options: { persist?: boolean } = {}
 
 async function persistProviderHealthReport(report: ProviderHealthReport) {
   const config = getRecursivRuntimeConfig()
+  const sql = `INSERT INTO pipeline_runs (job_name, status, completed_at, duration_ms, results, metadata)
+      VALUES ('provider-health', $1, now(), $2, $3::jsonb, $4::jsonb)`
+  const params = [
+    report.summary.error ? "degraded" : "succeeded",
+    report.durationMs,
+    JSON.stringify(report.providers),
+    JSON.stringify({ summary: report.summary, generatedAt: report.generatedAt }),
+  ]
+
+  if (hasDirectInvertedWorldDatabase()) {
+    await executeDirectInvertedWorldDatabaseSql(sql, params)
+    return
+  }
+
   if (!config.apiKey || !config.projectId || !config.databaseName) return
 
   const { sdk } = createRecursivServerClient({ timeout: 120000 })
   await sdk.databases.query({
     project_id: config.projectId,
     database_name: config.databaseName,
-    sql: `INSERT INTO pipeline_runs (job_name, status, completed_at, duration_ms, results, metadata)
-      VALUES ('provider-health', $1, now(), $2, $3::jsonb, $4::jsonb)`,
-    params: [
-      report.summary.error ? "degraded" : "succeeded",
-      report.durationMs,
-      JSON.stringify(report.providers),
-      JSON.stringify({ summary: report.summary, generatedAt: report.generatedAt }),
-    ],
+    sql,
+    params,
   })
 }

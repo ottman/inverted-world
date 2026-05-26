@@ -1,3 +1,5 @@
+import fs from "node:fs"
+import { Pool } from "pg"
 import { createRecursivServerClient } from "@/lib/recursiv/client"
 import { getRecursivRuntimeConfig } from "@/lib/recursiv/config"
 import { INVERTED_WORLD_SCHEMA_SQL, INVERTED_WORLD_TABLES } from "@/lib/recursiv/schema"
@@ -16,6 +18,7 @@ const PUBLIC_READ_STALE_MS = Math.max(
   PUBLIC_READ_CACHE_MS,
   Math.min(Math.trunc(Number(process.env.RECURSIV_PUBLIC_READ_STALE_MS || "900000")) || 900000, 60 * 60 * 1000),
 )
+const DEFAULT_DATABASE_URL_FILE = "/private/tmp/inverted-world-database-url"
 
 type CachedRead = {
   rows: RecursivRow[]
@@ -24,6 +27,7 @@ type CachedRead = {
 
 type PublicReadHealth = {
   status: "ok" | "missing-config" | "rate-limited" | "backoff" | "error"
+  mode?: "direct-database" | "recursiv-api"
   retryAfterSeconds?: number
   backoffUntil?: string
   lastErrorStatus?: number
@@ -31,13 +35,21 @@ type PublicReadHealth = {
   lastErrorAt?: string
 }
 
+export type RecursivQueryResult = {
+  columns: string[]
+  rows: RecursivRow[]
+  rowCount: number
+}
+
 const publicReadCache = new Map<string, CachedRead>()
 const publicReadInflight = new Map<string, Promise<RecursivRow[] | null>>()
 let publicReadBackoffUntil = 0
 let publicReadHealth: PublicReadHealth = { status: "ok" }
+let directDatabasePool: Pool | null = null
+let directDatabasePoolUrl = ""
 
-function publicReadCacheKey(projectId: string, databaseName: string, sql: string, params: unknown[]) {
-  return JSON.stringify([projectId, databaseName, sql, params])
+function publicReadCacheKey(mode: string, projectId: string, databaseName: string, sql: string, params: unknown[]) {
+  return JSON.stringify([mode, projectId, databaseName, sql, params])
 }
 
 function getCachedRows(key: string, maxAgeMs: number) {
@@ -64,6 +76,81 @@ function publicReadErrorKind(error: unknown) {
   if (status === 429) return "rate_limited"
   if (status) return `http_${status}`
   return "request_failed"
+}
+
+function readTextFile(file: string) {
+  try {
+    return fs.existsSync(file) ? fs.readFileSync(file, "utf8").trim() : ""
+  } catch {
+    return ""
+  }
+}
+
+function directDatabaseUrl() {
+  return (
+    process.env.RECURSIV_DATABASE_URL ||
+    process.env.INVERTED_WORLD_DATABASE_URL ||
+    readTextFile(process.env.RECURSIV_DATABASE_URL_FILE || "") ||
+    readTextFile(DEFAULT_DATABASE_URL_FILE)
+  )
+}
+
+function directDatabaseRequiresSsl(connectionString: string) {
+  if (/sslmode=disable/i.test(connectionString)) return false
+  if (/localhost|127\.0\.0\.1|\[::1\]/i.test(connectionString)) return false
+  return true
+}
+
+function pgConnectionString(connectionString: string) {
+  try {
+    const url = new URL(connectionString)
+    url.searchParams.delete("sslmode")
+    return url.toString()
+  } catch {
+    return connectionString
+  }
+}
+
+function getDirectDatabasePool(connectionString: string) {
+  if (!directDatabasePool || directDatabasePoolUrl !== connectionString) {
+    directDatabasePool = new Pool({
+      connectionString: pgConnectionString(connectionString),
+      max: Math.max(1, Math.min(Math.trunc(Number(process.env.RECURSIV_DIRECT_DB_POOL_MAX || "3")) || 3, 10)),
+      idleTimeoutMillis: 30_000,
+      connectionTimeoutMillis: PUBLIC_READ_TIMEOUT_MS,
+      ssl: directDatabaseRequiresSsl(connectionString) ? { rejectUnauthorized: false } : false,
+    })
+    directDatabasePoolUrl = connectionString
+  }
+  return directDatabasePool
+}
+
+async function queryDirectDatabase(connectionString: string, sql: string, params: unknown[]) {
+  const pool = getDirectDatabasePool(connectionString)
+  const result = await pool.query(sql, params)
+  return result.rows as RecursivRow[]
+}
+
+function columnsForRows(rows: RecursivRow[]) {
+  return rows[0] ? Object.keys(rows[0]) : []
+}
+
+export function hasDirectInvertedWorldDatabase() {
+  return Boolean(directDatabaseUrl())
+}
+
+export async function executeDirectInvertedWorldDatabaseSql(
+  sql: string,
+  params: unknown[] = [],
+): Promise<RecursivQueryResult | null> {
+  const databaseUrl = directDatabaseUrl()
+  if (!databaseUrl) return null
+  const rows = await queryDirectDatabase(databaseUrl, sql, params)
+  return {
+    columns: columnsForRows(rows),
+    rows,
+    rowCount: rows.length,
+  }
 }
 
 export function getRecursivPublicReadHealth(): PublicReadHealth {
@@ -101,12 +188,14 @@ export async function queryInvertedWorldDatabase<T extends RecursivRow = Recursi
   params: unknown[] = [],
 ) {
   const config = getRecursivRuntimeConfig()
-  if (!config.apiKey || !config.projectId) {
+  const databaseUrl = directDatabaseUrl()
+  const readMode = databaseUrl ? "direct-database" : "recursiv-api"
+  if (!databaseUrl && (!config.apiKey || !config.projectId)) {
     publicReadHealth = { status: "missing-config", lastErrorAt: new Date().toISOString() }
     return null
   }
-  const projectId = config.projectId
-  const cacheKey = publicReadCacheKey(projectId, config.databaseName, sql, params)
+  const projectId = config.projectId || "direct-database"
+  const cacheKey = publicReadCacheKey(readMode, projectId, config.databaseName, sql, params)
   const cachedRows = getCachedRows(cacheKey, PUBLIC_READ_CACHE_MS)
   if (cachedRows) return cachedRows as T[]
   if (Date.now() < publicReadBackoffUntil) {
@@ -124,16 +213,20 @@ export async function queryInvertedWorldDatabase<T extends RecursivRow = Recursi
   }
 
   const readPromise = (async () => {
-    const { sdk } = createRecursivServerClient({ maxRetries: 0, timeout: PUBLIC_READ_TIMEOUT_MS })
-    const { data } = await sdk.databases.query({
-      project_id: projectId,
-      database_name: config.databaseName,
-      sql,
-      params,
-    })
-    const rows = (data.rows || []) as RecursivRow[]
+    const rows = databaseUrl
+      ? (await executeDirectInvertedWorldDatabaseSql(sql, params))?.rows || []
+      : await (async () => {
+          const { sdk } = createRecursivServerClient({ maxRetries: 0, timeout: PUBLIC_READ_TIMEOUT_MS })
+          const { data } = await sdk.databases.query({
+            project_id: projectId,
+            database_name: config.databaseName,
+            sql,
+            params,
+          })
+          return (data.rows || []) as RecursivRow[]
+        })()
     if (PUBLIC_READ_CACHE_MS > 0) publicReadCache.set(cacheKey, { rows, cachedAt: Date.now() })
-    publicReadHealth = { status: "ok" }
+    publicReadHealth = { status: "ok", mode: readMode }
     return rows
   })()
 
