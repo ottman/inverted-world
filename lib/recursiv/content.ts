@@ -313,6 +313,7 @@ function jsonArray(value: unknown): unknown[] {
 }
 
 function textValue(value: unknown) {
+  if (value instanceof Date) return value.toISOString()
   return typeof value === "string" ? value.trim() : ""
 }
 
@@ -321,10 +322,10 @@ function numberValue(value: unknown) {
   return Number.isFinite(number) ? number : 0
 }
 
-function safeDate(value?: string) {
+function safeDate(value?: string | Date) {
   if (!value) return ""
   const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? value.slice(0, 10) : date.toISOString().slice(0, 10)
+  return Number.isNaN(date.getTime()) ? String(value).slice(0, 10) : date.toISOString().slice(0, 10)
 }
 
 function topicTitle(topicId?: string) {

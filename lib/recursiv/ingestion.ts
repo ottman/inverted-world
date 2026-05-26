@@ -226,7 +226,7 @@ function sourceDocumentHost(url: string) {
   }
 }
 
-function normalizedTimestamp(value?: string) {
+function normalizedTimestamp(value?: string | Date) {
   if (!value) return ""
   const date = new Date(value)
   return Number.isNaN(date.getTime()) ? "" : date.toISOString()
@@ -264,6 +264,7 @@ function jsonArray(value: unknown): unknown[] {
 }
 
 function textField(value: unknown) {
+  if (value instanceof Date) return value.toISOString()
   return typeof value === "string" ? value.trim() : ""
 }
 
