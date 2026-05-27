@@ -16,7 +16,16 @@ import { INVERTED_WORLD_SCHEMA_SQL } from "@/lib/recursiv/schema"
 import { extractSourceText } from "@/lib/source-extraction"
 import { classifyInvertedWorldTopic, classifyInvertedWorldTopicMatch } from "@/lib/topic-classifier"
 import { fetchWorldwireItems } from "@/lib/worldwire-crawler"
-import { WORLDWIRE_LANES, type WorldwireItem } from "@/lib/worldwire"
+import {
+  WORLDWIRE_LANES,
+  isExternalUrl,
+  isGoogleNewsUrl,
+  isUsefulWorldwireTitle,
+  looksLikeArticleUrl,
+  normalizeWorldwireText,
+  sourceLabel,
+  type WorldwireItem,
+} from "@/lib/worldwire"
 import { fetchViralXPostsForTopic, type ViralXPost } from "@/lib/x-posts"
 import { getYouTubeApiKey } from "@/lib/youtube-config"
 import { fetchYouTubePublicChannelVideos } from "@/lib/youtube-public-archive"
@@ -1596,6 +1605,62 @@ export async function publishReadyDraftsInRecursiv() {
   return { published: data.rows.length, articles: data.rows }
 }
 
+type FrontPageWorldwireItem = {
+  title: string
+  href: string
+  topicId: string
+  source: string
+  heat: number
+  publishedAt: string
+  excerpt: string
+}
+
+function worldwireItemTime(item: Pick<FrontPageWorldwireItem, "publishedAt">) {
+  const time = item.publishedAt ? new Date(item.publishedAt).getTime() : 0
+  return Number.isFinite(time) ? time : 0
+}
+
+function isFreshWorldwireItem(item: Pick<FrontPageWorldwireItem, "publishedAt">) {
+  const time = worldwireItemTime(item)
+  const freshWindowHours = Math.max(6, Math.trunc(Number(process.env.FRONT_PAGE_FRESH_NEWS_WINDOW_HOURS || "36")) || 36)
+  return Boolean(time && Date.now() - time <= freshWindowHours * 60 * 60 * 1000)
+}
+
+function worldwireRowsToFrontPageItems(rows: Record<string, unknown>[]) {
+  const items: FrontPageWorldwireItem[] = []
+
+  for (const row of rows) {
+    const laneId = textField(row.topic_id) || "front-page"
+    const laneTitle = WORLDWIRE_LANES.find((lane) => lane.id === laneId)?.title || "Worldwire"
+    const rowScore = asNumber(row.velocity_score) || 100
+
+    jsonArray(row.items).forEach((value, index) => {
+      const item = jsonObject(value)
+      const title = cleanStoryTitle(normalizeWorldwireText(textField(item.title)), laneId, "")
+      const href = textField(item.url)
+      if (!title || !isUsefulWorldwireTitle(title) || !isExternalUrl(href) || isGoogleNewsUrl(href) || !looksLikeArticleUrl(href)) return
+
+      items.push({
+        title,
+        href,
+        topicId: textField(item.sectionId) || textField(item.section_id) || laneId,
+        source: sourceLabel(textField(item.source) || laneTitle, href),
+        heat: asNumber(item.score) || rowScore - index,
+        publishedAt: textField(item.publishedAt) || textField(item.published_at) || textField(row.captured_at),
+        excerpt: shorten(textField(item.excerpt) || textField(row.summary), 220),
+      })
+    })
+  }
+
+  const freshItems = items.filter(isFreshWorldwireItem)
+  return (freshItems.length >= 8 ? freshItems : items)
+    .sort((left, right) => {
+      const time = worldwireItemTime(right) - worldwireItemTime(left)
+      if (time) return time
+      return right.heat - left.heat
+    })
+}
+
 export async function publishFrontPageEditionInRecursiv() {
   const { sdk, config } = getInvertedWorldDatabase()
   const countTables = [
@@ -1609,7 +1674,7 @@ export async function publishFrontPageEditionInRecursiv() {
     "source_documents",
     "media_items",
   ]
-  const [articlesResult, dossiersResult, xSignalsResult, videosResult, countResults] = await Promise.all([
+  const [articlesResult, dossiersResult, xSignalsResult, videosResult, worldwireResult, countResults] = await Promise.all([
     sdk.databases.query({
       project_id: config.projectId,
       database_name: config.databaseName,
@@ -1626,7 +1691,10 @@ export async function publishFrontPageEditionInRecursiv() {
         FROM article_drafts a
         LEFT JOIN generated_assets ga ON ga.id = a.thumbnail_asset_id
         WHERE a.status = $1
-        ORDER BY a.heat DESC NULLS LAST, a.published_at DESC NULLS LAST
+        ORDER BY
+          CASE WHEN a.published_at > now() - interval '48 hours' THEN 0 ELSE 1 END,
+          a.heat DESC NULLS LAST,
+          a.published_at DESC NULLS LAST
         LIMIT $2`,
       params: ["published", 12],
     }),
@@ -1647,7 +1715,11 @@ export async function publishFrontPageEditionInRecursiv() {
           published_at
         FROM claim_dossiers
         WHERE status = $1
-        ORDER BY x_velocity_score DESC NULLS LAST, published_at DESC NULLS LAST, updated_at DESC
+        ORDER BY
+          CASE WHEN published_at > now() - interval '48 hours' THEN 0 ELSE 1 END,
+          x_velocity_score DESC NULLS LAST,
+          published_at DESC NULLS LAST,
+          updated_at DESC
         LIMIT $2`,
       params: ["published", 12],
     }),
@@ -1682,6 +1754,38 @@ export async function publishFrontPageEditionInRecursiv() {
         ORDER BY published_at DESC NULLS LAST
         LIMIT $2`,
       params: ["youtube", 8],
+    }),
+    sdk.databases.query({
+      project_id: config.projectId,
+      database_name: config.databaseName,
+      sql: `WITH ranked AS (
+          SELECT
+            topic_id,
+            captured_at,
+            items,
+            summary,
+            velocity_score,
+            metadata,
+            row_number() OVER (
+              PARTITION BY topic_id
+              ORDER BY captured_at DESC, created_at DESC
+            ) AS lane_rank
+          FROM coverage_snapshots
+          WHERE source = 'worldwire'
+        )
+        SELECT
+          topic_id,
+          captured_at,
+          items,
+          summary,
+          velocity_score,
+          metadata
+        FROM ranked
+        WHERE lane_rank = 1
+        ORDER BY
+          CASE WHEN topic_id = 'front-page' THEN 0 ELSE 1 END,
+          captured_at DESC
+        LIMIT 18`,
     }),
     Promise.all(
       countTables.map((table) =>
@@ -1754,17 +1858,21 @@ export async function publishFrontPageEditionInRecursiv() {
   )
   const editionDate = new Date().toISOString().slice(0, 10)
   const slug = `front-page-${editionDate}`
+  const worldwire = worldwireRowsToFrontPageItems(worldwireResult.data.rows)
+  const editionWorldwire = diversifyFrontPageItems(worldwire, 10, 3)
   const editionArticles = diversifyFrontPageItems(articles, 5, 2)
   const editionDossiers = diversifyFrontPageItems(dossiers, 6, 2)
   const editionSignals = diversifyFrontPageItems(xSignals, 5, 2)
   const editionVideos = diversifyFrontPageItems(archiveVideos, 4, 2)
   const headline = cleanStoryTitle(
-    editionArticles[0]?.title || editionDossiers[0]?.title || "Inverted World front page",
-    editionArticles[0]?.topicId || editionDossiers[0]?.topicId,
+    editionWorldwire[0]?.title || editionArticles[0]?.title || editionDossiers[0]?.title || "Inverted World front page",
+    editionWorldwire[0]?.topicId || editionArticles[0]?.topicId || editionDossiers[0]?.topicId,
     "Inverted World front page",
   )
-  const deck = `Today's edition tracks ${articles.length} stories, ${xSignals.length} X signals, and ${archiveVideos.length} Tales archive links across the conspiracy-world desk.`
+  const deck = `Today's edition tracks ${worldwire.length} live source links, ${articles.length} stories, ${xSignals.length} X signals, and ${archiveVideos.length} Tales archive links across the conspiracy-world desk.`
   const sections = {
+    leadWorldwire: editionWorldwire[0],
+    worldwire: editionWorldwire,
     leadDossier: editionDossiers[0],
     leadArticle: editionArticles[0],
     articles: editionArticles,
@@ -1778,6 +1886,7 @@ export async function publishFrontPageEditionInRecursiv() {
     dossierCount: dossiers.length,
     xSignalCount: xSignals.length,
     archiveVideoCount: archiveVideos.length,
+    worldwireCount: worldwire.length,
     generatedAssetCount: countMetrics.generated_assets || 0,
   }
 
@@ -1812,16 +1921,18 @@ export async function publishFrontPageEditionInRecursiv() {
         $5,
         $6,
         jsonb_build_object(
-          'leadDossier', $7::jsonb,
-          'leadArticle', $8::jsonb,
-          'articles', $9::jsonb,
-          'dossiers', $10::jsonb,
-          'xSignals', $11::jsonb,
-          'archiveVideos', $12::jsonb
+          'leadWorldwire', $7::jsonb,
+          'worldwire', $8::jsonb,
+          'leadDossier', $9::jsonb,
+          'leadArticle', $10::jsonb,
+          'articles', $11::jsonb,
+          'dossiers', $12::jsonb,
+          'xSignals', $13::jsonb,
+          'archiveVideos', $14::jsonb
         ),
-        $13::jsonb,
+        $15::jsonb,
         now(),
-        $14::jsonb,
+        $16::jsonb,
         now()
       )`,
     params: [
@@ -1831,6 +1942,8 @@ export async function publishFrontPageEditionInRecursiv() {
       deck,
       "published",
       editionDossiers[0]?.slug || "",
+      JSON.stringify(sections.leadWorldwire || null),
+      JSON.stringify(sections.worldwire),
       JSON.stringify(sections.leadDossier || null),
       JSON.stringify(sections.leadArticle || null),
       JSON.stringify(sections.articles),
@@ -1845,6 +1958,7 @@ export async function publishFrontPageEditionInRecursiv() {
   return {
     editionSlug: slug,
     headline,
+    worldwireCount: worldwire.length,
     articleCount: articles.length,
     dossierCount: dossiers.length,
     xSignalCount: xSignals.length,

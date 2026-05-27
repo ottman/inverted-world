@@ -87,6 +87,7 @@ function readTextFile(file: string) {
 }
 
 function directDatabaseUrl() {
+  if (process.env.RECURSIV_DISABLE_DIRECT_DATABASE === "1") return ""
   return (
     process.env.RECURSIV_DATABASE_URL ||
     process.env.INVERTED_WORLD_DATABASE_URL ||

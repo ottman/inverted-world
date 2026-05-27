@@ -12,6 +12,7 @@ import {
   type ClaimDossier,
   type ClaimSourceLink,
 } from "@/lib/recursiv/content"
+import { maybeStartNewsRefresh } from "@/lib/recursiv/news-refresh"
 import { cn } from "@/lib/utils"
 import {
   WORLDWIRE_LANES,
@@ -157,11 +158,13 @@ function balancedItems(items: NewsBoardItem[], options: { limit: number; maxPerS
 }
 
 export default async function NewsPage() {
+  const refreshKickoff = maybeStartNewsRefresh("news-page").catch(() => null)
   const [dossiers, topicFeeds, worldwire] = await Promise.all([
     fetchRecursivClaimDossiers({ limit: 48 }).then((items) => items || []),
     fetchLiveArticlesByTopic({ allowProviderFallbacks: false, limitPerTopic: 10 }).catch(() => ({})),
     fetchRecursivWorldwireItems({ limitPerLane: 24 }).then((items) => items || []),
   ])
+  void refreshKickoff
 
   const dossierItems = dossiers.flatMap((dossier) =>
     dossier.sourceLinks.slice(0, 6).map((source, index) => sourceItemFromDossier(dossier, source, index)).filter(isNewsBoardItem),

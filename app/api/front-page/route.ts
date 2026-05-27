@@ -4,6 +4,7 @@ import {
   getLatestRecursivPipelineRun,
   type FrontPageEdition,
 } from "@/lib/recursiv/content"
+import { maybeStartNewsRefresh } from "@/lib/recursiv/news-refresh"
 import { xPostInternalHref } from "@/lib/x-links"
 
 export const dynamic = "force-dynamic"
@@ -72,6 +73,8 @@ function dedupeBreakingItems(items: Array<{ title: string; href: string; source?
 
 function breakingItemsFromEdition(edition: FrontPageEdition | null | undefined) {
   const sections = edition?.sections || {}
+  const leadWorldwire = directItem((sections.leadWorldwire || {}) as FrontPageSectionItem, "Source")
+  const worldwire = sectionItems(sections.worldwire).map((item) => directItem(item, textField(item.source) || "Source"))
   const leadArticle = directItem((sections.leadArticle || {}) as FrontPageSectionItem, "Story")
   const leadDossier = directItem((sections.leadDossier || {}) as FrontPageSectionItem, "Dossier")
   const articles = sectionItems(sections.articles).map((item) => directItem(item, textField(item.source) || "Story"))
@@ -79,11 +82,13 @@ function breakingItemsFromEdition(edition: FrontPageEdition | null | undefined) 
   const xSignals = sectionItems(sections.xSignals).map(xSignalItem)
   const archiveVideos = sectionItems(sections.archiveVideos).map((item) => directItem(item, "Archive"))
 
-  return dedupeBreakingItems([leadArticle, leadDossier, ...articles, ...dossiers, ...xSignals, ...archiveVideos])
+  return dedupeBreakingItems([leadWorldwire, ...worldwire, leadArticle, leadDossier, ...articles, ...dossiers, ...xSignals, ...archiveVideos])
 }
 
 export async function GET() {
+  const refreshKickoff = maybeStartNewsRefresh("front-page-api").catch(() => null)
   const [frontPage, pipeline] = await Promise.all([getLatestRecursivFrontPageEditionWithSource(), getLatestRecursivPipelineRun()])
+  void refreshKickoff
   const edition = frontPage?.edition ?? null
 
   return NextResponse.json({
