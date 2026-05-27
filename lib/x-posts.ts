@@ -399,9 +399,36 @@ function isTrustedSourcePost(topicId: string, post: ViralXPost, normalized: stri
   return Boolean(post.username && sourceAccounts?.has(post.username.toLowerCase()) && hasTrustedSourceTerm(topicId, normalized))
 }
 
+function rejectsProfileReaderBoilerplate(post: ViralXPost, normalized: string) {
+  const text = post.text.trim()
+  const profileChromePatterns = [
+    /^#\s+.+\(@[A-Za-z0-9_]{1,20}\)\s*\/\s*X$/i,
+    /^\[[^\]]+\]\([^)]*\)$/i,
+    /^\[(?:media|posts|replies|highlights|articles|likes)\]/i,
+    /^media\s*&\s*news company\b/i,
+    /\bads info\b/i,
+    /\bcookie policy\b/i,
+    /\bcookie use\b/i,
+    /\bprivacy policy\b/i,
+    /\bterms of service\b/i,
+    /\bsign up\b/i,
+    /\blog in\b/i,
+    /\bopens profile photo\b/i,
+  ]
+
+  if (profileChromePatterns.some((pattern) => pattern.test(text) || pattern.test(normalized))) return true
+  if (post.source === "x-profile-reader" && !/status(?:es)?\/\d{8,}/i.test(post.url || "")) {
+    if (/^@?[A-Za-z0-9_]{1,20}\b\s*(?:\/\s*)?X$/i.test(text)) return true
+    if (text.length < 42 && !/[.!?]$/.test(text)) return true
+  }
+
+  return false
+}
+
 function isQualityTopicPost(topicId: string, post: ViralXPost) {
   const normalized = post.text.toLowerCase()
   if (rejectsGlobalText(normalized)) return false
+  if (rejectsProfileReaderBoilerplate(post, normalized)) return false
   if (isTrustedSourcePost(topicId, post, normalized)) return true
   if (rejectsLaneNoise(topicId, normalized)) return false
   if (hasCoreTopicTerm(topicId, normalized)) {

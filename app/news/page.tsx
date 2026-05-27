@@ -412,6 +412,8 @@ function isHighConfidenceNewsImageUrl(value: string) {
   try {
     const url = new URL(value)
     const haystack = `${url.hostname}${url.pathname}`.toLowerCase()
+    const extension = url.pathname.match(/\.([a-z0-9]{2,5})$/i)?.[1]?.toLowerCase()
+    if (extension && !["avif", "jpeg", "jpg", "png", "webp"].includes(extension)) return false
     if (/\.(svg|gif)(?:$|[?#])/i.test(url.pathname)) return false
     if (/(favicon|apple-touch-icon|sprite|avatar|profile|placeholder|transparent|pixel|1x1)/i.test(haystack)) return false
     if (/(?:^|[-_/])logo(?:[-_.?/]|$)/i.test(haystack)) return false
