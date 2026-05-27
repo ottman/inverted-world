@@ -43,7 +43,7 @@ export function InvertedPageShell({
   const [siteBreakingItems, setSiteBreakingItems] = useState<BreakingItem[]>([])
   const longHeroTitle = heroTitle.length > 56
   const suppliedBreakingItems = breakingItems?.length ? breakingItems : undefined
-  const tickerItems = suppliedBreakingItems || siteBreakingItems
+  const tickerItems = dedupeTickerItems([...(siteBreakingItems || []), ...(suppliedBreakingItems || [])])
 
   useEffect(() => {
     let active = true
@@ -68,7 +68,6 @@ export function InvertedPageShell({
   }, [])
 
   useEffect(() => {
-    if (suppliedBreakingItems?.length) return
     let active = true
 
     async function loadSiteBreakingItems() {
@@ -86,10 +85,12 @@ export function InvertedPageShell({
     }
 
     void loadSiteBreakingItems()
+    const interval = window.setInterval(() => void loadSiteBreakingItems(), 60_000)
     return () => {
       active = false
+      window.clearInterval(interval)
     }
-  }, [suppliedBreakingItems])
+  }, [])
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-[#070706] text-[#f4efe2]">
@@ -130,6 +131,12 @@ export function InvertedPageShell({
               />
             </a>
             <nav className="iw-serif flex w-full items-center gap-3 overflow-x-auto text-lg font-normal leading-none tracking-normal text-[#f4efe2]/70 lg:justify-center lg:gap-5 lg:text-xl">
+              <a className="shrink-0 transition hover:text-[#df2f2f]" href="/news">
+                Breaking News
+              </a>
+              <a className="shrink-0 transition hover:text-[#df2f2f]" href="/archive">
+                Tales
+              </a>
               {topics.map((topic) => (
                 <a key={topic.id} className="shrink-0 transition hover:text-[#df2f2f]" href={`/#topic-${topic.id}`}>
                   {topic.title}
@@ -174,8 +181,8 @@ export function InvertedPageShell({
 
 function BreakingTicker({ items }: { items?: BreakingItem[] }) {
   const fallbackItems = [
-    { title: "Latest ranked source board", href: "/news", source: "News" },
-    { title: "Full Tales video archive", href: "/archive", source: "Archive" },
+    { title: "Latest ranked source board", href: "/news", source: "Breaking News" },
+    { title: "Full Tales video archive", href: "/archive", source: "Tales" },
     { title: "How the desk works", href: "/how-it-works", source: "Process" },
   ]
   const visibleItems = (items?.length ? items : fallbackItems)
@@ -216,6 +223,21 @@ function BreakingTicker({ items }: { items?: BreakingItem[] }) {
   )
 }
 
+function dedupeTickerItems(items: BreakingItem[]) {
+  const seen = new Set<string>()
+  const result: BreakingItem[] = []
+
+  for (const item of items) {
+    if (!item?.title || !item.href) continue
+    const key = `${item.href}:${item.title.toLowerCase()}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    result.push(item)
+  }
+
+  return result
+}
+
 function cleanTickerTitle(value: string) {
   let title = value.trim()
   for (const topic of topics) {
@@ -253,10 +275,10 @@ function SimpleFooter() {
       </div>
       <nav className="iw-serif flex flex-wrap items-center justify-center gap-4 text-xs font-semibold uppercase tracking-[0.14em] text-[#f4efe2]/64">
         <a href="/archive" className="transition hover:text-[#df2f2f]">
-          Archive
+          Tales
         </a>
         <a href="/news" className="transition hover:text-[#df2f2f]">
-          News
+          Breaking News
         </a>
         <a href="/how-it-works" className="transition hover:text-[#df2f2f]">
           How It Works

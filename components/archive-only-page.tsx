@@ -24,6 +24,10 @@ type ArchiveResponse = {
 
 type TopicFeeds = Record<string, IntelligenceArticle[]>
 type TopicXPosts = Record<string, ViralXPost[]>
+type HomeFeedsResponse = {
+  topicFeeds?: TopicFeeds
+  topicXPosts?: TopicXPosts
+}
 
 const PAGE_SIZE = 120
 const HOMEPAGE_TOPIC_VIDEO_LIMIT = 6
@@ -107,6 +111,8 @@ export function ArchiveOnlyPage({
   const [loading, setLoading] = useState(false)
   const [nextOffset, setNextOffset] = useState((initialArchive?.offset ?? 0) + (initialArchive?.limit ?? initialVideos.length))
   const [hasMore, setHasMore] = useState(Boolean(initialArchive?.hasMore))
+  const [topicFeeds, setTopicFeeds] = useState<TopicFeeds>(initialTopicFeeds ?? {})
+  const [topicXPosts, setTopicXPosts] = useState<TopicXPosts>(initialTopicXPosts ?? {})
 
   const videosByTopic = useMemo(() => {
     const map = new Map<string, ChannelVideo[]>()
@@ -129,10 +135,10 @@ export function ArchiveOnlyPage({
       topics.map((topic) => ({
         topic,
         videoCount: videosByTopic.get(topic.id)?.length ?? 0,
-        liveCount: initialTopicFeeds?.[topic.id]?.length ?? 0,
-        xCount: initialTopicXPosts?.[topic.id]?.length ?? 0,
+        liveCount: topicFeeds[topic.id]?.length ?? 0,
+        xCount: topicXPosts[topic.id]?.length ?? 0,
       })),
-    [initialTopicFeeds, initialTopicXPosts, videosByTopic],
+    [topicFeeds, topicXPosts, videosByTopic],
   )
 
   useEffect(() => {
@@ -140,9 +146,38 @@ export function ArchiveOnlyPage({
     document.getElementById("watch")?.scrollIntoView({ behavior: "smooth", block: "start" })
     setPendingScrollKey(undefined)
   }, [leadVideoKey, pendingScrollKey, playRequest])
+
+  useEffect(() => {
+    let active = true
+
+    async function loadHomeFeeds() {
+      try {
+        const response = await fetch("/api/home-feeds", { cache: "no-store" })
+        if (!response.ok) return
+        const data = (await response.json()) as HomeFeedsResponse
+        if (!active) return
+        if (data.topicFeeds && typeof data.topicFeeds === "object") {
+          setTopicFeeds(data.topicFeeds)
+        }
+        if (data.topicXPosts && typeof data.topicXPosts === "object") {
+          setTopicXPosts(data.topicXPosts)
+        }
+      } catch {
+        // Keep the server-rendered feed until the next successful poll.
+      }
+    }
+
+    void loadHomeFeeds()
+    const interval = window.setInterval(() => void loadHomeFeeds(), 300_000)
+    return () => {
+      active = false
+      window.clearInterval(interval)
+    }
+  }, [])
+
   const breakingItems = useMemo<BreakingItem[]>(
     () => {
-      const newsItems = Object.values(initialTopicFeeds ?? {})
+      const newsItems = Object.values(topicFeeds)
         .flat()
         .sort((left, right) => new Date(right.publishedAt).getTime() - new Date(left.publishedAt).getTime())
         .slice(0, 18)
@@ -152,7 +187,7 @@ export function ArchiveOnlyPage({
           source: article.source,
         }))
 
-      const xItems = Object.values(initialTopicXPosts ?? {})
+      const xItems = Object.values(topicXPosts)
         .flat()
         .sort((left, right) => (right.score || 0) - (left.score || 0))
         .slice(0, 18)
@@ -164,7 +199,7 @@ export function ArchiveOnlyPage({
 
       return [...xItems.slice(0, 10), ...newsItems.slice(0, 12), ...xItems.slice(10)]
     },
-    [initialTopicFeeds, initialTopicXPosts],
+    [topicFeeds, topicXPosts],
   )
 
   async function loadMore() {
@@ -269,8 +304,8 @@ export function ArchiveOnlyPage({
         {topics.map((topic) => {
           const topicVideos = videosByTopic.get(topic.id) ?? []
           const visibleTopicVideos = topicVideos.slice(0, HOMEPAGE_TOPIC_VIDEO_LIMIT)
-          const feed = initialTopicFeeds?.[topic.id] ?? []
-          const xPosts = initialTopicXPosts?.[topic.id] ?? []
+          const feed = topicFeeds[topic.id] ?? []
+          const xPosts = topicXPosts[topic.id] ?? []
           const videoCount =
             topicVideos.length > visibleTopicVideos.length
               ? `${visibleTopicVideos.length} of ${topicVideos.length} videos`

@@ -226,7 +226,7 @@ export default async function NewsPage() {
           <p>The current source board has no ranked links to show yet. Start with the archive while the next edition is assembled.</p>
           <div className="flex flex-wrap gap-2">
             <a href="/archive" className="bg-black/30 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-black/54">
-              Archive
+              Tales
             </a>
           </div>
         </section>
@@ -350,7 +350,7 @@ function ExternalHeadline({ item, size }: { item: NewsBoardItem; size: "lead" | 
         : size === "compact"
           ? "text-base font-bold leading-[1.12] text-[#fff8e6]"
           : "text-[15px] font-semibold leading-[1.18] text-[#fff8e6]"
-  const showThumb = Boolean(item.imageUrl && (size === "lead" || size === "major" || size === "compact" || size === "list"))
+  const showThumb = Boolean(item.imageUrl && isHighConfidenceNewsImageUrl(item.imageUrl))
 
   return (
     <article
@@ -408,6 +408,33 @@ function ExternalHeadline({ item, size }: { item: NewsBoardItem; size: "lead" | 
   )
 }
 
+function isHighConfidenceNewsImageUrl(value: string) {
+  try {
+    const url = new URL(value)
+    const haystack = `${url.hostname}${url.pathname}`.toLowerCase()
+    if (/\.(svg|gif)(?:$|[?#])/i.test(url.pathname)) return false
+    if (/(favicon|apple-touch-icon|sprite|avatar|profile|placeholder|transparent|pixel|1x1)/i.test(haystack)) return false
+    if (/(?:^|[-_/])logo(?:[-_.?/]|$)/i.test(haystack)) return false
+
+    const width = Number(url.searchParams.get("w") || url.searchParams.get("width") || url.searchParams.get("resize_w"))
+    const height = Number(url.searchParams.get("h") || url.searchParams.get("height") || url.searchParams.get("resize_h"))
+    if ((Number.isFinite(width) && width > 0 && width < 480) || (Number.isFinite(height) && height > 0 && height < 260)) {
+      return false
+    }
+
+    const dimensions = haystack.match(/(?:^|[^\d])(\d{2,4})x(\d{2,4})(?:[^\d]|$)/)
+    if (dimensions) {
+      const imageWidth = Number(dimensions[1])
+      const imageHeight = Number(dimensions[2])
+      if (imageWidth < 480 || imageHeight < 260) return false
+    }
+
+    return true
+  } catch {
+    return false
+  }
+}
+
 function HeadlineImage({ item, size }: { item: NewsBoardItem; size: "lead" | "major" | "compact" | "list" }) {
   if (!item.imageUrl) return null
   return (
@@ -421,7 +448,8 @@ function HeadlineImage({ item, size }: { item: NewsBoardItem; size: "lead" | "ma
         src={item.imageUrl}
         alt=""
         loading={size === "lead" ? "eager" : "lazy"}
-        className="h-full w-full object-cover opacity-86 transition duration-300 group-hover:scale-[1.03] group-hover:opacity-100"
+        decoding="async"
+        className="h-full w-full object-cover [image-rendering:auto]"
       />
     </span>
   )
