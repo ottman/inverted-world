@@ -201,7 +201,7 @@ type MarkdownBlock =
   | { type: "quote"; text: string }
   | { type: "code"; text: string }
 
-function MarkdownText({ text }: { text: string }) {
+export function MarkdownText({ text }: { text: string }) {
   const blocks = parseMarkdownBlocks(text)
 
   return (

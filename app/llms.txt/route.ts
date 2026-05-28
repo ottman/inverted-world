@@ -24,6 +24,7 @@ export async function GET() {
     `${baseUrl}/`,
     `${baseUrl}/archive`,
     `${baseUrl}/news`,
+    `${baseUrl}/research`,
     `${baseUrl}/terms`,
     `${baseUrl}/privacy`,
     `${baseUrl}/sitemap.xml`,

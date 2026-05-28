@@ -270,6 +270,9 @@ function SimpleFooter() {
         ))}
       </div>
       <nav className="iw-serif flex flex-wrap items-center justify-center gap-4 text-xs font-semibold uppercase tracking-[0.14em] text-[#f4efe2]/64">
+        <a href="/research" className="transition hover:text-[#df2f2f]">
+          Research
+        </a>
         <a href="/news" className="transition hover:text-[#df2f2f]">
           Breaking News
         </a>
