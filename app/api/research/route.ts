@@ -21,6 +21,46 @@ type ResearchLink = {
   score: number
 }
 
+const RESEARCH_QUERY_STOPWORDS = new Set([
+  "about",
+  "against",
+  "anything",
+  "best",
+  "can",
+  "case",
+  "claim",
+  "claims",
+  "does",
+  "evidence",
+  "explain",
+  "find",
+  "for",
+  "from",
+  "how",
+  "into",
+  "real",
+  "record",
+  "records",
+  "research",
+  "show",
+  "source",
+  "sources",
+  "strongest",
+  "the",
+  "there",
+  "thing",
+  "things",
+  "this",
+  "truth",
+  "what",
+  "when",
+  "where",
+  "which",
+  "who",
+  "why",
+  "with",
+])
+
 function trimMessage(value: unknown) {
   if (typeof value !== "string") return ""
   return value.replace(/\s+/g, " ").trim().slice(0, 2000)
@@ -50,6 +90,10 @@ function tokenSet(value: string) {
       .split(/\s+/)
       .filter((word) => word.length > 2),
   )
+}
+
+function queryTokenSet(value: string) {
+  return new Set([...tokenSet(value)].filter((word) => !RESEARCH_QUERY_STOPWORDS.has(word)))
 }
 
 function matchingTokenCount(queryTokens: Set<string>, value: string) {
@@ -136,7 +180,7 @@ function uniqueLinks(links: ResearchLink[]) {
 }
 
 async function gatherResearchContext(message: string) {
-  const queryTokens = tokenSet(message)
+  const queryTokens = queryTokenSet(message)
   const [dossiers, worldwire] = await Promise.all([
     fetchRecursivClaimDossiers({ limit: 36 }).catch(() => []),
     fetchRecursivWorldwireItems({ limitPerLane: 8 }).catch(() => []),
