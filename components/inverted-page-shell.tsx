@@ -280,7 +280,7 @@ function SimpleFooter() {
           Privacy
         </a>
       </nav>
-      <span className="text-xs uppercase tracking-[0.14em]">© {new Date().getFullYear()} Subverse, Inc.</span>
+      <span className="iw-serif text-xs uppercase tracking-[0.14em]">© 2026 Subverse, Inc.</span>
     </footer>
   )
 }
