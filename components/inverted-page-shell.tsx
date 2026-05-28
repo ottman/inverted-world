@@ -30,6 +30,8 @@ export function InvertedPageShell({
   breakingItems,
   heroTitle = "Tales From The Inverted World",
   heroDescription = "",
+  showHero = true,
+  mainClassName,
 }: {
   eyebrow: string
   title: string
@@ -38,6 +40,8 @@ export function InvertedPageShell({
   breakingItems?: BreakingItem[]
   heroTitle?: string
   heroDescription?: string
+  showHero?: boolean
+  mainClassName?: string
 }) {
   const [liveStatus, setLiveStatus] = useState<LiveStatus>({ isLive: false })
   const [siteBreakingItems, setSiteBreakingItems] = useState<BreakingItem[]>([])
@@ -144,29 +148,33 @@ export function InvertedPageShell({
           </div>
         </header>
 
-        <main className="mx-auto max-w-7xl px-3 py-5 sm:px-6 sm:py-6 lg:px-8">
-          <div className="mb-5 grid gap-4 bg-[#070706]/18 p-4 backdrop-blur-[1px] sm:p-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-            <div className="max-w-4xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#df2f2f]">{eyebrow}</p>
-              <h1
-                className={cn(
-                  "iw-serif mt-2 max-w-5xl tracking-normal text-[#fff8e6]",
-                  longHeroTitle
-                    ? "text-4xl leading-[0.95] sm:text-6xl lg:text-7xl"
-                    : "text-5xl leading-[0.9] sm:text-7xl",
-                )}
-              >
-                {heroTitle}
-              </h1>
-              {heroDescription ? (
-                <p className="iw-serif mt-3 max-w-3xl text-2xl leading-[1.05] text-[#f4efe2]/86 sm:text-3xl">
-                  {heroDescription}
-                </p>
-              ) : null}
-              <p className="sr-only">{title}</p>
+        <main className={cn("mx-auto max-w-7xl px-3 py-5 sm:px-6 sm:py-6 lg:px-8", mainClassName)}>
+          {showHero ? (
+            <div className="mb-5 grid gap-4 bg-[#070706]/18 p-4 backdrop-blur-[1px] sm:p-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+              <div className="max-w-4xl">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#df2f2f]">{eyebrow}</p>
+                <h1
+                  className={cn(
+                    "iw-serif mt-2 max-w-5xl tracking-normal text-[#fff8e6]",
+                    longHeroTitle
+                      ? "text-4xl leading-[0.95] sm:text-6xl lg:text-7xl"
+                      : "text-5xl leading-[0.9] sm:text-7xl",
+                  )}
+                >
+                  {heroTitle}
+                </h1>
+                {heroDescription ? (
+                  <p className="iw-serif mt-3 max-w-3xl text-2xl leading-[1.05] text-[#f4efe2]/86 sm:text-3xl">
+                    {heroDescription}
+                  </p>
+                ) : null}
+                <p className="sr-only">{title}</p>
+              </div>
+              {action}
             </div>
-            {action}
-          </div>
+          ) : (
+            <h1 className="sr-only">{title || heroTitle || eyebrow}</h1>
+          )}
           {children}
         </main>
 
