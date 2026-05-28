@@ -178,15 +178,7 @@ export function ArchiveOnlyPage({
             <p className="mt-3 text-xs uppercase tracking-[0.14em] text-[#f4efe2]/48">{leadVideo?.date || "latest upload"}</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {leadVideo?.videoId && relatedStories.length ? (
-              <a
-                href="#related-stories"
-                className="inline-flex h-10 items-center gap-2 bg-[#df2f2f]/10 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-[#df2f2f]/18"
-              >
-                More details
-                <ArrowUpRight className="h-4 w-4" />
-              </a>
-            ) : leadVideo?.videoId ? (
+            {leadVideo?.videoId && !relatedStories.length ? (
               <a
                 href={leadVideoIsArchiveItem ? `/archive/${leadVideo.videoId}` : leadVideo.href}
                 target={leadVideoIsArchiveItem ? undefined : "_blank"}
@@ -297,7 +289,7 @@ function RelatedStoriesRail({ stories }: { stories: VideoRelatedStory[] }) {
   return (
     <section id="related-stories" className="mt-3 border-t border-[#f4efe2]/10 pt-3">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#df2f2f]">More details</p>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#df2f2f]">Related coverage</p>
         <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/42">
           {stories.length} related links
         </span>
