@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://www.inverted.world'),
   title: 'Inverted World Archive',
   description:
-    'Tales From the Inverted World investigates paranormal mysteries, UFO disclosure, declassified programs, strange history, and current coverage with video transcripts, source links, and live signals.',
+    'Tales From the Inverted World investigates paranormal mysteries, UFO disclosure, declassified programs, strange history, and current coverage with videos, transcripts, source links, and documents.',
   keywords: [
     'Inverted World',
     'Tales From the Inverted World',
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Inverted World Archive',
     description:
-      'Paranormal and conspiracy research archive with Tales From the Inverted World videos, transcripts, live news, X signals, and primary-source research links.',
+      'Paranormal and conspiracy research archive with Tales From the Inverted World videos, transcripts, live news, and primary-source research links.',
     url: 'https://www.inverted.world',
     siteName: 'Inverted World',
     images: ['/images/inverted-world-logo.jpg'],
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Inverted World Archive',
     description:
-      'Paranormal and conspiracy research archive with videos, transcripts, live news, X signals, and primary-source research links.',
+      'Paranormal and conspiracy research archive with videos, transcripts, live news, and primary-source research links.',
     images: ['/images/inverted-world-logo.jpg'],
   },
   robots: {
