@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { researchDocuments } from "@/data/inverted-world"
+import { researchSourceSeeds, type ResearchSourcePriority } from "@/data/research-sources"
 import { checkRateLimit, rateLimitResponse, readLimitedJsonBody, requestClientId } from "@/lib/api-security"
 import { createRecursivServerClient } from "@/lib/recursiv/client"
 import { fetchRecursivClaimDossiers, fetchRecursivWorldwireItems, type ClaimDossier } from "@/lib/recursiv/content"
@@ -18,6 +19,7 @@ type ResearchLink = {
   url: string
   source?: string
   excerpt?: string
+  priority?: ResearchSourcePriority | "crawler" | "site"
   score: number
 }
 
@@ -30,6 +32,8 @@ const RESEARCH_QUERY_STOPWORDS = new Set([
   "case",
   "claim",
   "claims",
+  "conspiracies",
+  "conspiracy",
   "does",
   "evidence",
   "explain",
@@ -38,6 +42,7 @@ const RESEARCH_QUERY_STOPWORDS = new Set([
   "from",
   "how",
   "into",
+  "me",
   "real",
   "record",
   "records",
@@ -46,8 +51,11 @@ const RESEARCH_QUERY_STOPWORDS = new Set([
   "source",
   "sources",
   "strongest",
+  "tell",
   "the",
   "there",
+  "theories",
+  "theory",
   "thing",
   "things",
   "this",
@@ -59,6 +67,27 @@ const RESEARCH_QUERY_STOPWORDS = new Set([
   "who",
   "why",
   "with",
+])
+
+const MAINSTREAM_COMPARATOR_HOSTS = new Set([
+  "abcnews.go.com",
+  "apnews.com",
+  "bbc.com",
+  "bbc.co.uk",
+  "cbsnews.com",
+  "cnn.com",
+  "msnbc.com",
+  "nbcnews.com",
+  "newsweek.com",
+  "npr.org",
+  "nytimes.com",
+  "politico.com",
+  "reuters.com",
+  "theguardian.com",
+  "time.com",
+  "usatoday.com",
+  "washingtonpost.com",
+  "wsj.com",
 ])
 
 function trimMessage(value: unknown) {
@@ -82,10 +111,17 @@ function markdownLink(label: string, url?: string) {
   return `[${markdownLabel(label)}](${url})`
 }
 
+function normalizeTokenText(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/\b9\s*\/\s*11\b/g, " 911 ")
+    .replace(/\b9\s*-\s*11\b/g, " 911 ")
+    .replace(/\bsept(?:ember)?\s+11(?:th)?\b/g, " 911 ")
+}
+
 function tokenSet(value: string) {
   return new Set(
-    value
-      .toLowerCase()
+    normalizeTokenText(value)
       .replace(/[^a-z0-9]+/g, " ")
       .split(/\s+/)
       .filter((word) => word.length > 2),
@@ -94,6 +130,30 @@ function tokenSet(value: string) {
 
 function queryTokenSet(value: string) {
   return new Set([...tokenSet(value)].filter((word) => !RESEARCH_QUERY_STOPWORDS.has(word)))
+}
+
+function linkHost(url?: string) {
+  if (!url) return ""
+  try {
+    return new URL(url, "https://www.inverted.world").hostname.replace(/^www\./, "")
+  } catch {
+    return ""
+  }
+}
+
+function mainstreamComparatorPenalty(url?: string, source?: string) {
+  const normalizedSource = (source || "").toLowerCase().replace(/^www\./, "")
+  const host = linkHost(url)
+  if (MAINSTREAM_COMPARATOR_HOSTS.has(host) || MAINSTREAM_COMPARATOR_HOSTS.has(normalizedSource)) return -24
+  return 0
+}
+
+function priorityBoost(priority?: ResearchLink["priority"]) {
+  if (priority === "primary") return 34
+  if (priority === "independent") return 32
+  if (priority === "alternative") return 30
+  if (priority === "archive") return 28
+  return 0
 }
 
 function matchingTokenCount(queryTokens: Set<string>, value: string) {
@@ -121,6 +181,7 @@ function dossierLinks(dossier: ClaimDossier, queryTokens: Set<string>): Research
       url: `/news/${dossier.slug}`,
       source: "Inverted World",
       excerpt: dossier.summary,
+      priority: "site",
       score: baseScore ? baseScore + 18 : 0,
     },
   ]
@@ -133,7 +194,8 @@ function dossierLinks(dossier: ClaimDossier, queryTokens: Set<string>): Research
       url: source.url,
       source: source.outlet || source.sourceKind || "source",
       excerpt: source.excerpt,
-      score: sourceMatches ? baseScore + scoreText(queryTokens, sourceText, 8) : 0,
+      priority: "crawler",
+      score: sourceMatches ? baseScore + scoreText(queryTokens, sourceText, 8) + mainstreamComparatorPenalty(source.url, source.outlet) : 0,
     })
   }
 
@@ -148,7 +210,8 @@ function worldwireLink(item: WorldwireItem, queryTokens: Set<string>): ResearchL
     url: item.url,
     source: item.source || item.sectionTitle,
     excerpt: item.excerpt,
-    score: itemMatches ? scoreText(queryTokens, itemText, item.score / 20) : 0,
+    priority: "crawler",
+    score: itemMatches ? scoreText(queryTokens, itemText, item.score / 20) + mainstreamComparatorPenalty(item.url, item.source) : 0,
   }
 }
 
@@ -161,7 +224,23 @@ function documentLink(queryTokens: Set<string>) {
       url: document.url,
       source: document.source,
       excerpt: document.kind,
+      priority: "primary",
       score: documentMatches ? scoreText(queryTokens, documentText, 18) : 0,
+    }
+  })
+}
+
+function sourceSeedLink(queryTokens: Set<string>) {
+  return researchSourceSeeds.map<ResearchLink>((seed) => {
+    const seedText = `${seed.title} ${seed.source} ${seed.summary} ${seed.tags.join(" ")}`
+    const seedMatches = matchingTokenCount(queryTokens, seedText)
+    return {
+      title: seed.title,
+      url: seed.url,
+      source: seed.source,
+      excerpt: seed.summary,
+      priority: seed.priority,
+      score: seedMatches ? scoreText(queryTokens, seedText, priorityBoost(seed.priority)) : 0,
     }
   })
 }
@@ -189,6 +268,7 @@ async function gatherResearchContext(message: string) {
     ...((dossiers || []) as ClaimDossier[]).flatMap((dossier) => dossierLinks(dossier, queryTokens)),
     ...((worldwire || []) as WorldwireItem[]).map((item) => worldwireLink(item, queryTokens)),
     ...documentLink(queryTokens),
+    ...sourceSeedLink(queryTokens),
   ])
   return links.filter((link) => link.score > 0).slice(0, 12)
 }
@@ -251,6 +331,8 @@ async function askResearchAgent(message: string, conversationId: string | undefi
     "You are the Inverted World research analyst.",
     "Your job is to investigate any topic with a truth-seeking bend: disclosure, institutional incentives, hidden power, suppressed records, anomalous evidence, and the deeper nature of reality.",
     "If the user is only greeting, testing, or asking whether you are present, answer naturally in one or two sentences. Do not force an investigation frame onto conversational messages.",
+    "Source policy: prioritize primary records, declassified archives, court files, transcripts, longform independent media, alternative media archives, YouTube/Rumble interviews, and independent researchers. Treat mainstream outlets as official-narrative comparators unless they contain a primary admission, named witness, leaked document, or useful timeline.",
+    "For conspiracy-world topics, actively look for the independent research tradition around the topic before relying on NYT, CNN, NPR, Reuters, AP, or similar mainstream outlets.",
     "Do not invent certainty. Separate documented facts, allegations, inference, speculation, unknowns, and next primary-source checks.",
     "Return clean Markdown with concise sections and links. Use Markdown links for every URL you cite. Do not return HTML.",
     "If you cannot verify a claim from available sources, say exactly what evidence would be needed.",
@@ -280,7 +362,7 @@ function fallbackResearchAnswer(message: string, links: ResearchLink[]) {
 
   return [
     `I would treat **${message}** as an open investigation and start with records that can be checked directly.`,
-    "**First pass**\n- Separate documented facts from allegation, inference, and speculation.\n- Look for primary documents, full transcripts, court records, official releases, raw data, or named on-record witnesses.\n- Compare the strongest official version against the strongest skeptical version before deciding what is likely true.",
+    "**First pass**\n- Start with primary records, archives, technical reports, transcripts, and full videos.\n- Then map the independent media trail: longform researchers, alternative archives, YouTube/Rumble interviews, and named witnesses.\n- Use mainstream coverage mainly as the official-narrative comparator, not as the default source of truth.\n- Separate documented facts from allegation, inference, and speculation.",
     sourceLines.length
       ? `**Relevant source trail**\n${sourceLines.join("\n")}`
       : "**Relevant source trail**\n- I do not have a strong matched source trail for this exact query yet.",
