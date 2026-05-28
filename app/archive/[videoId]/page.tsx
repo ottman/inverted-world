@@ -6,6 +6,7 @@ import { buildVideoDossier, videoDossierJsonLd } from "@/lib/video-dossier"
 import { fetchLiveArticlesForTopic } from "@/lib/live-articles"
 import { fetchViralXPostsForTopic } from "@/lib/x-posts"
 import { getYouTubeTranscript, transcriptExcerpt, transcriptFromText, type YouTubeTranscript } from "@/lib/youtube-transcript"
+import { youtubeEmbedUrl } from "@/lib/youtube-embed"
 import { cn } from "@/lib/utils"
 import type { ChannelVideo, ContentTopic } from "@/data/inverted-world"
 
@@ -221,7 +222,7 @@ export default async function ArchiveVideoPage({ params }: PageProps) {
         <div className="relative aspect-video overflow-hidden bg-[#050504]/55">
           <iframe
             className="absolute inset-0 h-full w-full"
-            src={video.embedUrl}
+            src={youtubeEmbedUrl({ videoId: video.videoId, source: video.embedUrl || video.href })}
             title={video.title}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             referrerPolicy="strict-origin-when-cross-origin"
