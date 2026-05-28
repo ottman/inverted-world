@@ -128,7 +128,8 @@ export async function buildDailyAutopostPacket(siteUrl = process.env.INVERTED_WO
   const links = {
     newsDesk: absoluteUrl("/news", siteUrl),
     archive: absoluteUrl("/archive", siteUrl),
-    howItWorks: absoluteUrl("/how-it-works", siteUrl),
+    terms: absoluteUrl("/terms", siteUrl),
+    privacy: absoluteUrl("/privacy", siteUrl),
     articles: articles.map((item) => ({
       title: textField(item.title),
       url: absoluteUrl(textField(item.href) || "/news", siteUrl),

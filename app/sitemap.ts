@@ -5,11 +5,11 @@ import { fetchRecursivClaimDossiers } from "@/lib/recursiv/content"
 const baseUrl = "https://www.inverted.world"
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const staticRoutes: MetadataRoute.Sitemap = ["", "/archive", "/news", "/how-it-works", "/llms.txt"].map((path) => ({
+  const staticRoutes: MetadataRoute.Sitemap = ["", "/archive", "/news", "/terms", "/privacy", "/llms.txt"].map((path) => ({
     url: `${baseUrl}${path}`,
     lastModified: new Date(),
     changeFrequency: "hourly",
-    priority: path === "" ? 1 : path === "/news" ? 0.94 : path === "/archive" ? 0.92 : path === "/how-it-works" ? 0.7 : 0.62,
+    priority: path === "" ? 1 : path === "/news" ? 0.94 : path === "/archive" ? 0.92 : path === "/terms" || path === "/privacy" ? 0.42 : 0.62,
   }))
 
   try {

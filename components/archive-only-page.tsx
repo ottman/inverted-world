@@ -2,15 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { ArrowUpRight, Play, RefreshCw, Youtube } from "lucide-react"
-import { archiveSurface, InvertedPageShell, XIcon, type BreakingItem } from "@/components/inverted-page-shell"
+import { archiveSurface, InvertedPageShell } from "@/components/inverted-page-shell"
 import { channelProfile, topics, type ChannelVideo, type ContentTopic } from "@/data/inverted-world"
-import type { IntelligenceArticle } from "@/data/intelligence-articles"
-import { articleHref } from "@/lib/news-links"
-import { getTopicXSearchUrl } from "@/lib/x-search"
-import { xPostInternalHref } from "@/lib/x-links"
 import { cn } from "@/lib/utils"
 import type { DeepArchiveResponse } from "@/lib/deep-archive"
-import type { ViralXPost } from "@/lib/x-posts"
 
 type ArchiveResponse = {
   sourceMode?: DeepArchiveResponse["sourceMode"]
@@ -20,13 +15,6 @@ type ArchiveResponse = {
   limit?: number
   hasMore?: boolean
   warnings?: string[]
-}
-
-type TopicFeeds = Record<string, IntelligenceArticle[]>
-type TopicXPosts = Record<string, ViralXPost[]>
-type HomeFeedsResponse = {
-  topicFeeds?: TopicFeeds
-  topicXPosts?: TopicXPosts
 }
 
 const PAGE_SIZE = 120
@@ -51,54 +39,11 @@ function mergeVideos(current: ChannelVideo[], incoming: ChannelVideo[]) {
   })
 }
 
-function normalizeDate(value?: string) {
-  if (!value) return "live"
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value.slice(0, 16)
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-}
-
-function formatMetricCount(value?: number) {
-  if (typeof value !== "number" || Number.isNaN(value)) return undefined
-  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(value >= 10_000_000 ? 0 : 1)}M`
-  if (value >= 1_000) return `${(value / 1_000).toFixed(value >= 10_000 ? 0 : 1)}K`
-  return String(Math.round(value))
-}
-
-function postMetricLabel(post: ViralXPost) {
-  const likes = formatMetricCount(post.metrics?.likes)
-  const reposts = formatMetricCount(post.metrics?.reposts)
-  const replies = formatMetricCount(post.metrics?.replies)
-  const views = formatMetricCount(post.metrics?.views)
-  const parts = [
-    likes ? `${likes} likes` : undefined,
-    reposts ? `${reposts} reposts` : undefined,
-    replies ? `${replies} replies` : undefined,
-    views ? `${views} views` : undefined,
-  ].filter(Boolean)
-
-  if (parts.length) return parts.slice(0, 3).join(" / ")
-  if (typeof post.score === "number" && post.score > 0) return `${formatMetricCount(post.score)} signal`
-  return "curated signal"
-}
-
-function topicById(topicId?: string) {
-  return topics.find((topic) => topic.id === topicId)
-}
-
-function openInAppPostSignal(post: ViralXPost, fallbackTopicId: string) {
-  window.location.href = xPostInternalHref(post, fallbackTopicId)
-}
-
 export function ArchiveOnlyPage({
   initialArchive,
-  initialTopicFeeds,
-  initialTopicXPosts,
   initialLiveVideo,
 }: {
   initialArchive?: DeepArchiveResponse
-  initialTopicFeeds?: TopicFeeds
-  initialTopicXPosts?: TopicXPosts
   initialLiveVideo?: ChannelVideo
 }) {
   const initialVideos = initialArchive?.videos ?? []
@@ -111,8 +56,6 @@ export function ArchiveOnlyPage({
   const [loading, setLoading] = useState(false)
   const [nextOffset, setNextOffset] = useState((initialArchive?.offset ?? 0) + (initialArchive?.limit ?? initialVideos.length))
   const [hasMore, setHasMore] = useState(Boolean(initialArchive?.hasMore))
-  const [topicFeeds, setTopicFeeds] = useState<TopicFeeds>(initialTopicFeeds ?? {})
-  const [topicXPosts, setTopicXPosts] = useState<TopicXPosts>(initialTopicXPosts ?? {})
 
   const videosByTopic = useMemo(() => {
     const map = new Map<string, ChannelVideo[]>()
@@ -135,10 +78,8 @@ export function ArchiveOnlyPage({
       topics.map((topic) => ({
         topic,
         videoCount: videosByTopic.get(topic.id)?.length ?? 0,
-        liveCount: topicFeeds[topic.id]?.length ?? 0,
-        xCount: topicXPosts[topic.id]?.length ?? 0,
       })),
-    [topicFeeds, topicXPosts, videosByTopic],
+    [videosByTopic],
   )
 
   useEffect(() => {
@@ -146,61 +87,6 @@ export function ArchiveOnlyPage({
     document.getElementById("watch")?.scrollIntoView({ behavior: "smooth", block: "start" })
     setPendingScrollKey(undefined)
   }, [leadVideoKey, pendingScrollKey, playRequest])
-
-  useEffect(() => {
-    let active = true
-
-    async function loadHomeFeeds() {
-      try {
-        const response = await fetch("/api/home-feeds", { cache: "no-store" })
-        if (!response.ok) return
-        const data = (await response.json()) as HomeFeedsResponse
-        if (!active) return
-        if (data.topicFeeds && typeof data.topicFeeds === "object") {
-          setTopicFeeds(data.topicFeeds)
-        }
-        if (data.topicXPosts && typeof data.topicXPosts === "object") {
-          setTopicXPosts(data.topicXPosts)
-        }
-      } catch {
-        // Keep the server-rendered feed until the next successful poll.
-      }
-    }
-
-    void loadHomeFeeds()
-    const interval = window.setInterval(() => void loadHomeFeeds(), 300_000)
-    return () => {
-      active = false
-      window.clearInterval(interval)
-    }
-  }, [])
-
-  const breakingItems = useMemo<BreakingItem[]>(
-    () => {
-      const newsItems = Object.values(topicFeeds)
-        .flat()
-        .sort((left, right) => new Date(right.publishedAt).getTime() - new Date(left.publishedAt).getTime())
-        .slice(0, 18)
-        .map((article) => ({
-          title: article.title,
-          href: articleHref(article),
-          source: article.source,
-        }))
-
-      const xItems = Object.values(topicXPosts)
-        .flat()
-        .sort((left, right) => (right.score || 0) - (left.score || 0))
-        .slice(0, 18)
-        .map((post) => ({
-          title: post.text,
-          href: xPostInternalHref(post, "uap-disclosure"),
-          source: post.username ? `@${post.username}` : "X",
-        }))
-
-      return [...xItems.slice(0, 10), ...newsItems.slice(0, 12), ...xItems.slice(10)]
-    },
-    [topicFeeds, topicXPosts],
-  )
 
   async function loadMore() {
     if (loading) return
@@ -243,7 +129,6 @@ export function ArchiveOnlyPage({
     <InvertedPageShell
       eyebrow="LIVE Mon - Thurs at 10 p.m. EST"
       title="inverted.world"
-      breakingItems={breakingItems}
       heroTitle="Tales From The Inverted World"
       heroDescription=""
     >
@@ -304,8 +189,6 @@ export function ArchiveOnlyPage({
         {topics.map((topic) => {
           const topicVideos = videosByTopic.get(topic.id) ?? []
           const visibleTopicVideos = topicVideos.slice(0, HOMEPAGE_TOPIC_VIDEO_LIMIT)
-          const feed = topicFeeds[topic.id] ?? []
-          const xPosts = topicXPosts[topic.id] ?? []
           const videoCount =
             topicVideos.length > visibleTopicVideos.length
               ? `${visibleTopicVideos.length} of ${topicVideos.length} videos`
@@ -317,18 +200,10 @@ export function ArchiveOnlyPage({
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#df2f2f]">{topic.signal}</p>
                   <h2 className="iw-serif mt-2 text-4xl leading-none text-[#fff8e6] sm:text-5xl">{topic.title}</h2>
                 </div>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f4efe2]/48">
-                  {videoCount} / {feed.length} live links / {xPosts.length || "live"} X
-                </p>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f4efe2]/48">{videoCount}</p>
               </div>
 
-              <div className="mt-4 grid items-start gap-4 xl:grid-cols-[minmax(260px,0.72fr)_minmax(0,1.28fr)]">
-                <div className="grid min-w-0 gap-4">
-                  <LiveFeed topicTitle={topic.title} articles={feed} />
-                  <XSignalLane topic={topic} posts={xPosts} />
-                </div>
-                <VideoGrid videos={visibleTopicVideos} activeVideoKey={leadVideoKey} onSelect={selectVideo} />
-              </div>
+              <VideoGrid videos={visibleTopicVideos} activeVideoKey={leadVideoKey} onSelect={selectVideo} />
             </section>
           )
         })}
@@ -361,11 +236,11 @@ function videoEmbedUrl(video?: ChannelVideo, autoplay = false) {
 function TopicIndex({
   summaries,
 }: {
-  summaries: Array<{ topic: ContentTopic; videoCount: number; liveCount: number; xCount: number }>
+  summaries: Array<{ topic: ContentTopic; videoCount: number }>
 }) {
   return (
     <section className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-      {summaries.map(({ topic, videoCount, liveCount, xCount }) => (
+      {summaries.map(({ topic, videoCount }) => (
         <a
           key={topic.id}
           href={`#topic-${topic.id}`}
@@ -377,125 +252,12 @@ function TopicIndex({
             </span>
             <span className="mt-2 block text-xs leading-5 text-[#f4efe2]/58">{topic.signal}</span>
           </span>
-          <span className="mt-4 flex flex-wrap gap-2 text-[10px] font-semibold uppercase tracking-[0.11em] text-[#f4efe2]/42 group-hover:text-[#fff8e6]">
-            <span>{videoCount} videos</span>
-            <span>{liveCount} links</span>
-            <span>{xCount ? `${xCount} X` : "X stream"}</span>
+          <span className="mt-4 text-[10px] font-semibold uppercase tracking-[0.11em] text-[#f4efe2]/42 group-hover:text-[#fff8e6]">
+            {videoCount} videos
           </span>
         </a>
       ))}
     </section>
-  )
-}
-
-function XSignalLane({ topic, posts }: { topic: ContentTopic; posts: ViralXPost[] }) {
-  const signalUrl = `/x/${topic.id}`
-  const visiblePosts = posts.slice(0, 3)
-
-  return (
-    <section className="bg-[#050504]/30 p-3">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.16em] text-[#fff8e6]">
-          <XIcon className="h-4 w-4 text-[#df2f2f]" />
-          X signal
-        </h3>
-        <a
-          href={signalUrl}
-          className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#dff7ff] transition hover:text-[#df2f2f]"
-        >
-          More X
-          <ArrowUpRight className="h-3.5 w-3.5" />
-        </a>
-      </div>
-
-      <EmbeddedTweetGrid posts={visiblePosts} topicId={topic.id} />
-    </section>
-  )
-}
-
-function EmbeddedTweetGrid({ posts, topicId }: { posts: ViralXPost[]; topicId: string }) {
-  if (!posts.length) {
-    const topic = topicById(topicId)
-    return (
-      <a
-        href={topic ? getTopicXSearchUrl(topic) : `/x/${topicId}`}
-        target={topic ? "_blank" : undefined}
-        rel={topic ? "noopener noreferrer" : undefined}
-        className="block bg-black p-4 text-sm leading-6 text-[#f4efe2]/62 transition hover:text-[#fff8e6]"
-      >
-        Open live X search for this lane.
-      </a>
-    )
-  }
-
-  return (
-    <div className="grid gap-3">
-      {posts.map((post) => (
-        <article
-          key={post.id || post.url}
-          role="link"
-          tabIndex={0}
-          onClick={() => openInAppPostSignal(post, topicId)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" || event.key === " ") {
-              event.preventDefault()
-              openInAppPostSignal(post, topicId)
-            }
-          }}
-          className="block cursor-pointer bg-black/72 p-3 transition hover:bg-black"
-        >
-          <p className="line-clamp-4 text-sm leading-5 text-[#f4efe2]/74">{post.text}</p>
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-[#f4efe2]/44">
-            {post.username && <span>@{post.username}</span>}
-            <span>{postMetricLabel(post)}</span>
-          </div>
-        </article>
-      ))}
-    </div>
-  )
-}
-
-function LiveFeed({ topicTitle, articles }: { topicTitle: string; articles: IntelligenceArticle[] }) {
-  const visibleArticles = articles.slice(0, 12)
-
-  return (
-    <div>
-      <div className="mb-2 flex items-center justify-between gap-3">
-        <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-[#fff8e6]">Hourly feed</h3>
-        <span className="text-xs uppercase tracking-[0.14em] text-[#f4efe2]/42">{topicTitle}</span>
-      </div>
-      <div className="grid gap-2">
-        {visibleArticles.map((article) => (
-          <a
-            key={article.id}
-            href={articleHref(article)}
-            className="group grid gap-3 bg-[#050504]/36 p-2.5 transition hover:bg-[#070706]/58 data-[image=true]:grid-cols-[72px_minmax(0,1fr)]"
-            data-image={Boolean(article.thumbnail.imageUrl)}
-          >
-            {article.thumbnail.imageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={article.thumbnail.imageUrl} alt="" className="aspect-square h-[72px] w-[72px] object-cover opacity-88" />
-            ) : null}
-            <span className="min-w-0">
-              <span className="flex items-start justify-between gap-3">
-                <span className="iw-serif text-xl leading-[1.05] text-[#fff8e6] group-hover:text-[#df2f2f]">{article.title}</span>
-                <ArrowUpRight className="mt-0.5 h-4 w-4 shrink-0 text-[#f4efe2]/38 group-hover:text-[#df2f2f]" />
-              </span>
-              <span className="mt-2 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-[#f4efe2]/42">
-                <span>{article.source}</span>
-                <span>/</span>
-                <span>{normalizeDate(article.publishedAt)}</span>
-              </span>
-            </span>
-          </a>
-        ))}
-        {!articles.length && (
-          <a href="/news" className="block bg-[#050504]/24 p-3 text-sm text-[#f4efe2]/56 transition hover:text-[#fff8e6]">
-            Open the news desk for current dossiers and source clusters.
-          </a>
-        )}
-      </div>
-    </div>
   )
 }
 
@@ -509,7 +271,7 @@ function VideoGrid({
   onSelect: (video: ChannelVideo) => void
 }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {videos.map((video) => {
         const active = activeVideoKey === videoKey(video)
         return (
@@ -545,9 +307,9 @@ function VideoGrid({
         )
       })}
       {!videos.length && (
-        <a href="/archive" className="bg-[#050504]/24 p-3 text-sm text-[#f4efe2]/56 transition hover:text-[#fff8e6]">
-          Open the full Tales archive.
-        </a>
+        <div className="bg-[#050504]/24 p-3 text-sm text-[#f4efe2]/56">
+          No videos are indexed for this lane yet.
+        </div>
       )}
     </div>
   )

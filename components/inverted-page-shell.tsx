@@ -134,9 +134,6 @@ export function InvertedPageShell({
               <a className="shrink-0 transition hover:text-[#df2f2f]" href="/news">
                 Breaking News
               </a>
-              <a className="shrink-0 transition hover:text-[#df2f2f]" href="/archive">
-                Tales
-              </a>
               {topics.map((topic) => (
                 <a key={topic.id} className="shrink-0 transition hover:text-[#df2f2f]" href={`/#topic-${topic.id}`}>
                   {topic.title}
@@ -182,8 +179,7 @@ export function InvertedPageShell({
 function BreakingTicker({ items }: { items?: BreakingItem[] }) {
   const fallbackItems = [
     { title: "Latest ranked source board", href: "/news", source: "Breaking News" },
-    { title: "Full Tales video archive", href: "/archive", source: "Tales" },
-    { title: "How the desk works", href: "/how-it-works", source: "Process" },
+    { title: "Latest Inverted World videos", href: "/", source: "Videos" },
   ]
   const visibleItems = (items?.length ? items : fallbackItems)
     .slice(0, 32)
@@ -274,14 +270,14 @@ function SimpleFooter() {
         ))}
       </div>
       <nav className="iw-serif flex flex-wrap items-center justify-center gap-4 text-xs font-semibold uppercase tracking-[0.14em] text-[#f4efe2]/64">
-        <a href="/archive" className="transition hover:text-[#df2f2f]">
-          Tales
-        </a>
         <a href="/news" className="transition hover:text-[#df2f2f]">
           Breaking News
         </a>
-        <a href="/how-it-works" className="transition hover:text-[#df2f2f]">
-          How It Works
+        <a href="/terms" className="transition hover:text-[#df2f2f]">
+          Terms
+        </a>
+        <a href="/privacy" className="transition hover:text-[#df2f2f]">
+          Privacy
         </a>
       </nav>
       <span className="text-xs uppercase tracking-[0.14em]">© {new Date().getFullYear()} Subverse, Inc.</span>
