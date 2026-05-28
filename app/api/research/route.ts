@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { researchDocuments } from "@/data/inverted-world"
-import { researchSourceSeeds, type ResearchSourcePriority } from "@/data/research-sources"
+import { researchDoctrine, researchSourceSeeds, type ResearchSourcePriority } from "@/data/research-sources"
 import { checkRateLimit, rateLimitResponse, readLimitedJsonBody, requestClientId } from "@/lib/api-security"
 import { createRecursivServerClient } from "@/lib/recursiv/client"
 import { fetchRecursivClaimDossiers, fetchRecursivWorldwireItems, type ClaimDossier } from "@/lib/recursiv/content"
@@ -89,6 +89,10 @@ const MAINSTREAM_COMPARATOR_HOSTS = new Set([
   "washingtonpost.com",
   "wsj.com",
 ])
+
+function researchDoctrineMarkdown() {
+  return researchDoctrine.map((line) => `- ${line}`).join("\n")
+}
 
 function trimMessage(value: unknown) {
   if (typeof value !== "string") return ""
@@ -330,6 +334,7 @@ async function askResearchAgent(message: string, conversationId: string | undefi
   const prompt = [
     "You are the Inverted World research analyst.",
     "Your job is to investigate any topic with a truth-seeking bend: disclosure, institutional incentives, hidden power, suppressed records, anomalous evidence, and the deeper nature of reality.",
+    `This is the standing research doctrine:\n${researchDoctrineMarkdown()}`,
     "If the user is only greeting, testing, or asking whether you are present, answer naturally in one or two sentences. Do not force an investigation frame onto conversational messages.",
     "Source policy: prioritize primary records, declassified archives, court files, transcripts, longform independent media, alternative media archives, YouTube/Rumble interviews, and independent researchers. Treat mainstream outlets as official-narrative comparators unless they contain a primary admission, named witness, leaked document, or useful timeline.",
     "For conspiracy-world topics, actively look for the independent research tradition around the topic before relying on NYT, CNN, NPR, Reuters, AP, or similar mainstream outlets.",
@@ -362,7 +367,7 @@ function fallbackResearchAnswer(message: string, links: ResearchLink[]) {
 
   return [
     `I would treat **${message}** as an open investigation and start with records that can be checked directly.`,
-    "**First pass**\n- Start with primary records, archives, technical reports, transcripts, and full videos.\n- Then map the independent media trail: longform researchers, alternative archives, YouTube/Rumble interviews, and named witnesses.\n- Use mainstream coverage mainly as the official-narrative comparator, not as the default source of truth.\n- Separate documented facts from allegation, inference, and speculation.",
+    `**Research posture**\n${researchDoctrine.slice(1, 6).map((line) => `- ${line}`).join("\n")}`,
     sourceLines.length
       ? `**Relevant source trail**\n${sourceLines.join("\n")}`
       : "**Relevant source trail**\n- I do not have a strong matched source trail for this exact query yet.",
