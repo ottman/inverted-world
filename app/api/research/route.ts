@@ -145,6 +145,46 @@ function contextLines(links: ResearchLink[]) {
     .join("\n")
 }
 
+function normalizedIntentText(message: string) {
+  return message
+    .toLowerCase()
+    .replace(/[^a-z0-9\s']+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+function conversationalResearchReply(message: string) {
+  const normalized = normalizedIntentText(message)
+  if (!normalized) return null
+
+  const presenceChecks = new Set([
+    "are you there",
+    "are you here",
+    "you there",
+    "hello",
+    "hi",
+    "hey",
+    "test",
+    "testing",
+    "is this working",
+    "are you working",
+  ])
+
+  if (presenceChecks.has(normalized)) {
+    return "I'm here. Send me a name, claim, document, event, or source and I'll help trace what is known, what is alleged, and what still needs primary evidence."
+  }
+
+  if (/^(thanks|thank you|thx|ty)\b/.test(normalized)) {
+    return "You're welcome. Send the next thread when you want to dig deeper."
+  }
+
+  if (/^(what can you do|what do you do|how does this work|help)\b/.test(normalized)) {
+    return "Give me a topic, source link, document, person, or claim. I'll map it against primary records, competing interpretations, incentives, and open evidence gaps, with Markdown source links when I have matching records."
+  }
+
+  return null
+}
+
 async function askResearchAgent(message: string, conversationId: string | undefined, links: ResearchLink[]) {
   const { sdk, config } = createRecursivServerClient({ timeout: 120000 })
   if (!config.agentId) return null
@@ -152,6 +192,7 @@ async function askResearchAgent(message: string, conversationId: string | undefi
   const prompt = [
     "You are the Inverted World research analyst.",
     "Your job is to investigate any topic with a truth-seeking bend: disclosure, institutional incentives, hidden power, suppressed records, anomalous evidence, and the deeper nature of reality.",
+    "If the user is only greeting, testing, or asking whether you are present, answer naturally in one or two sentences. Do not force an investigation frame onto conversational messages.",
     "Do not invent certainty. Separate documented facts, allegations, inference, speculation, unknowns, and next primary-source checks.",
     "Return clean Markdown with concise sections and links. Use Markdown links for every URL you cite. Do not return HTML.",
     "If you cannot verify a claim from available sources, say exactly what evidence would be needed.",
@@ -180,12 +221,12 @@ function fallbackResearchAnswer(message: string, links: ResearchLink[]) {
   })
 
   return [
-    `**Research frame:** Start by treating **${message}** as a question, not a conclusion.`,
-    "**Truth protocol**\n- Identify the strongest primary record.\n- Separate direct evidence from interpretation.\n- Look for who benefits if the public accepts the official story, and who benefits if it rejects it.\n- Track missing documents, missing witnesses, chain of custody, incentives, and repeated language across institutions.",
+    `I would treat **${message}** as an open investigation and start with records that can be checked directly.`,
+    "**First pass**\n- Separate documented facts from allegation, inference, and speculation.\n- Look for primary documents, full transcripts, court records, official releases, raw data, or named on-record witnesses.\n- Compare the strongest official version against the strongest skeptical version before deciding what is likely true.",
     sourceLines.length
-      ? `**Source trail**\n${sourceLines.join("\n")}`
-      : "**Source trail**\n- No matched Inverted World source links were available for this exact query yet.",
-    "**Next checks**\n- Find a primary document, full transcript, raw dataset, court filing, official release, or named on-record witness.\n- Compare it against hostile coverage and skeptical debunking before forming a conclusion.\n- Mark anything unsupported as unknown rather than true or false.",
+      ? `**Relevant source trail**\n${sourceLines.join("\n")}`
+      : "**Relevant source trail**\n- I do not have a strong matched source trail for this exact query yet.",
+    "**What would move the answer**\n- A primary record with provenance.\n- Independent confirmation from an adversarial or skeptical source.\n- Clear chain of custody for documents, images, video, data, or testimony.\n- A timeline showing who knew what, when, and what incentive they had to frame it that way.",
   ].join("\n\n")
 }
 
@@ -230,6 +271,16 @@ export async function POST(request: Request) {
 
   const budget = await checkResearchBudget(clientId, conversationId)
   if (!budget.ok) return rateLimitResponse(budget.blocked)
+
+  const conversationalAnswer = conversationalResearchReply(message)
+  if (conversationalAnswer) {
+    return NextResponse.json({
+      conversationId: fallbackConversationId(conversationId),
+      response: conversationalAnswer,
+      mode: "conversation",
+      linkCount: 0,
+    })
+  }
 
   const links = await gatherResearchContext(message)
   const agentAnswer = budget.durableUnavailable ? null : await askResearchAgent(message, conversationId, links).catch(() => null)
