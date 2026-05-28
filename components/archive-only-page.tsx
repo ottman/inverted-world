@@ -18,17 +18,6 @@ type ArchiveResponse = {
   warnings?: string[]
 }
 
-export type VideoRelatedStory = {
-  title: string
-  href: string
-  source?: string
-  publishedAt?: string
-  topicId?: string
-  dossierHref?: string
-  dossierTitle?: string
-  relatedVideoKeys?: string[]
-}
-
 const PAGE_SIZE = 120
 const HOMEPAGE_TOPIC_VIDEO_LIMIT = 6
 
@@ -54,11 +43,9 @@ function mergeVideos(current: ChannelVideo[], incoming: ChannelVideo[]) {
 export function ArchiveOnlyPage({
   initialArchive,
   initialLiveVideo,
-  initialRelatedStories = [],
 }: {
   initialArchive?: DeepArchiveResponse
   initialLiveVideo?: ChannelVideo
-  initialRelatedStories?: VideoRelatedStory[]
 }) {
   const initialVideos = initialArchive?.videos ?? []
   const initialLeadVideo = initialLiveVideo || initialVideos.find((video) => !isShortVideo(video)) || initialVideos[0]
@@ -87,10 +74,6 @@ export function ArchiveOnlyPage({
   const leadVideoShouldAutoplay = Boolean(leadVideoKey && autoplayVideoKey === leadVideoKey)
   const leadVideoEmbedUrl = videoEmbedUrl(leadVideo, leadVideoShouldAutoplay)
   const selectedTopic = topics.find((topic) => topic.id === leadVideo?.topicId) || topics[0]
-  const relatedStories = useMemo(
-    () => storiesForVideo(leadVideo, initialRelatedStories).slice(0, 18),
-    [initialRelatedStories, leadVideo],
-  )
   const topicSummaries = useMemo(
     () =>
       topics.map((topic) => ({
@@ -163,7 +146,6 @@ export function ArchiveOnlyPage({
               allowFullScreen
             />
           </div>
-          {relatedStories.length ? <RelatedStoriesRail stories={relatedStories} /> : null}
         </div>
 
         <aside className={cn("flex flex-col justify-between gap-6 p-4 sm:p-5", archiveSurface)}>
@@ -178,7 +160,7 @@ export function ArchiveOnlyPage({
             <p className="mt-3 text-xs uppercase tracking-[0.14em] text-[#f4efe2]/48">{leadVideo?.date || "latest upload"}</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {leadVideo?.videoId && !relatedStories.length ? (
+            {leadVideo?.videoId ? (
               <a
                 href={leadVideoIsArchiveItem ? `/archive/${leadVideo.videoId}` : leadVideo.href}
                 target={leadVideoIsArchiveItem ? undefined : "_blank"}
@@ -239,85 +221,6 @@ function videoEmbedUrl(video?: ChannelVideo, autoplay = false) {
     source: video?.embedUrl || video?.href || channelProfile.youtubeUploadsEmbedUrl,
     autoplay,
   })
-}
-
-function normalizedTextTokens(value?: string) {
-  return new Set(
-    String(value || "")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, " ")
-      .split(/\s+/)
-      .filter((word) => word.length > 4),
-  )
-}
-
-function tokenOverlap(left?: string, right?: string) {
-  const leftTokens = normalizedTextTokens(left)
-  const rightTokens = normalizedTextTokens(right)
-  let count = 0
-  for (const token of leftTokens) {
-    if (rightTokens.has(token)) count += 1
-  }
-  return count
-}
-
-function storiesForVideo(video: ChannelVideo | undefined, stories: VideoRelatedStory[]) {
-  if (!video) return []
-  const keys = new Set([video.videoId, video.href].filter(Boolean))
-  const exact = stories.filter((story) => story.relatedVideoKeys?.some((key) => keys.has(key)))
-  if (exact.length) return exact
-
-  const titleMatches = stories
-    .filter((story) => story.topicId === video.topicId)
-    .map((story) => ({ story, score: Math.max(tokenOverlap(video.title, story.title), tokenOverlap(video.title, story.dossierTitle)) }))
-    .filter((item) => item.score >= 2)
-    .sort((left, right) => right.score - left.score)
-    .map((item) => item.story)
-  if (titleMatches.length) return titleMatches
-
-  return stories.filter((story) => story.topicId === video.topicId)
-}
-
-function displayDate(value?: string) {
-  if (!value) return ""
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" })
-}
-
-function RelatedStoriesRail({ stories }: { stories: VideoRelatedStory[] }) {
-  return (
-    <section id="related-stories" className="mt-3 border-t border-[#f4efe2]/10 pt-3">
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#df2f2f]">Related coverage</p>
-        <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/42">
-          {stories.length} related links
-        </span>
-      </div>
-      <div className="grid gap-1.5 md:grid-cols-2">
-        {stories.map((story) => {
-          const external = story.href.startsWith("http")
-          return (
-            <a
-              key={`${story.href}-${story.title}`}
-              href={story.href}
-              target={external ? "_blank" : undefined}
-              rel={external ? "noopener noreferrer" : undefined}
-              className="group grid min-w-0 gap-1 bg-[#050504]/34 p-2.5 transition hover:bg-black/58"
-            >
-              <span className="flex min-w-0 items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#df2f2f]/82">
-                <span className="truncate">{story.source || "Source"}</span>
-                {story.publishedAt ? <span className="text-[#f4efe2]/34">{displayDate(story.publishedAt)}</span> : null}
-              </span>
-              <span className="iw-serif line-clamp-2 text-xl leading-[0.98] text-[#fff8e6] group-hover:text-white">
-                {story.title}
-              </span>
-            </a>
-          )
-        })}
-      </div>
-    </section>
-  )
 }
 
 function TopicIndex({
