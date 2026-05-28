@@ -52,35 +52,44 @@ function tokenSet(value: string) {
   )
 }
 
-function scoreText(queryTokens: Set<string>, value: string, boost = 0) {
+function matchingTokenCount(queryTokens: Set<string>, value: string) {
   const valueTokens = tokenSet(value)
-  let score = boost
+  let matches = 0
   for (const token of queryTokens) {
-    if (valueTokens.has(token)) score += 12
+    if (valueTokens.has(token)) matches += 1
   }
-  return score
+  return matches
+}
+
+function scoreText(queryTokens: Set<string>, value: string, boost = 0) {
+  return boost + matchingTokenCount(queryTokens, value) * 12
 }
 
 function dossierLinks(dossier: ClaimDossier, queryTokens: Set<string>): ResearchLink[] {
   const dossierText = [dossier.title, dossier.deck, dossier.summary, dossier.weirdRead, dossier.skepticalRead].join(" ")
-  const baseScore = scoreText(queryTokens, dossierText, dossier.confidenceScore / 10 + dossier.xVelocityScore / 40)
+  const dossierMatches = matchingTokenCount(queryTokens, dossierText)
+  const baseScore = dossierMatches
+    ? scoreText(queryTokens, dossierText, dossier.confidenceScore / 10 + dossier.xVelocityScore / 40)
+    : 0
   const links: ResearchLink[] = [
     {
       title: dossier.title,
       url: `/news/${dossier.slug}`,
       source: "Inverted World",
       excerpt: dossier.summary,
-      score: baseScore + 24,
+      score: baseScore ? baseScore + 18 : 0,
     },
   ]
 
   for (const source of dossier.sourceLinks.slice(0, 5)) {
+    const sourceText = `${source.title || ""} ${source.excerpt || ""} ${source.outlet || ""} ${source.sourceKind || ""}`
+    const sourceMatches = matchingTokenCount(queryTokens, sourceText)
     links.push({
       title: source.title || dossier.title,
       url: source.url,
       source: source.outlet || source.sourceKind || "source",
       excerpt: source.excerpt,
-      score: baseScore + scoreText(queryTokens, `${source.title || ""} ${source.excerpt || ""}`, 8),
+      score: sourceMatches ? baseScore + scoreText(queryTokens, sourceText, 8) : 0,
     })
   }
 
@@ -88,23 +97,29 @@ function dossierLinks(dossier: ClaimDossier, queryTokens: Set<string>): Research
 }
 
 function worldwireLink(item: WorldwireItem, queryTokens: Set<string>): ResearchLink {
+  const itemText = `${item.title} ${item.excerpt || ""} ${item.sectionTitle} ${item.source || ""}`
+  const itemMatches = matchingTokenCount(queryTokens, itemText)
   return {
     title: item.title,
     url: item.url,
     source: item.source || item.sectionTitle,
     excerpt: item.excerpt,
-    score: scoreText(queryTokens, `${item.title} ${item.excerpt || ""} ${item.sectionTitle}`, item.score / 20),
+    score: itemMatches ? scoreText(queryTokens, itemText, item.score / 20) : 0,
   }
 }
 
 function documentLink(queryTokens: Set<string>) {
-  return researchDocuments.map<ResearchLink>((document) => ({
-    title: document.title,
-    url: document.url,
-    source: document.source,
-    excerpt: document.kind,
-    score: scoreText(queryTokens, `${document.title} ${document.kind} ${document.source}`, 6),
-  }))
+  return researchDocuments.map<ResearchLink>((document) => {
+    const documentText = `${document.title} ${document.kind} ${document.source} ${document.topicIds.join(" ")}`
+    const documentMatches = matchingTokenCount(queryTokens, documentText)
+    return {
+      title: document.title,
+      url: document.url,
+      source: document.source,
+      excerpt: document.kind,
+      score: documentMatches ? scoreText(queryTokens, documentText, 18) : 0,
+    }
+  })
 }
 
 function uniqueLinks(links: ResearchLink[]) {
@@ -131,8 +146,7 @@ async function gatherResearchContext(message: string) {
     ...((worldwire || []) as WorldwireItem[]).map((item) => worldwireLink(item, queryTokens)),
     ...documentLink(queryTokens),
   ])
-  const scored = links.filter((link) => link.score > 8)
-  return (scored.length ? scored : links).slice(0, 12)
+  return links.filter((link) => link.score > 0).slice(0, 12)
 }
 
 function contextLines(links: ResearchLink[]) {
