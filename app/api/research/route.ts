@@ -48,7 +48,7 @@ function tokenSet(value: string) {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, " ")
       .split(/\s+/)
-      .filter((word) => word.length > 3),
+      .filter((word) => word.length > 2),
   )
 }
 
