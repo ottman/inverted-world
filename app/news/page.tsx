@@ -40,6 +40,14 @@ type NewsBoardItem = WorldwireItem & {
   contextLabel?: string
 }
 
+const NEWS_DAY_TIME_ZONE = "America/New_York"
+const NEWS_DAY_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  timeZone: NEWS_DAY_TIME_ZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+})
+
 function formatScore(value: number) {
   if (value >= 1000) return `${Math.round(value / 100) / 10}K`
   return String(Math.round(value))
@@ -110,7 +118,11 @@ function hostKey(value: string) {
 }
 
 function dayKey(value: Date) {
-  return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`
+  const parts = NEWS_DAY_FORMATTER.formatToParts(value)
+  const year = parts.find((part) => part.type === "year")?.value || String(value.getFullYear())
+  const month = parts.find((part) => part.type === "month")?.value || String(value.getMonth() + 1).padStart(2, "0")
+  const day = parts.find((part) => part.type === "day")?.value || String(value.getDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
 }
 
 function itemDate(item: NewsBoardItem) {
@@ -118,9 +130,16 @@ function itemDate(item: NewsBoardItem) {
   return date && !Number.isNaN(date.getTime()) ? date : null
 }
 
-function isTodayItem(item: NewsBoardItem, today = dayKey(new Date())) {
+function itemDayKey(item: NewsBoardItem) {
+  const raw = item.publishedAt?.trim()
+  const dateOnly = raw?.match(/^(\d{4}-\d{2}-\d{2})$/)
+  if (dateOnly) return dateOnly[1]
   const date = itemDate(item)
-  return Boolean(date && dayKey(date) === today)
+  return date ? dayKey(date) : null
+}
+
+function isTodayItem(item: NewsBoardItem, today = dayKey(new Date())) {
+  return itemDayKey(item) === today
 }
 
 function byHeatThenTime(left: NewsBoardItem, right: NewsBoardItem) {
@@ -176,12 +195,7 @@ export default async function NewsPage() {
   const today = dayKey(new Date())
   const currentWorldwire = worldwire.filter((item) => isTodayItem(item, today))
   const currentTopicItems = topicItems.filter((item) => isTodayItem(item, today))
-  const boardItems = uniqueItems([
-    ...currentWorldwire,
-    ...worldwire,
-    ...currentTopicItems,
-    ...topicItems,
-  ]).sort(byHeatThenTime)
+  const boardItems = uniqueItems([...currentWorldwire, ...currentTopicItems]).sort(byHeatThenTime)
   const lead = boardItems.find((item) => item.sectionId === "front-page") || boardItems.find((item) => item.sectionId !== "inverted-files") || boardItems[0]
   const flashItems = balancedItems(
     boardItems.filter((item) => item !== lead),
@@ -223,7 +237,7 @@ export default async function NewsPage() {
         </section>
       ) : (
         <section className={cn("grid gap-4 p-6 text-sm leading-6 text-[#f4efe2]/62", archiveSurface)}>
-          <p>The current source board has no ranked links to show yet. Start with the archive while the next edition is assembled.</p>
+          <p>No current-day source links are ready yet. The lead slot stays empty until the live feed has dated links from today.</p>
           <div className="flex flex-wrap gap-2">
             <a href="/archive" className="bg-black/30 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#fff8e6] transition hover:bg-black/54">
               Tales
@@ -461,7 +475,7 @@ function formatDate(value: string) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value.slice(0, 16)
   if (dayKey(date) === dayKey(new Date())) {
-    return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+    return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: NEWS_DAY_TIME_ZONE })
   }
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: NEWS_DAY_TIME_ZONE })
 }
