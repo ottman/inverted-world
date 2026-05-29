@@ -8,7 +8,7 @@ import {
 } from "@/data/inverted-world"
 import { fetchLiveArticlesForTopic } from "@/lib/live-articles"
 import { fetchMediaSeedItemsForSync, mediaItemMetadata } from "@/lib/media-library"
-import { fetchNewsApiEvents, generateStoryNarratives } from "@/lib/story-clusters"
+import { fetchNewsApiEvents, generateStoryNarratives, fetchEventCoverage } from "@/lib/story-clusters"
 import { generatedSvgThumbnail } from "@/lib/generated-thumbnail"
 import { createRecursivServerClient } from "@/lib/recursiv/client"
 import { executeDirectInvertedWorldDatabaseSql, hasDirectInvertedWorldDatabase } from "@/lib/recursiv/database"
@@ -1111,7 +1111,11 @@ function compactWorldwireItem(item: WorldwireItem): WorldwireItem {
 export async function syncTopStoriesToRecursiv(options: { limit?: number; sinceDays?: number } = {}) {
   const events = await fetchNewsApiEvents({ limit: options.limit ?? 16, sinceDays: options.sinceDays ?? 2 })
   if (!events.length) return { stored: 0, reason: "no-events" as const }
-  const stories = await generateStoryNarratives(events)
+  const narrated = await generateStoryNarratives(events)
+  // Attach the actual outlets + headlines covering each story (one getEvent call each).
+  const stories = await Promise.all(
+    narrated.map(async (story) => ({ ...story, coveringArticles: await fetchEventCoverage(story.uri).catch(() => []) })),
+  )
   const totalCoverage = stories.reduce((sum, story) => sum + (story.articleCount || 0), 0)
 
   const { sdk, config } = getInvertedWorldDatabase()

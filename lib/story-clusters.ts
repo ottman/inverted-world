@@ -12,6 +12,8 @@ const NEWSAPI_AI_EVENTS_ENDPOINT = "https://eventregistry.org/api/v1/event/getEv
 const STORY_SPAM_PATTERN =
   /\b(xnxx|xhamster|pornhub|porn|xxx|nude|onlyfans|escort|sex tape|sex video|leaked video|viral video|camgirl|casino|sportsbook|betting odds|crypto airdrop|giveaway)\b|[\uD800-\uDFFF]{2,}|🎡|💡/i
 
+export type CoveringArticle = { outlet: string; headline: string; url: string }
+
 export type StoryCluster = {
   uri: string
   title: string
@@ -22,9 +24,10 @@ export type StoryCluster = {
   imageUrl?: string
   // Enriched by the agent step (lib/story-clusters generation):
   headline?: string
-  synopsis?: string
-  // Filled when we fetch the cluster's coverage:
-  outlets?: string[]
+  synopsis?: string // short, for cards
+  body?: string // full neutral synopsis article, for the detail page
+  // The actual outlets + their headlines covering this story (newsapi.ai event articles):
+  coveringArticles?: CoveringArticle[]
 }
 
 type RawEvent = {
@@ -143,10 +146,11 @@ export async function generateStoryNarratives(stories: StoryCluster[]): Promise<
 
   const prompt = [
     "You are a neutral newswire editor for a balanced news aggregator.",
-    "For EACH story cluster below, write two things:",
+    "For EACH story cluster below, write three things:",
     '1) "headline": a compelling, shareable, but STRICTLY NEUTRAL headline — factual, no partisan spin, no clickbait falsehoods, max ~90 characters.',
-    '2) "synopsis": a balanced 2-sentence summary of what happened, neutral tone, no editorializing, drawn from the cluster.',
-    'Return ONLY a raw JSON array (no prose, no markdown fences): [{"id":"<id>","headline":"...","synopsis":"..."}]',
+    '2) "synopsis": a balanced 2-sentence summary, neutral tone, for a card.',
+    '3) "body": a fuller neutral synopsis article, 2-3 short paragraphs, factual and balanced, no editorializing, plain prose.',
+    'Return ONLY a raw JSON array (no prose, no markdown fences): [{"id":"<id>","headline":"...","synopsis":"...","body":"..."}]',
     "Story clusters:",
     stories
       .map((story) => `[${story.uri}]\nTITLE: ${story.title}\nSUMMARY: ${story.summary}\nTOPICS: ${story.concepts.join(", ")}`)
@@ -163,14 +167,15 @@ export async function generateStoryNarratives(stories: StoryCluster[]): Promise<
 
   const parsed = extractJsonArray(content)
   if (!parsed) return stories
-  const byId = new Map<string, { headline?: string; synopsis?: string }>()
+  const byId = new Map<string, { headline?: string; synopsis?: string; body?: string }>()
   for (const row of parsed) {
     if (row && typeof row === "object") {
-      const r = row as { id?: unknown; headline?: unknown; synopsis?: unknown }
+      const r = row as { id?: unknown; headline?: unknown; synopsis?: unknown; body?: unknown }
       if (typeof r.id === "string") {
         byId.set(r.id, {
           headline: typeof r.headline === "string" ? r.headline.trim().slice(0, 200) : undefined,
           synopsis: typeof r.synopsis === "string" ? r.synopsis.trim().slice(0, 600) : undefined,
+          body: typeof r.body === "string" ? r.body.trim().slice(0, 2400) : undefined,
         })
       }
     }
@@ -181,6 +186,7 @@ export async function generateStoryNarratives(stories: StoryCluster[]): Promise<
       ...story,
       headline: gen?.headline || story.title,
       synopsis: gen?.synopsis || story.summary,
+      body: gen?.body || gen?.synopsis || story.summary,
     }
   })
 }
@@ -208,4 +214,59 @@ function safeParseStories(value: string): StoryCluster[] {
   } catch {
     return []
   }
+}
+
+// ── Coverage: who's covering a story (outlet + their actual headline) ──────────────────────────
+const NEWSAPI_AI_EVENT_ENDPOINT = "https://eventregistry.org/api/v1/event/getEvent"
+
+type EventArticleResult = { title?: string; url?: string; lang?: string; source?: { title?: string } }
+
+export async function fetchEventCoverage(eventUri: string, limit = 18): Promise<CoveringArticle[]> {
+  const apiKey = process.env.NEWSAPI_AI_KEY
+  if (!apiKey || !eventUri) return []
+  let response: Response
+  try {
+    response = await fetch(NEWSAPI_AI_EVENT_ENDPOINT, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        action: "getEvent",
+        eventUri,
+        includeEventArticles: true,
+        eventArticlesSortBy: "sourceImportance",
+        eventArticlesCount: 60,
+        resultType: "articles",
+        apiKey,
+      }),
+      signal: AbortSignal.timeout(10000),
+      next: { revalidate: 600 },
+    })
+  } catch {
+    return []
+  }
+  if (!response.ok) return []
+  const data = (await response.json().catch(() => null)) as Record<string, unknown> | null
+  if (!data) return []
+  const eventObj = data[eventUri] as { articles?: { results?: EventArticleResult[] } } | undefined
+  const articles = eventObj?.articles?.results || []
+  const seen = new Set<string>()
+  const out: CoveringArticle[] = []
+  for (const article of articles) {
+    if (article.lang && article.lang !== "eng") continue
+    const outlet = (article.source?.title || "").trim()
+    const headline = (article.title || "").trim()
+    const url = article.url || ""
+    if (!outlet || !headline || !url || !url.startsWith("http")) continue
+    const key = outlet.toLowerCase()
+    if (seen.has(key)) continue // one headline per outlet
+    seen.add(key)
+    out.push({ outlet, headline, url })
+    if (out.length >= limit) break
+  }
+  return out
+}
+// Read a single stored story cluster by its event uri (for the detail page).
+export async function fetchRecursivTopStory(id: string): Promise<StoryCluster | null> {
+  const stories = await fetchRecursivTopStories({ limit: 30 })
+  return stories.find((story) => story.uri === id) || null
 }

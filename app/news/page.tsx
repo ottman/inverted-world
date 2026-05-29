@@ -274,18 +274,25 @@ export default async function NewsPage() {
           </div>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {topStories.map((story) => (
-              <article key={story.uri} className="flex flex-col gap-2 bg-[#050504]/40 p-4">
-                <h3 className="iw-serif text-2xl leading-[1.05] text-[#fff8e6]">{story.headline || story.title}</h3>
+              <a
+                key={story.uri}
+                href={`/news/story/${encodeURIComponent(story.uri)}`}
+                className="group flex flex-col gap-2 bg-[#050504]/40 p-4 transition hover:bg-[#050504]/66"
+              >
+                <h3 className="iw-serif text-3xl font-bold leading-[1.0] text-[#fff8e6] transition group-hover:text-[#df2f2f] sm:text-4xl">
+                  {story.headline || story.title}
+                </h3>
                 <p className="text-sm leading-6 text-[#f4efe2]/72">{story.synopsis || story.summary}</p>
                 <div className="mt-auto flex flex-wrap items-center gap-2 pt-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/46">
                   <span className="text-[#df2f2f]">{story.articleCount.toLocaleString()} articles covering</span>
+                  {story.coveringArticles?.length ? <span>· {story.coveringArticles.length}+ outlets</span> : null}
                   {story.concepts.slice(0, 3).map((concept) => (
                     <span key={concept} className="bg-black/30 px-2 py-1">
                       {concept}
                     </span>
                   ))}
                 </div>
-              </article>
+              </a>
             ))}
           </div>
         </section>
