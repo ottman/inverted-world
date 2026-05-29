@@ -8,6 +8,7 @@ import {
 } from "@/data/inverted-world"
 import { fetchLiveArticlesForTopic } from "@/lib/live-articles"
 import { fetchMediaSeedItemsForSync, mediaItemMetadata } from "@/lib/media-library"
+import { fetchNewsApiEvents, generateStoryNarratives } from "@/lib/story-clusters"
 import { generatedSvgThumbnail } from "@/lib/generated-thumbnail"
 import { createRecursivServerClient } from "@/lib/recursiv/client"
 import { executeDirectInvertedWorldDatabaseSql, hasDirectInvertedWorldDatabase } from "@/lib/recursiv/database"
@@ -1102,6 +1103,34 @@ function compactWorldwireItem(item: WorldwireItem): WorldwireItem {
     excerpt: shorten(item.excerpt, 260) || undefined,
     imageUrl: shorten(item.imageUrl, 520) || undefined,
   }
+}
+
+// Ground-News-style story clusters: fetch newsapi.ai Events, have the agent write a viral-neutral
+// headline + synopsis, store as a coverage_snapshots row (source='top-stories'). Uses the same
+// direct-DB writer as the rest of ingestion (the SDK REST query path rejects these params).
+export async function syncTopStoriesToRecursiv(options: { limit?: number; sinceDays?: number } = {}) {
+  const events = await fetchNewsApiEvents({ limit: options.limit ?? 16, sinceDays: options.sinceDays ?? 2 })
+  if (!events.length) return { stored: 0, reason: "no-events" as const }
+  const stories = await generateStoryNarratives(events)
+  const totalCoverage = stories.reduce((sum, story) => sum + (story.articleCount || 0), 0)
+
+  const { sdk, config } = getInvertedWorldDatabase()
+  await sdk.databases.query({
+    project_id: config.projectId,
+    database_name: config.databaseName,
+    sql: `INSERT INTO coverage_snapshots (topic_id, query, source, items, summary, velocity_score, metadata)
+      VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7::jsonb)`,
+    params: [
+      "top-stories",
+      "top-stories",
+      "top-stories",
+      JSON.stringify(stories),
+      "Top story clusters across the spectrum (newsapi.ai Events).",
+      String(Number.isFinite(totalCoverage) ? totalCoverage : 0),
+      JSON.stringify({ generatedBy: "newsapi-ai-events-v1", storyCount: stories.length }),
+    ],
+  })
+  return { stored: stories.length, totalCoverage }
 }
 
 export async function syncWorldwireCoverageToRecursiv(options: { limitPerLane?: number } = {}) {
@@ -2204,6 +2233,7 @@ export async function runFullPipelineInRecursiv(options: { mode?: string | null;
     ["youtube-archive-sync", syncYouTubeArchiveToRecursiv],
     ["topic-pulse", () => syncTopicPulseToRecursiv({ profileReader })],
     ["worldwire", syncWorldwireCoverageToRecursiv],
+    ["top-stories", () => syncTopStoriesToRecursiv()],
     ["claim-dossiers", generateClaimDossiersInRecursiv],
     ["article-generation", generateArticleDraftsInRecursiv],
     ["image-generation", generateImagesForDraftsInRecursiv],
@@ -2217,6 +2247,7 @@ export async function runFullPipelineInRecursiv(options: { mode?: string | null;
     ["youtube-archive-sync", syncYouTubeArchiveToRecursiv],
     ["topic-pulse", () => syncTopicPulseToRecursiv({ profileReader })],
     ["worldwire", syncWorldwireCoverageToRecursiv],
+    ["top-stories", () => syncTopStoriesToRecursiv()],
     ["publishing", publishReadyDraftsInRecursiv],
     ["front-page-edition", publishFrontPageEditionInRecursiv],
     ["daily-autopost", buildDailyAutopostJobResult],

@@ -13,6 +13,7 @@ import {
   type ClaimSourceLink,
 } from "@/lib/recursiv/content"
 import { maybeStartNewsRefresh } from "@/lib/recursiv/news-refresh"
+import { fetchRecursivTopStories, type StoryCluster } from "@/lib/story-clusters"
 import { cn } from "@/lib/utils"
 import {
   WORLDWIRE_LANES,
@@ -209,10 +210,11 @@ const NEWS_MAX_PER_OUTLET = Math.max(1, Math.min(Math.trunc(Number(process.env.N
 
 export default async function NewsPage() {
   const refreshKickoff = maybeStartNewsRefresh("news-page").catch(() => null)
-  const [dossiers, topicFeeds, worldwire] = await Promise.all([
+  const [dossiers, topicFeeds, worldwire, topStories] = await Promise.all([
     fetchRecursivClaimDossiers({ limit: 48 }).then((items) => items || []),
     fetchLiveArticlesByTopic({ allowProviderFallbacks: false, limitPerTopic: 10 }).catch(() => ({})),
     fetchRecursivWorldwireItems({ limitPerLane: 120 }).then((items) => items || []),
+    fetchRecursivTopStories({ limit: 12 }).catch(() => [] as StoryCluster[]),
   ])
   void refreshKickoff
 
@@ -258,6 +260,36 @@ export default async function NewsPage() {
       heroDescription=""
     >
       {laneGroups.length ? <NewsCategoryStrip groups={laneGroups} /> : null}
+
+      {topStories.length ? (
+        <section className={cn("grid gap-3 p-3", archiveSurface)}>
+          <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[#f4efe2]/10 pb-3">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#df2f2f]">Top Stories</p>
+              <h2 className="iw-serif text-4xl leading-none text-[#fff8e6]">What everyone is covering</h2>
+            </div>
+            <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/46">
+              {topStories.length} stories · clustered across the spectrum
+            </div>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {topStories.map((story) => (
+              <article key={story.uri} className="flex flex-col gap-2 bg-[#050504]/40 p-4">
+                <h3 className="iw-serif text-2xl leading-[1.05] text-[#fff8e6]">{story.headline || story.title}</h3>
+                <p className="text-sm leading-6 text-[#f4efe2]/72">{story.synopsis || story.summary}</p>
+                <div className="mt-auto flex flex-wrap items-center gap-2 pt-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/46">
+                  <span className="text-[#df2f2f]">{story.articleCount.toLocaleString()} articles covering</span>
+                  {story.concepts.slice(0, 3).map((concept) => (
+                    <span key={concept} className="bg-black/30 px-2 py-1">
+                      {concept}
+                    </span>
+                  ))}
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {lead ? (
         <section className={cn("grid gap-3 p-3 xl:grid-cols-[minmax(0,1.12fr)_minmax(260px,0.7fr)_minmax(260px,0.7fr)]", archiveSurface)}>
