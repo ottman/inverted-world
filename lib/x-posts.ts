@@ -41,8 +41,14 @@ const TOPIC_PROFILE_READER_ACCOUNT_LIMITS: Record<string, number> = {
   "ai-technocracy": 8,
   "space-anomalies": 8,
 }
+// Independent / alternative media voices, balanced left AND right, are added per-topic below so
+// the X signal isn't only mainstream + official accounts. Curated starting set (incl. the Alex
+// Jones network, which has no working RSS): right-independent (RealAlexJones, infowars,
+// TPostMillennial, JackPosobiec, disclosetv, esaagar), left-independent (jimmy_dore, KyleKulinski,
+// aaronjmate, MaxBlumenthal, caitoz, krystalball), heterodox (mtaibbi, ggreenwald, mtracey, lhfang,
+// shellenbergermd). Expandable from @Timcast's following via scripts/seed-x-accounts-from-following.mjs.
 const TOPIC_SOURCE_X_ACCOUNTS: Record<string, string[]> = {
-  "uap-disclosure": ["InvertedTales", "ShaneCashman", "ChrisKMellon", "uncertainvector", "Debriefmedia", "mufon"],
+  "uap-disclosure": ["InvertedTales", "ShaneCashman", "ChrisKMellon", "uncertainvector", "Debriefmedia", "mufon", "disclosetv", "RealAlexJones", "shellenbergermd"],
   "secret-programs": [
     "NSArchive",
     "MuckRock",
@@ -59,6 +65,15 @@ const TOPIC_SOURCE_X_ACCOUNTS: Record<string, string[]> = {
     "FBI",
     "ODNIgov",
     "DARPA",
+    // independent / heterodox
+    "mtaibbi",
+    "ggreenwald",
+    "lhfang",
+    "mtracey",
+    "RealAlexJones",
+    "infowars",
+    "aaronjmate",
+    "MaxBlumenthal",
   ],
   "epstein-networks": [
     "ShaneCashman",
@@ -76,9 +91,19 @@ const TOPIC_SOURCE_X_ACCOUNTS: Record<string, string[]> = {
     "propublica",
     "AP",
     "Reuters",
+    // independent (both sides cover Epstein heavily)
+    "RealAlexJones",
+    "infowars",
+    "TPostMillennial",
+    "JackPosobiec",
+    "disclosetv",
+    "mtaibbi",
+    "ggreenwald",
+    "krystalball",
+    "esaagar",
   ],
-  "cryptids-paranormal": ["InvertedTales", "ShaneCashman", "mufon", "ForteanTimes"],
-  "ai-technocracy": ["TimcastNews", "ShaneCashman", "404mediaco", "TechCrunch", "EFF", "PalantirTech"],
+  "cryptids-paranormal": ["InvertedTales", "ShaneCashman", "mufon", "ForteanTimes", "infowars"],
+  "ai-technocracy": ["TimcastNews", "ShaneCashman", "404mediaco", "TechCrunch", "EFF", "PalantirTech", "shellenbergermd", "lhfang", "TPostMillennial", "ggreenwald", "caitoz"],
   "space-anomalies": ["NASA", "NASASun", "NWSSWPC", "esaoperations", "AsteroidWatch", "MarsCuriosity"],
 }
 const TOPIC_SOURCE_X_ACCOUNT_SETS = Object.fromEntries(

@@ -38,32 +38,48 @@ const MIN_GOOGLE_RESULTS_PER_LANE = 18
 const GDELT_COOLDOWN_MS = 5_500
 
 const RSS_LANE_FEEDS: Record<string, string[]> = {
+  // Independent/alternative outlets (left AND right) are interleaved with mainstream so they
+  // score competitively (lane score decreases with feed index) instead of being buried.
   "front-page": [
     "https://feeds.bbci.co.uk/news/rss.xml",
+    "https://thepostmillennial.com/feed.xml",
+    "https://www.commondreams.org/feeds/news.rss",
     "https://feeds.npr.org/1001/rss.xml",
+    "https://www.breitbart.com/feed/",
+    "https://jacobin.com/feed/",
     "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml",
+    "https://reason.com/feed/",
     "https://www.aljazeera.com/xml/rss/all.xml",
     "https://www.theguardian.com/world/rss",
   ],
   world: [
     "https://feeds.bbci.co.uk/news/world/rss.xml",
-    "https://feeds.npr.org/1004/rss.xml",
+    "https://thegrayzone.com/feed/",
+    "https://www.mintpressnews.com/feed/",
     "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
     "https://www.theguardian.com/world/rss",
     "https://www.aljazeera.com/xml/rss/all.xml",
+    "https://feeds.npr.org/1004/rss.xml",
   ],
   war: [
-    "https://feeds.bbci.co.uk/news/world/rss.xml",
     "https://www.aljazeera.com/xml/rss/all.xml",
-    "https://www.theguardian.com/world/rss",
+    "https://thegrayzone.com/feed/",
+    "https://www.mintpressnews.com/feed/",
+    "https://feeds.bbci.co.uk/news/world/rss.xml",
+    "https://reason.com/feed/",
     "https://www.defensenews.com/arc/outboundfeeds/rss/?outputType=xml",
     "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
   ],
   america: [
-    "https://rss.nytimes.com/services/xml/rss/nyt/US.xml",
     "https://rss.nytimes.com/services/xml/rss/nyt/Politics.xml",
+    "https://thepostmillennial.com/feed.xml",
+    "https://www.motherjones.com/feed/",
+    "https://www.dailywire.com/feeds/rss.xml",
+    "https://www.thenation.com/feed/",
+    "https://justthenews.com/rss.xml",
+    "https://truthout.org/feed/",
+    "https://thefederalist.com/feed/",
     "https://feeds.npr.org/1014/rss.xml",
-    "https://feeds.bbci.co.uk/news/world/us_and_canada/rss.xml",
     "https://www.theguardian.com/us-news/rss",
   ],
   "law-courts": [
@@ -76,20 +92,23 @@ const RSS_LANE_FEEDS: Record<string, string[]> = {
   "power-files": [
     "https://www.propublica.org/feeds/propublica/main",
     "https://theintercept.com/feed/?lang=en",
+    "https://justthenews.com/rss.xml",
+    "https://www.mintpressnews.com/feed/",
     "https://www.muckrock.com/news/feed/",
+    "https://cms.zerohedge.com/fullrss2.xml",
     "https://www.lawfaremedia.org/rss.xml",
-    "https://www.theguardian.com/us-news/rss",
   ],
   money: [
+    "https://cms.zerohedge.com/fullrss2.xml",
     "https://rss.nytimes.com/services/xml/rss/nyt/Business.xml",
+    "https://jacobin.com/feed/",
     "https://feeds.npr.org/1006/rss.xml",
     "https://www.theguardian.com/business/rss",
-    "https://feeds.bbci.co.uk/news/business/rss.xml",
     "https://www.marketwatch.com/rss/topstories",
   ],
   "tech-ai": [
     "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml",
-    "https://www.theguardian.com/technology/rss",
+    "https://reason.com/feed/",
     "https://www.theverge.com/rss/index.xml",
     "https://techcrunch.com/feed/",
     "https://feeds.arstechnica.com/arstechnica/index",
@@ -147,8 +166,10 @@ const RSS_LANE_FEEDS: Record<string, string[]> = {
 
 const RSS_SHARED_FALLBACK_FEEDS = [
   "https://feeds.bbci.co.uk/news/rss.xml",
+  "https://thepostmillennial.com/feed.xml",
+  "https://www.commondreams.org/feeds/news.rss",
   "https://feeds.npr.org/1001/rss.xml",
-  "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml",
+  "https://reason.com/feed/",
   "https://www.theguardian.com/world/rss",
   "https://www.aljazeera.com/xml/rss/all.xml",
 ]
