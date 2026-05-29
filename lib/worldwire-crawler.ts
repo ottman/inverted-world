@@ -15,6 +15,7 @@ import {
   type WorldwireItem,
   type WorldwireLane,
 } from "@/lib/worldwire"
+import { SPECTRUM_LANE_FEEDS } from "@/data/news-feeds"
 
 const GOOGLE_LANE_QUERIES: Record<string, string[]> = {
   "front-page": ["breaking news live", "Reuters AP BBC CNN Fox Bloomberg major news"],
@@ -448,7 +449,9 @@ async function fetchRssFeedLane(lane: WorldwireLane, feedUrl: string, feedIndex:
         source,
         sectionId: lane.id,
         sectionTitle: lane.title,
-        score: scoreWorldwireTitle(title, 76 - feedIndex * 2, index, { source, url }),
+        // Cap the feed-order penalty: with a large lane feed list, late feeds must still compete
+        // (the per-source cap, not feed order, prevents any one outlet from dominating).
+        score: scoreWorldwireTitle(title, 76 - Math.min(feedIndex, 10) * 2, index, { source, url }),
         publishedAt: readWorldwireXmlTag(item, "pubDate") || readWorldwireXmlTag(item, "updated") || readWorldwireXmlTag(item, "published"),
         excerpt: readWorldwireXmlTag(item, "description") || readWorldwireXmlTag(item, "summary"),
         imageUrl: readWorldwireImage(item),
@@ -457,8 +460,18 @@ async function fetchRssFeedLane(lane: WorldwireLane, feedUrl: string, feedIndex:
     .filter((item) => isExternalUrl(item.url) && looksLikeArticleUrl(item.url) && isUsefulWorldwireTitle(item.title))
 }
 
+// Effective feeds for a lane = the curated lane feeds PLUS the large balanced spectrum registry
+// mapped to this lane (data/news-feeds.ts). This is what gives /news a wide pool of outlets
+// across the political spectrum instead of a handful of mainstream feeds.
+function laneFeeds(laneId: string) {
+  const base = RSS_LANE_FEEDS[laneId] || RSS_LANE_FEEDS["front-page"] || []
+  const registry = SPECTRUM_LANE_FEEDS[laneId] || []
+  const seen = new Set<string>()
+  return [...base, ...registry].filter((url) => (seen.has(url) ? false : (seen.add(url), true)))
+}
+
 async function fetchRssLane(lane: WorldwireLane): Promise<WorldwireItem[]> {
-  const feeds = RSS_LANE_FEEDS[lane.id] || RSS_LANE_FEEDS["front-page"] || []
+  const feeds = laneFeeds(lane.id)
   const results = await Promise.allSettled(feeds.map((feedUrl, index) => fetchRssFeedLane(lane, feedUrl, index)))
   const laneItems = uniqueWorldwireItems(results.flatMap((result) => (result.status === "fulfilled" ? result.value : [])))
   if (laneItems.length >= 5) return laneItems

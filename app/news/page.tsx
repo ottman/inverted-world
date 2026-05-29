@@ -204,13 +204,15 @@ function capByHost(items: NewsBoardItem[], maxPerHost: number) {
 }
 
 const MAX_PER_HOST_PER_LANE = Math.max(1, Math.min(Math.trunc(Number(process.env.NEWS_MAX_PER_HOST_PER_LANE)) || 2, 6))
+// Hard cap on how many articles any single outlet contributes to the whole board ("a couple").
+const NEWS_MAX_PER_OUTLET = Math.max(1, Math.min(Math.trunc(Number(process.env.NEWS_MAX_PER_OUTLET)) || 2, 6))
 
 export default async function NewsPage() {
   const refreshKickoff = maybeStartNewsRefresh("news-page").catch(() => null)
   const [dossiers, topicFeeds, worldwire] = await Promise.all([
     fetchRecursivClaimDossiers({ limit: 48 }).then((items) => items || []),
     fetchLiveArticlesByTopic({ allowProviderFallbacks: false, limitPerTopic: 10 }).catch(() => ({})),
-    fetchRecursivWorldwireItems({ limitPerLane: 24 }).then((items) => items || []),
+    fetchRecursivWorldwireItems({ limitPerLane: 120 }).then((items) => items || []),
   ])
   void refreshKickoff
 
@@ -223,7 +225,12 @@ export default async function NewsPage() {
     .filter(isNewsBoardItem)
   const currentWorldwire = worldwire.filter((item) => isRecentItem(item))
   const currentTopicItems = topicItems.filter((item) => isRecentItem(item))
-  const boardItems = uniqueItems([...currentWorldwire, ...currentTopicItems]).sort(byHeatThenTime)
+  // Hard global per-outlet cap: no more than a couple articles from any single outlet across the
+  // WHOLE board, so the page draws from the large balanced source pool instead of a few loud ones.
+  const boardItems = capByHost(
+    uniqueItems([...currentWorldwire, ...currentTopicItems]).sort(byHeatThenTime),
+    NEWS_MAX_PER_OUTLET,
+  )
   const lead = boardItems.find((item) => item.sectionId === "front-page") || boardItems.find((item) => item.sectionId !== "inverted-files") || boardItems[0]
   const flashItems = balancedItems(
     boardItems.filter((item) => item !== lead),
