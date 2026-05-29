@@ -31,6 +31,20 @@ function licenseScore(result: OpenverseResult): number {
   return score
 }
 
+// Try a cascade of queries (best → broadest) and return the first rights-cleared image found, so
+// effectively every story ends up with a relevant CC/PD image. De-dupes and skips empties.
+export async function fetchOpenverseImageFromQueries(queries: Array<string | undefined>): Promise<RightsClearedImage | null> {
+  const seen = new Set<string>()
+  for (const raw of queries) {
+    const q = (raw || "").trim()
+    if (!q || seen.has(q.toLowerCase())) continue
+    seen.add(q.toLowerCase())
+    const image = await fetchOpenverseImage(q).catch(() => null)
+    if (image) return image
+  }
+  return null
+}
+
 // Search Openverse for a rights-cleared image. Returns the best commercially-usable result
 // (CC0/PD preferred), or null. `query` should be concise visual keywords.
 export async function fetchOpenverseImage(query: string): Promise<RightsClearedImage | null> {

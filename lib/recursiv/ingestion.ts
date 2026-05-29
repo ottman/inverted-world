@@ -8,8 +8,15 @@ import {
 } from "@/data/inverted-world"
 import { fetchLiveArticlesForTopic } from "@/lib/live-articles"
 import { fetchMediaSeedItemsForSync, mediaItemMetadata } from "@/lib/media-library"
-import { fetchNewsApiEvents, generateStoryNarratives, fetchEventCoverage } from "@/lib/story-clusters"
-import { fetchOpenverseImage } from "@/lib/openverse"
+import {
+  fetchNewsApiEvents,
+  generateStoryNarratives,
+  fetchEventCoverage,
+  fetchRecursivTopStories,
+  mapWithConcurrency,
+  type StoryCluster,
+} from "@/lib/story-clusters"
+import { fetchOpenverseImageFromQueries } from "@/lib/openverse"
 import { generatedSvgThumbnail } from "@/lib/generated-thumbnail"
 import { createRecursivServerClient } from "@/lib/recursiv/client"
 import { executeDirectInvertedWorldDatabaseSql, hasDirectInvertedWorldDatabase } from "@/lib/recursiv/database"
@@ -1109,20 +1116,71 @@ function compactWorldwireItem(item: WorldwireItem): WorldwireItem {
 // Story clusters: fetch newsapi.ai Events, have the agent write a viral-neutral
 // headline + synopsis, store as a coverage_snapshots row (source='top-stories'). Uses the same
 // direct-DB writer as the rest of ingestion (the SDK REST query path rejects these params).
-export async function syncTopStoriesToRecursiv(options: { limit?: number; sinceDays?: number } = {}) {
-  const events = await fetchNewsApiEvents({ limit: options.limit ?? 16, sinceDays: options.sinceDays ?? 2 })
-  if (!events.length) return { stored: 0, reason: "no-events" as const }
-  const narrated = await generateStoryNarratives(events)
-  // Attach (a) the outlets+headlines covering each story and (b) a rights-cleared (CC/PD) image
-  // via Openverse, searched with the AI-crafted imageQuery for relevance.
-  const stories = await Promise.all(
-    narrated.map(async (story) => {
-      const coveringArticles = await fetchEventCoverage(story.uri).catch(() => [])
-      // AI-crafted query first; fall back to the lead concept so more stories get a relevant image.
-      let image = await fetchOpenverseImage(story.imageQuery || story.concepts.slice(0, 2).join(" ")).catch(() => null)
-      if (!image && story.concepts[0]) image = await fetchOpenverseImage(story.concepts[0]).catch(() => null)
-      return { ...story, coveringArticles, image: image || undefined }
-    }),
+const TOP_STORIES_DEFAULT_LIMIT = 160
+const TOP_STORIES_MAX_NEW_PER_RUN = 48
+const COVERAGE_CONCURRENCY = 5
+const IMAGE_CONCURRENCY = 8
+
+// Turn raw newsapi.ai events into full stories: who's covering each (so the narrative can attribute
+// facts to named outlets, which we linkify on the detail page), then a viral-neutral headline +
+// long synopsis body, then a rights-cleared (CC/PD) Openverse image. Bounded concurrency keeps the
+// burst of getEvent / Openverse calls from getting rate-limited (which silently drops coverage).
+async function enrichFreshTopStories(events: StoryCluster[]): Promise<StoryCluster[]> {
+  if (!events.length) return []
+  const withCoverage = await mapWithConcurrency(events, COVERAGE_CONCURRENCY, async (event) => {
+    let coveringArticles = await fetchEventCoverage(event.uri).catch(() => [])
+    if (!coveringArticles.length) {
+      await new Promise((resolve) => setTimeout(resolve, 400))
+      coveringArticles = await fetchEventCoverage(event.uri).catch(() => [])
+    }
+    return { ...event, coveringArticles }
+  })
+  const narrated = await generateStoryNarratives(withCoverage)
+  return mapWithConcurrency(narrated, IMAGE_CONCURRENCY, async (story) => {
+    const image = await fetchOpenverseImageFromQueries([
+      story.imageQuery,
+      story.concepts.slice(0, 2).join(" "),
+      story.concepts[0],
+      story.concepts[1],
+      story.title.split(/\s+/).filter((word) => word.length > 3).slice(0, 3).join(" "),
+    ]).catch(() => null)
+    return { ...story, image: image || undefined }
+  })
+}
+
+// Story clusters: maintain a ROLLING set of top stories (default 160). Each run discovers the
+// current top events, fully processes only the ones we don't already have (the expensive part), and
+// merges them in front of the existing set — keeping the freshest `limit` and letting older stories
+// age off. This is what makes "10x stories, new ones hourly" sustainable against the newsapi.ai
+// token budget: a full set means only the handful of genuinely-new events get reprocessed per hour.
+// Stored as a coverage_snapshots row (source='top-stories') via the direct-DB writer.
+export async function syncTopStoriesToRecursiv(options: { limit?: number; sinceDays?: number; maxNew?: number; rebuild?: boolean } = {}) {
+  const limit = Math.max(1, Math.min(options.limit ?? TOP_STORIES_DEFAULT_LIMIT, 250))
+  const maxNew = Math.max(1, Math.min(options.maxNew ?? (options.rebuild ? limit : TOP_STORIES_MAX_NEW_PER_RUN), limit))
+
+  // rebuild=true ignores the existing set and reprocesses everything fresh (one-time clean backfill);
+  // the hourly cron omits it so it only pays for genuinely-new events.
+  const existing = options.rebuild ? [] : await fetchRecursivTopStories({ limit }).catch(() => [])
+  const existingByUri = new Map(existing.map((story) => [story.uri, story]))
+
+  // Shallow scan once the set is full (cheap discovery of what's new); deep scan while backfilling.
+  const discoveryLimit = existing.length >= limit ? Math.min(limit, 100) : limit
+  const candidates = await fetchNewsApiEvents({ limit: discoveryLimit, sinceDays: options.sinceDays ?? 2 })
+  if (!candidates.length && !existing.length) return { stored: 0, reason: "no-events" as const }
+
+  const freshEvents = candidates.filter((event) => !existingByUri.has(event.uri)).slice(0, maxNew)
+  const newStories = await enrichFreshTopStories(freshEvents)
+
+  // Guarantee every freshly-processed story is kept; fill the remaining slots with the most recent
+  // existing stories; drop the oldest beyond the limit. Final display order is newest-first.
+  const newUris = new Set(newStories.map((story) => story.uri))
+  const room = Math.max(0, limit - newStories.length)
+  const keptExisting = existing
+    .filter((story) => story?.uri && !newUris.has(story.uri))
+    .sort((left, right) => (right.eventDate || "").localeCompare(left.eventDate || ""))
+    .slice(0, room)
+  const stories = [...newStories, ...keptExisting].sort(
+    (left, right) => (right.eventDate || "").localeCompare(left.eventDate || ""),
   )
   const totalCoverage = stories.reduce((sum, story) => sum + (story.articleCount || 0), 0)
 
@@ -1139,10 +1197,10 @@ export async function syncTopStoriesToRecursiv(options: { limit?: number; sinceD
       JSON.stringify(stories),
       "Top story clusters across the spectrum (newsapi.ai Events).",
       String(Number.isFinite(totalCoverage) ? totalCoverage : 0),
-      JSON.stringify({ generatedBy: "newsapi-ai-events-v1", storyCount: stories.length }),
+      JSON.stringify({ generatedBy: "newsapi-ai-events-v2-rolling", storyCount: stories.length, newThisRun: newStories.length }),
     ],
   })
-  return { stored: stories.length, totalCoverage }
+  return { stored: stories.length, newThisRun: newStories.length, totalCoverage }
 }
 
 export async function syncWorldwireCoverageToRecursiv(options: { limitPerLane?: number } = {}) {
@@ -2259,7 +2317,8 @@ export async function runFullPipelineInRecursiv(options: { mode?: string | null;
     ["youtube-archive-sync", syncYouTubeArchiveToRecursiv],
     ["topic-pulse", () => syncTopicPulseToRecursiv({ profileReader })],
     ["worldwire", syncWorldwireCoverageToRecursiv],
-    ["top-stories", () => syncTopStoriesToRecursiv()],
+    // top-stories runs on its own dedicated hourly cron (inverted-world-top-stories), so it is
+    // intentionally omitted here to avoid the heavy 10x generation running twice per window.
     ["publishing", publishReadyDraftsInRecursiv],
     ["front-page-edition", publishFrontPageEditionInRecursiv],
     ["daily-autopost", buildDailyAutopostJobResult],

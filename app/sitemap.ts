@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next"
 import { getDeepArchive } from "@/lib/deep-archive"
 import { fetchRecursivClaimDossiers } from "@/lib/recursiv/content"
+import { fetchRecursivTopStories } from "@/lib/story-clusters"
 
 const baseUrl = "https://www.inverted.world"
 
@@ -40,7 +41,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
     }))
 
-    return [...staticRoutes, ...dossierRoutes, ...videoRoutes]
+    const stories = (await fetchRecursivTopStories({ limit: 30 })) || []
+    const storyRoutes: MetadataRoute.Sitemap = stories.map((story) => ({
+      url: `${baseUrl}/news/story/${story.uri}`,
+      lastModified: story.eventDate ? new Date(story.eventDate) : new Date(),
+      changeFrequency: "hourly",
+      priority: 0.88,
+    }))
+
+    return [...staticRoutes, ...dossierRoutes, ...storyRoutes, ...videoRoutes]
   } catch {
     return staticRoutes
   }

@@ -11,6 +11,8 @@ export async function POST(request: NextRequest) {
     syncTopStoriesToRecursiv({
       limit: Number(url.searchParams.get("limit") || "") || undefined,
       sinceDays: Number(url.searchParams.get("sinceDays") || "") || undefined,
+      maxNew: Number(url.searchParams.get("maxNew") || "") || undefined,
+      rebuild: /^(1|true|yes)$/i.test(url.searchParams.get("rebuild") || ""),
     }),
   )
 }
