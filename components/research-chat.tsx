@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { ArrowUp, Loader2 } from "lucide-react"
 import { MarkdownText } from "@/components/dossier-chat"
 import { cn } from "@/lib/utils"
@@ -24,6 +24,7 @@ export function ResearchChat() {
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const stored = window.localStorage.getItem("inverted-world-research")
@@ -31,6 +32,12 @@ export function ResearchChat() {
     window.localStorage.setItem("inverted-world-research", nextConversationId)
     setConversationId(nextConversationId)
   }, [])
+
+  // Keep the latest message (and the loading indicator) in view as the conversation grows.
+  useEffect(() => {
+    const el = scrollRef.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [messages, loading])
 
   async function submit() {
     const value = message.replace(/\s+/g, " ").trim()
@@ -64,8 +71,8 @@ export function ResearchChat() {
 
   return (
     <section className="iw-serif grid w-full max-w-4xl gap-5">
-      {messages.length ? (
-        <div className="grid max-h-[58vh] gap-4 overflow-y-auto pr-1">
+      {messages.length || loading ? (
+        <div ref={scrollRef} className="grid max-h-[58vh] gap-4 overflow-y-auto pr-1">
           {messages.map((item, index) => (
             <article
               key={`${item.role}-${index}`}
@@ -77,6 +84,12 @@ export function ResearchChat() {
               {item.role === "assistant" ? <MarkdownText text={item.text} /> : item.text}
             </article>
           ))}
+          {loading ? (
+            <article className="flex max-w-[94%] items-center gap-3 justify-self-start bg-[#050504]/46 p-4 text-2xl leading-[1.05] text-[#f4efe2]/82 backdrop-blur-[2px] sm:p-5 sm:text-3xl">
+              <Loader2 className="h-6 w-6 animate-spin text-[#df2f2f]" />
+              <span className="text-[#f4efe2]/64">Researching...</span>
+            </article>
+          ) : null}
         </div>
       ) : null}
 

@@ -205,7 +205,14 @@ export default async function ArchiveVideoPage({ params }: PageProps) {
     >
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(videoDossierJsonLd(dossier, canonicalUrl, transcript)) }}
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(videoDossierJsonLd(dossier, canonicalUrl, transcript))
+            // Escape so attacker-influenceable fields (video title, transcript text) cannot
+            // break out of the <script> element or inject markup. See security audit.
+            .replace(/</g, "\\u003c")
+            .replace(/>/g, "\\u003e")
+            .replace(/&/g, "\\u0026"),
+        }}
       />
 
       <div className="mb-6">

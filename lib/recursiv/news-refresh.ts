@@ -1,5 +1,6 @@
 import { queryInvertedWorldDatabase } from "@/lib/recursiv/database"
 import { runFullPipelineInRecursiv } from "@/lib/recursiv/ingestion"
+import { checkRecursivRateLimit, durableRateLimitKey } from "@/lib/recursiv/rate-limit"
 
 type NewsRefreshStateRow = {
   latest_worldwire_at?: string
@@ -98,6 +99,20 @@ export async function maybeStartNewsRefresh(reason = "news-read"): Promise<NewsR
       return { ...base, started: false, status: "already-running" }
     }
     if (lastAttemptAt && Date.now() - lastAttemptAt < minAttemptMs) {
+      return { ...base, started: false, status: "recent-attempt" }
+    }
+
+    // Durable cross-instance gate: the checks above are per-instance, so on a horizontally
+    // scaled deployment many instances (or a flood of public /api/front-page hits) could each
+    // race past them and fire the expensive pipeline. Allow at most one kickoff per attempt
+    // window globally. Only reached once the cheap checks have already decided to trigger, so
+    // it adds a single DB write per genuine refresh, not per request.
+    const durableSlot = await checkRecursivRateLimit(
+      durableRateLimitKey("news-refresh", "global"),
+      { windowMs: minAttemptMs, max: 1 },
+      { reason },
+    )
+    if (durableSlot.ok === false) {
       return { ...base, started: false, status: "recent-attempt" }
     }
 

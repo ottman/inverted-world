@@ -677,7 +677,12 @@ export async function syncSourceDocumentsToRecursiv() {
 
 export async function syncMediaLibraryToRecursiv() {
   const { sdk, config } = getInvertedWorldDatabase()
-  const items = (await fetchMediaSeedItemsForSync()).map(compactMediaItemForSync)
+  // Sort by slug so every concurrent upsert locks media_items rows in the same order. Without
+  // a stable order, an overlapping standalone media-library job and the pipeline's media-library
+  // step can lock rows in opposite orders and Postgres aborts one with "deadlock detected".
+  const items = (await fetchMediaSeedItemsForSync())
+    .map(compactMediaItemForSync)
+    .sort((left, right) => left.id.localeCompare(right.id))
   const batchSize = Math.max(1, Math.min(Math.trunc(Number(process.env.MEDIA_LIBRARY_SYNC_BATCH_SIZE || "5")) || 5, 6))
   let synced = 0
 

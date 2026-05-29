@@ -69,6 +69,42 @@ const RESEARCH_QUERY_STOPWORDS = new Set([
   "with",
 ])
 
+// Common nouns too broad to make a recency-driven current-news item relevant on their
+// own. A worldwire/current item must share a *distinctive* (non-generic) query token, so
+// e.g. "rendlesham forest" can't surface an unrelated story that merely mentions "forest".
+const RESEARCH_GENERIC_TOKENS = new Set([
+  "area",
+  "day",
+  "days",
+  "fire",
+  "forest",
+  "forests",
+  "light",
+  "lights",
+  "news",
+  "night",
+  "people",
+  "photo",
+  "photos",
+  "place",
+  "report",
+  "reports",
+  "sky",
+  "stories",
+  "story",
+  "today",
+  "update",
+  "updates",
+  "video",
+  "videos",
+  "water",
+  "wood",
+  "woods",
+  "world",
+  "year",
+  "years",
+])
+
 const MAINSTREAM_COMPARATOR_HOSTS = new Set([
   "abcnews.go.com",
   "apnews.com",
@@ -173,6 +209,17 @@ function scoreText(queryTokens: Set<string>, value: string, boost = 0) {
   return boost + matchingTokenCount(queryTokens, value) * 12
 }
 
+// Count matches on distinctive query tokens only (generic common nouns excluded). Used to
+// gate the current-news lane so a lone generic word can't qualify an unrelated story.
+function distinctiveMatchCount(queryTokens: Set<string>, value: string) {
+  const valueTokens = tokenSet(value)
+  let matches = 0
+  for (const token of queryTokens) {
+    if (!RESEARCH_GENERIC_TOKENS.has(token) && valueTokens.has(token)) matches += 1
+  }
+  return matches
+}
+
 function dossierLinks(dossier: ClaimDossier, queryTokens: Set<string>): ResearchLink[] {
   const dossierText = [dossier.title, dossier.deck, dossier.summary, dossier.weirdRead, dossier.skepticalRead].join(" ")
   const dossierMatches = matchingTokenCount(queryTokens, dossierText)
@@ -208,14 +255,16 @@ function dossierLinks(dossier: ClaimDossier, queryTokens: Set<string>): Research
 
 function worldwireLink(item: WorldwireItem, queryTokens: Set<string>): ResearchLink {
   const itemText = `${item.title} ${item.excerpt || ""} ${item.sectionTitle} ${item.source || ""}`
-  const itemMatches = matchingTokenCount(queryTokens, itemText)
+  // Require a distinctive token match, not just any overlap, so a lone generic word like
+  // "forest" can't attach an unrelated current-news item to a specific research subject.
+  const distinctiveMatches = distinctiveMatchCount(queryTokens, itemText)
   return {
     title: item.title,
     url: item.url,
     source: item.source || item.sectionTitle,
     excerpt: item.excerpt,
     priority: "crawler",
-    score: itemMatches ? scoreText(queryTokens, itemText, item.score / 20) + mainstreamComparatorPenalty(item.url, item.source) : 0,
+    score: distinctiveMatches ? scoreText(queryTokens, itemText, item.score / 20) + mainstreamComparatorPenalty(item.url, item.source) : 0,
   }
 }
 
@@ -285,16 +334,6 @@ function contextLines(links: ResearchLink[]) {
       return `${index + 1}. ${link.title} (${link.url})${suffix ? `\n   ${suffix}` : ""}`
     })
     .join("\n")
-}
-
-function cleanResearchSubject(message: string) {
-  return message
-    .replace(/\b(tell me about|what do you know about|research|explain|look into|find|show me)\b/gi, " ")
-    .replace(/\b(conspiracies|conspiracy theories|theories)\b/gi, "questions")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/[?.!]+$/g, "")
-    .slice(0, 120)
 }
 
 function linkSourceLabel(link: ResearchLink) {
@@ -399,22 +438,22 @@ async function askResearchAgent(message: string, conversationId: string | undefi
   if (!config.agentId) return null
 
   const prompt = [
-    "You are the Inverted World research analyst.",
-    "Your job is to investigate any topic with a truth-seeking bend: disclosure, institutional incentives, hidden power, suppressed records, anomalous evidence, and the deeper nature of reality.",
-    `This is the standing research doctrine:\n${researchDoctrineMarkdown()}`,
-    "If the user is only greeting, testing, or asking whether you are present, answer naturally in one or two sentences. Do not force an investigation frame onto conversational messages.",
-    "For actual research questions, answer the user's question first. Do not open with process, protocol, disclaimers, or a meta explanation of how you would research it.",
-    "Never start with phrases like 'Research frame', 'Truth protocol', 'I would treat', or 'Start by treating'.",
-    "The first section must be `## Direct answer` and it must contain concrete topic-specific substance in plain English.",
-    "Source policy: prioritize primary records, declassified archives, court files, transcripts, longform independent media, alternative media archives, YouTube/Rumble interviews, and independent researchers. Treat mainstream outlets as official-narrative comparators unless they contain a primary admission, named witness, leaked document, or useful timeline.",
-    "For conspiracy-world topics, actively look for the independent research tradition around the topic before relying on NYT, CNN, NPR, Reuters, AP, or similar mainstream outlets.",
-    "Do not cite unrelated Inverted World stories just because they are available. If a provided source is not relevant to the user's question, ignore it.",
-    "Do not invent certainty. Separate documented facts, allegations, inference, speculation, unknowns, and next primary-source checks.",
-    "Return clean Markdown with concise sections and links. Use Markdown links for every URL you cite. Good sections are `## Direct answer`, `## What is documented`, `## Serious skeptical lanes`, `## Source trail`, and `## What would change the answer`. Do not return HTML.",
-    "If you cannot verify a claim from available sources, say exactly what evidence would be needed.",
-    links.length ? `Current Inverted World source context:\n${contextLines(links)}` : "No local source context matched this question.",
-    `Research question: ${message}`,
-  ].join("\n\n")
+    "You are the Inverted World research analyst: a sharp, well-read, genuinely intelligent investigator. Think like a top research analyst and adapt your answer to the actual question instead of forcing a fixed template.",
+    `Standing research doctrine (apply its spirit, not as a rigid format):\n${researchDoctrineMarkdown()}`,
+    "Match your response to the question type:",
+    "- Simple or factual questions: answer directly and concisely. A one-line question deserves a short answer, not a five-section report.",
+    "- Instructional or explanatory questions (how something works, definitions, code, math): explain clearly and accurately like a knowledgeable teacher, with no skeptical or conspiracy framing where it does not belong.",
+    "- Creative or conversational requests (write a poem, brainstorm, chat): just do them naturally and well.",
+    "- Investigative, contested, historical, or hidden-power topics (disclosure, institutions, suppressed records, anomalous evidence): THIS is where you bring the full treatment — separate what is documented vs alleged vs inferred vs speculation, prioritize primary records, name sources, and track incentives and who benefits.",
+    "Only use structured sections such as `## Direct answer`, `## What is documented`, `## Serious skeptical lanes`, `## Source trail`, and `## What would change the answer` when the topic actually warrants an evidence map. Never impose them on simple, factual, instructional, or creative questions.",
+    "Always lead with the substance of the answer. Never open with process, protocol, disclaimers, or meta commentary about how you would research it. Never start with phrases like 'Research frame', 'Truth protocol', 'I would treat', or 'Start by treating'.",
+    "When sources matter: prioritize primary records, declassified archives, court files, transcripts, longform independent media, alternative-media archives, and named witnesses; treat mainstream outlets as official-narrative comparators unless they carry a primary admission, named witness, leaked document, or useful timeline. Use Markdown links for any URL you cite, and do not return HTML.",
+    "Do not cite unrelated Inverted World sources just because they are provided. If a provided source is not relevant to the question, ignore it. Do not invent certainty or citations.",
+    links.length ? `Possibly-relevant Inverted World source context (use only if genuinely relevant):\n${contextLines(links)}` : "",
+    `Question: ${message}`,
+  ]
+    .filter(Boolean)
+    .join("\n\n")
 
   const response = await sdk.agents.chatStreamText(config.agentId, {
     message: prompt,
@@ -433,7 +472,9 @@ async function askResearchAgent(message: string, conversationId: string | undefi
 function isWeakResearchAnswer(content: string) {
   const text = content.replace(/\s+/g, " ").trim()
   const lower = text.toLowerCase()
-  if (text.length < 420) return true
+  // No length floor: a crisp short answer (e.g. "Paris.") is correct, not weak. Only reject
+  // empty output and the specific meta/process preambles we never want to surface.
+  if (!text) return true
   if (lower.includes("research frame:")) return true
   if (lower.includes("truth protocol")) return true
   if (lower.startsWith("start by treating")) return true
@@ -442,47 +483,29 @@ function isWeakResearchAnswer(content: string) {
   return false
 }
 
+// Fires only when the live research agent is unreachable (timeout/error/rate-limit). Degrade
+// honestly: give the curated read for known topics if we have one, surface any genuinely
+// relevant local sources, and say plainly that the engine could not be reached. No invented
+// conspiracy boilerplate or forced section template.
 function fallbackResearchAnswer(message: string, links: ResearchLink[]) {
-  const subject = cleanResearchSubject(message) || message
   const knownRead = knownTopicDirectRead(message)
   const groups = sourceGroups(links)
-  const leadPrimary = groups.primary[0]
-  const leadIndependent = groups.independent[0]
-  const leadCurrent = groups.current[0]
   const sourceLines = [
     ...groups.primary.map(linkBullet),
     ...groups.independent.map(linkBullet),
     ...groups.current.map(linkBullet),
   ].slice(0, 9)
 
-  const directAnswer = knownRead
-    ? knownRead
-    : [
-        `The honest read on **${subject}** is that it should be split into what is documented, what is credibly alleged, what is inferred, and what is still speculation. A real answer cannot treat every counter-narrative as true, but it also should not let official language close the case when records, incentives, redactions, or witness conflicts point to unresolved questions.`,
-        [
-          leadPrimary ? `The strongest record-side starting point I have is ${markdownLink(leadPrimary.title, leadPrimary.url)}.` : "",
-          leadIndependent ? `The strongest independent/alternative lane I have is ${markdownLink(leadIndependent.title, leadIndependent.url)}.` : "",
-          leadCurrent ? `The closest current Inverted World/live-source thread is ${markdownLink(leadCurrent.title, leadCurrent.url)}.` : "",
-        ]
-          .filter(Boolean)
-          .join(" "),
-      ]
-        .filter(Boolean)
-        .join("\n\n")
+  if (knownRead) {
+    return [knownRead, sourceLines.length ? `## Source trail\n${sourceLines.join("\n")}` : ""].filter(Boolean).join("\n\n")
+  }
 
-  return [
-    `## Direct answer\n${directAnswer}`,
-    groups.primary.length
-      ? `## What is documented\n${groups.primary.map(linkBullet).join("\n")}`
-      : "## What is documented\nI do not have a strong primary-record match for this exact question yet. That means the next step is records, not vibes: court files, agency archives, transcripts, raw video, FOIA releases, or named witnesses.",
-    groups.independent.length
-      ? `## Serious skeptical lanes\n${groups.independent.map(linkBullet).join("\n")}`
-      : "## Serious skeptical lanes\nI do not have a strong independent-source match in the local source trail yet. I would next search independent archives, longform interviews, original broadcasts, and FOIA-focused researchers before leaning on mainstream summaries.",
-    sourceLines.length
-      ? `## Source trail\n${sourceLines.join("\n")}`
-      : "## Source trail\nNo strong matched links are available from the local archive yet.",
-    "## What would change the answer\n- A primary record with provenance.\n- A named witness or full transcript that can be checked against the timeline.\n- Independent confirmation from an adversarial or skeptical source.\n- Clear chain of custody for documents, images, video, data, or testimony.\n- A timeline showing who knew what, when, and what incentive they had to frame it that way.",
-  ].join("\n\n")
+  const notice =
+    "The live research engine is busy or unreachable right now, so I can't give a full answer to this one. Please try again in a moment."
+  if (sourceLines.length) {
+    return [notice, `## Related Inverted World sources\n${sourceLines.join("\n")}`].join("\n\n")
+  }
+  return notice
 }
 
 async function checkResearchBudget(clientId: string, conversationId?: string) {
