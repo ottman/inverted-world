@@ -142,6 +142,18 @@ function isTodayItem(item: NewsBoardItem, today = dayKey(new Date())) {
   return itemDayKey(item) === today
 }
 
+// Breadth: the board shows recent items (within this window), not strictly today, so the long
+// tail of independent outlets — which don't all publish today-dated items — still reaches /news.
+const NEWS_BOARD_MAX_AGE_MS =
+  Math.max(1, Math.min(Math.trunc(Number(process.env.NEWS_BOARD_MAX_AGE_DAYS)) || 2, 14)) * 24 * 60 * 60 * 1000
+
+function isRecentItem(item: NewsBoardItem, maxAgeMs = NEWS_BOARD_MAX_AGE_MS) {
+  const date = itemDate(item)
+  if (!date) return false
+  const age = Date.now() - date.getTime()
+  return age <= maxAgeMs && age >= -3_600_000 // up to maxAge old; tolerate 1h clock skew
+}
+
 function byHeatThenTime(left: NewsBoardItem, right: NewsBoardItem) {
   const heat = right.score - left.score
   if (heat) return heat
@@ -176,6 +188,23 @@ function balancedItems(items: NewsBoardItem[], options: { limit: number; maxPerS
   return balanced
 }
 
+// Keep at most `maxPerHost` items per source host (input pre-sorted) so a lane's rendered board
+// shows a wide variety of outlets across the spectrum instead of a wall of one mainstream source.
+function capByHost(items: NewsBoardItem[], maxPerHost: number) {
+  const counts = new Map<string, number>()
+  const out: NewsBoardItem[] = []
+  for (const item of items) {
+    const host = hostKey(item.url)
+    const used = counts.get(host) || 0
+    if (used >= maxPerHost) continue
+    counts.set(host, used + 1)
+    out.push(item)
+  }
+  return out
+}
+
+const MAX_PER_HOST_PER_LANE = Math.max(1, Math.min(Math.trunc(Number(process.env.NEWS_MAX_PER_HOST_PER_LANE)) || 2, 6))
+
 export default async function NewsPage() {
   const refreshKickoff = maybeStartNewsRefresh("news-page").catch(() => null)
   const [dossiers, topicFeeds, worldwire] = await Promise.all([
@@ -192,9 +221,8 @@ export default async function NewsPage() {
     .flat()
     .map((article, index) => sourceItemFromArticle(article, index))
     .filter(isNewsBoardItem)
-  const today = dayKey(new Date())
-  const currentWorldwire = worldwire.filter((item) => isTodayItem(item, today))
-  const currentTopicItems = topicItems.filter((item) => isTodayItem(item, today))
+  const currentWorldwire = worldwire.filter((item) => isRecentItem(item))
+  const currentTopicItems = topicItems.filter((item) => isRecentItem(item))
   const boardItems = uniqueItems([...currentWorldwire, ...currentTopicItems]).sort(byHeatThenTime)
   const lead = boardItems.find((item) => item.sectionId === "front-page") || boardItems.find((item) => item.sectionId !== "inverted-files") || boardItems[0]
   const flashItems = balancedItems(
@@ -205,7 +233,7 @@ export default async function NewsPage() {
   const laneCount = new Set(boardItems.map((item) => item.sectionId)).size
   const laneGroups = WORLDWIRE_LANES.map((lane) => ({
     lane,
-    items: boardItems.filter((item) => item.sectionId === lane.id).sort(byHeatThenTime),
+    items: capByHost(boardItems.filter((item) => item.sectionId === lane.id).sort(byHeatThenTime), MAX_PER_HOST_PER_LANE),
   })).filter((group) => group.items.length)
 
   const breakingItems: BreakingItem[] = balancedItems(boardItems, { limit: 36, maxPerSection: 4, maxPerHost: 2 }).map((item) => ({

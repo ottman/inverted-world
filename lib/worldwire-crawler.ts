@@ -568,11 +568,14 @@ export async function fetchWorldwireItems(options: { lanes?: WorldwireLane[] } =
     byLane.set(lane.id, result?.status === "fulfilled" ? result.value : [])
   })
 
+  // GDELT is a primary breadth source: it surfaces articles from ~60k outlets across the
+  // spectrum, so pull it for EVERY lane (not just sparse ones) and enable it by default.
+  // Set WORLDWIRE_USE_GDELT=0 to disable. Failures are harmless (fetchGdeltLane returns []).
+  const gdeltEnabled = process.env.WORLDWIRE_USE_GDELT !== "0"
   let lastGdeltAt = 0
   for (const lane of lanes) {
+    if (!gdeltEnabled) break
     const current = byLane.get(lane.id) || []
-    if (current.length >= 5) continue
-    if (process.env.WORLDWIRE_USE_GDELT !== "1") continue
 
     const elapsed = Date.now() - lastGdeltAt
     if (lastGdeltAt && elapsed < GDELT_COOLDOWN_MS) {
