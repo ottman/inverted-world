@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element -- rights-cleared CC/PD images come from arbitrary hosts. */
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { ArrowLeft, ArrowUpRight, Radio } from "lucide-react"
@@ -60,6 +61,23 @@ export default async function StoryPage({ params }: { params: Promise<{ id: stri
             </div>
           ) : null}
         </header>
+
+        {story.image?.url ? (
+          <figure className="grid gap-1">
+            <div className="aspect-[16/9] overflow-hidden bg-black/40">
+              <img src={story.image.url} alt={story.headline || story.title} className="h-full w-full object-cover" />
+            </div>
+            <figcaption className="text-[10px] uppercase tracking-[0.12em] text-[#f4efe2]/40">
+              {story.image.attribution ? (
+                <a href={story.image.sourceUrl} target="_blank" rel="noopener noreferrer" className="transition hover:text-[#df2f2f]">
+                  {story.image.attribution}
+                </a>
+              ) : (
+                <span>Image via Openverse · {story.image.license || "public domain"}</span>
+              )}
+            </figcaption>
+          </figure>
+        ) : null}
 
         <div className="grid gap-4 text-lg leading-8 text-[#f4efe2]/86">
           {paragraphs.length ? (

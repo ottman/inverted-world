@@ -225,8 +225,11 @@ export default async function NewsPage() {
     .flat()
     .map((article, index) => sourceItemFromArticle(article, index))
     .filter(isNewsBoardItem)
-  const currentWorldwire = worldwire.filter((item) => isRecentItem(item))
-  const currentTopicItems = topicItems.filter((item) => isRecentItem(item))
+  // Scraped publisher thumbnails (RSS og:image / newsapi images) are not rights-cleared, so strip
+  // them from the wire. Rights-cleared imagery lives on the Top Stories (Openverse CC/PD) instead.
+  const stripImage = (item: NewsBoardItem): NewsBoardItem => ({ ...item, imageUrl: undefined })
+  const currentWorldwire = worldwire.filter((item) => isRecentItem(item)).map(stripImage)
+  const currentTopicItems = topicItems.filter((item) => isRecentItem(item)).map(stripImage)
   // Hard global per-outlet cap: no more than a couple articles from any single outlet across the
   // WHOLE board, so the page draws from the large balanced source pool instead of a few loud ones.
   const boardItems = capByHost(
@@ -279,6 +282,16 @@ export default async function NewsPage() {
                 href={`/news/story/${encodeURIComponent(story.uri)}`}
                 className="group flex flex-col gap-2 bg-[#050504]/40 p-4 transition hover:bg-[#050504]/66"
               >
+                {story.image?.url ? (
+                  <div className="-mx-4 -mt-4 mb-1 aspect-[16/9] overflow-hidden bg-black/40">
+                    <img
+                      src={story.image.url}
+                      alt=""
+                      loading="lazy"
+                      className="h-full w-full object-cover opacity-90 transition group-hover:opacity-100"
+                    />
+                  </div>
+                ) : null}
                 <h3 className="iw-serif text-3xl font-bold leading-[1.0] text-[#fff8e6] transition group-hover:text-[#df2f2f] sm:text-4xl">
                   {story.headline || story.title}
                 </h3>

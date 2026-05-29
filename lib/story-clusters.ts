@@ -1,5 +1,6 @@
 import { createRecursivServerClient } from "@/lib/recursiv/client"
 import { queryInvertedWorldDatabase } from "@/lib/recursiv/database"
+import type { RightsClearedImage } from "@/lib/openverse"
 
 // Story clusters via newsapi.ai (Event Registry) "Events": each event is the same story
 // clustered across many outlets, with a coverage count. We fetch recent significant events,
@@ -26,6 +27,8 @@ export type StoryCluster = {
   headline?: string
   synopsis?: string // short, for cards
   body?: string // full neutral synopsis article, for the detail page
+  imageQuery?: string // AI-crafted visual search terms for a rights-cleared image
+  image?: RightsClearedImage // rights-cleared (CC/PD) image via Openverse
   // The actual outlets + their headlines covering this story (newsapi.ai event articles):
   coveringArticles?: CoveringArticle[]
 }
@@ -146,11 +149,12 @@ export async function generateStoryNarratives(stories: StoryCluster[]): Promise<
 
   const prompt = [
     "You are a neutral newswire editor for a balanced news aggregator.",
-    "For EACH story cluster below, write three things:",
+    "For EACH story cluster below, write four things:",
     '1) "headline": a compelling, shareable, but STRICTLY NEUTRAL headline — factual, no partisan spin, no clickbait falsehoods, max ~90 characters.',
     '2) "synopsis": a balanced 2-sentence summary, neutral tone, for a card.',
     '3) "body": a fuller neutral synopsis article, 2-3 short paragraphs, factual and balanced, no editorializing, plain prose.',
-    'Return ONLY a raw JSON array (no prose, no markdown fences): [{"id":"<id>","headline":"...","synopsis":"...","body":"..."}]',
+    '4) "imageQuery": 2-4 concise, CONCRETE visual keywords for finding a relevant stock/public-domain photo (depict the subject, place, or object — NOT names of private individuals). E.g. "romanian apartment building", "drone military".',
+    'Return ONLY a raw JSON array (no prose, no markdown fences): [{"id":"<id>","headline":"...","synopsis":"...","body":"...","imageQuery":"..."}]',
     "Story clusters:",
     stories
       .map((story) => `[${story.uri}]\nTITLE: ${story.title}\nSUMMARY: ${story.summary}\nTOPICS: ${story.concepts.join(", ")}`)
@@ -167,15 +171,16 @@ export async function generateStoryNarratives(stories: StoryCluster[]): Promise<
 
   const parsed = extractJsonArray(content)
   if (!parsed) return stories
-  const byId = new Map<string, { headline?: string; synopsis?: string; body?: string }>()
+  const byId = new Map<string, { headline?: string; synopsis?: string; body?: string; imageQuery?: string }>()
   for (const row of parsed) {
     if (row && typeof row === "object") {
-      const r = row as { id?: unknown; headline?: unknown; synopsis?: unknown; body?: unknown }
+      const r = row as { id?: unknown; headline?: unknown; synopsis?: unknown; body?: unknown; imageQuery?: unknown }
       if (typeof r.id === "string") {
         byId.set(r.id, {
           headline: typeof r.headline === "string" ? r.headline.trim().slice(0, 200) : undefined,
           synopsis: typeof r.synopsis === "string" ? r.synopsis.trim().slice(0, 600) : undefined,
           body: typeof r.body === "string" ? r.body.trim().slice(0, 2400) : undefined,
+          imageQuery: typeof r.imageQuery === "string" ? r.imageQuery.trim().slice(0, 80) : undefined,
         })
       }
     }
@@ -187,6 +192,7 @@ export async function generateStoryNarratives(stories: StoryCluster[]): Promise<
       headline: gen?.headline || story.title,
       synopsis: gen?.synopsis || story.summary,
       body: gen?.body || gen?.synopsis || story.summary,
+      imageQuery: gen?.imageQuery || story.concepts.slice(0, 2).join(" "),
     }
   })
 }

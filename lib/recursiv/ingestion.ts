@@ -9,6 +9,7 @@ import {
 import { fetchLiveArticlesForTopic } from "@/lib/live-articles"
 import { fetchMediaSeedItemsForSync, mediaItemMetadata } from "@/lib/media-library"
 import { fetchNewsApiEvents, generateStoryNarratives, fetchEventCoverage } from "@/lib/story-clusters"
+import { fetchOpenverseImage } from "@/lib/openverse"
 import { generatedSvgThumbnail } from "@/lib/generated-thumbnail"
 import { createRecursivServerClient } from "@/lib/recursiv/client"
 import { executeDirectInvertedWorldDatabaseSql, hasDirectInvertedWorldDatabase } from "@/lib/recursiv/database"
@@ -1112,9 +1113,16 @@ export async function syncTopStoriesToRecursiv(options: { limit?: number; sinceD
   const events = await fetchNewsApiEvents({ limit: options.limit ?? 16, sinceDays: options.sinceDays ?? 2 })
   if (!events.length) return { stored: 0, reason: "no-events" as const }
   const narrated = await generateStoryNarratives(events)
-  // Attach the actual outlets + headlines covering each story (one getEvent call each).
+  // Attach (a) the outlets+headlines covering each story and (b) a rights-cleared (CC/PD) image
+  // via Openverse, searched with the AI-crafted imageQuery for relevance.
   const stories = await Promise.all(
-    narrated.map(async (story) => ({ ...story, coveringArticles: await fetchEventCoverage(story.uri).catch(() => []) })),
+    narrated.map(async (story) => {
+      const coveringArticles = await fetchEventCoverage(story.uri).catch(() => [])
+      // AI-crafted query first; fall back to the lead concept so more stories get a relevant image.
+      let image = await fetchOpenverseImage(story.imageQuery || story.concepts.slice(0, 2).join(" ")).catch(() => null)
+      if (!image && story.concepts[0]) image = await fetchOpenverseImage(story.concepts[0]).catch(() => null)
+      return { ...story, coveringArticles, image: image || undefined }
+    }),
   )
   const totalCoverage = stories.reduce((sum, story) => sum + (story.articleCount || 0), 0)
 
