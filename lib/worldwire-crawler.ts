@@ -520,11 +520,42 @@ async function fetchGdeltLane(lane: WorldwireLane): Promise<WorldwireItem[]> {
     .filter((item) => isExternalUrl(item.url) && looksLikeArticleUrl(item.url) && isUsefulWorldwireTitle(item.title))
 }
 
+// Breadth over volume: keep at most this many items per source so the wire shows a wide variety
+// of outlets across the spectrum instead of being dominated by one or two high-volume mainstream
+// feeds (e.g. the Guardian, which appears in nearly every lane). Pure selection, not bias scoring.
+const WORLDWIRE_MAX_PER_SOURCE = Math.max(1, Math.min(Math.trunc(Number(process.env.WORLDWIRE_MAX_PER_SOURCE)) || 2, 8))
+
+function worldwireSourceKey(item: WorldwireItem) {
+  const label = (item.source || "").trim().toLowerCase()
+  if (label) return label
+  try {
+    return new URL(item.url).hostname.replace(/^www\./, "").toLowerCase()
+  } catch {
+    return item.url.toLowerCase()
+  }
+}
+
+// Input MUST be pre-sorted by score (best first); keeps the top `max` items per source.
+function capItemsPerSource(items: WorldwireItem[], max = WORLDWIRE_MAX_PER_SOURCE) {
+  const counts = new Map<string, number>()
+  const kept: WorldwireItem[] = []
+  for (const item of items) {
+    const key = worldwireSourceKey(item)
+    const used = counts.get(key) || 0
+    if (used >= max) continue
+    counts.set(key, used + 1)
+    kept.push(item)
+  }
+  return kept
+}
+
 async function fetchLaneBase(lane: WorldwireLane) {
   const results = await Promise.allSettled([fetchExaLane(lane), fetchBraveLane(lane), fetchGoogleLane(lane), fetchRssLane(lane)])
-  return uniqueWorldwireItems(results.flatMap((result) => (result.status === "fulfilled" ? result.value : [])))
-    .filter((item) => isExternalUrl(item.url) && looksLikeArticleUrl(item.url) && isUsefulWorldwireTitle(item.title))
-    .sort((left, right) => right.score - left.score)
+  return capItemsPerSource(
+    uniqueWorldwireItems(results.flatMap((result) => (result.status === "fulfilled" ? result.value : [])))
+      .filter((item) => isExternalUrl(item.url) && looksLikeArticleUrl(item.url) && isUsefulWorldwireTitle(item.title))
+      .sort((left, right) => right.score - left.score),
+  )
 }
 
 export async function fetchWorldwireItems(options: { lanes?: WorldwireLane[] } = {}) {
@@ -552,9 +583,11 @@ export async function fetchWorldwireItems(options: { lanes?: WorldwireLane[] } =
     const gdeltItems = await fetchGdeltLane(lane).catch(() => [])
     byLane.set(
       lane.id,
-      uniqueWorldwireItems([...current, ...gdeltItems])
-        .filter((item) => isExternalUrl(item.url) && looksLikeArticleUrl(item.url) && isUsefulWorldwireTitle(item.title))
-        .sort((left, right) => right.score - left.score),
+      capItemsPerSource(
+        uniqueWorldwireItems([...current, ...gdeltItems])
+          .filter((item) => isExternalUrl(item.url) && looksLikeArticleUrl(item.url) && isUsefulWorldwireTitle(item.title))
+          .sort((left, right) => right.score - left.score),
+      ),
     )
   }
 
