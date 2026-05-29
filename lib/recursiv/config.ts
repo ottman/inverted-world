@@ -34,7 +34,7 @@ export function getRecursivRuntimeConfig(options: ConfigOptions = {}): RecursivR
   const apiKey =
     readLocalApiKeyFile() ||
     process.env.RECURSIV_SERVER_API_KEY ||
-    (options.allowDeveloperApiKey ? process.env.RECURSIV_API_KEY || process.env.SOCIAL_DEV_API_KEY : undefined)
+    (options.allowDeveloperApiKey ? process.env.RECURSIV_API_KEY : undefined)
 
   return {
     baseUrl: process.env.RECURSIV_BASE_URL || process.env.NEXT_PUBLIC_RECURSIV_BASE_URL || DEFAULT_RECURSIV_BASE_URL,
