@@ -675,6 +675,22 @@ export async function syncSourceDocumentsToRecursiv() {
   }
 }
 
+// Postgres can abort one of two concurrent upserts with SQLSTATE 40P01 "deadlock detected"
+// (e.g. the standalone media-library job overlapping the pipeline's media-library step). A
+// deadlock is transient — the loser just needs to retry. Re-run the operation a few times with
+// a small backoff; only retry on deadlock, rethrow anything else immediately.
+async function runWithDeadlockRetry<T>(fn: () => Promise<T>, attempts = 4): Promise<T> {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await fn()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      if (attempt >= attempts || !/deadlock detected/i.test(message)) throw error
+      await new Promise((resolve) => setTimeout(resolve, 200 * attempt))
+    }
+  }
+}
+
 export async function syncMediaLibraryToRecursiv() {
   const { sdk, config } = getInvertedWorldDatabase()
   // Sort by slug so every concurrent upsert locks media_items rows in the same order. Without
@@ -730,10 +746,11 @@ export async function syncMediaLibraryToRecursiv() {
       JSON.stringify(mediaItemMetadata(item)),
     ])
 
-    await sdk.databases.query({
-      project_id: config.projectId,
-      database_name: config.databaseName,
-      sql: `INSERT INTO media_items (
+    await runWithDeadlockRetry(() =>
+      sdk.databases.query({
+        project_id: config.projectId,
+        database_name: config.databaseName,
+        sql: `INSERT INTO media_items (
           slug,
           title,
           source,
@@ -770,8 +787,9 @@ export async function syncMediaLibraryToRecursiv() {
           status = EXCLUDED.status,
           metadata = EXCLUDED.metadata,
           updated_at = now()`,
-      params,
-    })
+        params,
+      }),
+    )
     synced += batch.length
   }
 

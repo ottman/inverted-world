@@ -45,6 +45,9 @@ export function ResearchChat() {
     const nextConversationId = conversationId || randomConversationId()
     if (!conversationId) setConversationId(nextConversationId)
 
+    // Recursiv is stateless across turns, so send recent history for multi-turn context.
+    const history = messages.slice(-6)
+
     setLoading(true)
     setError("")
     setMessage("")
@@ -54,7 +57,7 @@ export function ResearchChat() {
       const response = await fetch("/api/research", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ message: value, conversationId: nextConversationId }),
+        body: JSON.stringify({ message: value, conversationId: nextConversationId, history }),
       })
       const data = (await response.json()) as { response?: string; conversationId?: string; error?: string }
       if (!response.ok) throw new Error(data.error || `Research returned ${response.status}`)

@@ -433,7 +433,31 @@ function conversationalResearchReply(message: string) {
   return null
 }
 
-async function askResearchAgent(message: string, conversationId: string | undefined, links: ResearchLink[]) {
+type ResearchTurn = { role: "user" | "assistant"; text: string }
+
+// Recursiv's chat does NOT thread history across calls (verified: a fact stated in turn 1 is
+// not remembered in turn 2 of the same conversation_id). So multi-turn context must be supplied
+// in the prompt. The client sends recent turns; bound them hard (count + length + total).
+function parseResearchHistory(value: unknown): ResearchTurn[] {
+  if (!Array.isArray(value)) return []
+  const turns: ResearchTurn[] = []
+  for (const item of value) {
+    if (!item || typeof item !== "object") continue
+    const role = (item as { role?: unknown }).role
+    const raw = (item as { text?: unknown; content?: unknown }).text ?? (item as { content?: unknown }).content
+    if ((role !== "user" && role !== "assistant") || typeof raw !== "string") continue
+    const text = raw.replace(/\s+/g, " ").trim().slice(0, 800)
+    if (text) turns.push({ role, text })
+  }
+  return turns.slice(-6)
+}
+
+async function askResearchAgent(
+  message: string,
+  conversationId: string | undefined,
+  links: ResearchLink[],
+  history: ResearchTurn[] = [],
+) {
   const { sdk, config } = createRecursivServerClient({ timeout: 120000, allowDeveloperApiKey: true })
   if (!config.agentId) return null
   const agentId = config.agentId
@@ -451,7 +475,12 @@ async function askResearchAgent(message: string, conversationId: string | undefi
     "When sources matter: prioritize primary records, declassified archives, court files, transcripts, longform independent media, alternative-media archives, and named witnesses; treat mainstream outlets as official-narrative comparators unless they carry a primary admission, named witness, leaked document, or useful timeline. Use Markdown links for any URL you cite, and do not return HTML.",
     "Do not cite unrelated Inverted World sources just because they are provided. If a provided source is not relevant to the question, ignore it. Do not invent certainty or citations.",
     links.length ? `Possibly-relevant Inverted World source context (use only if genuinely relevant):\n${contextLines(links)}` : "",
-    `Question: ${message}`,
+    history.length
+      ? `Earlier in this conversation (oldest first) — use it to resolve references like "it" or "that" in the new question:\n${history
+          .map((turn) => `${turn.role === "user" ? "User" : "You"}: ${turn.text}`)
+          .join("\n")}`
+      : "",
+    `New question: ${message}`,
   ]
     .filter(Boolean)
     .join("\n\n")
@@ -557,11 +586,13 @@ export async function POST(request: Request) {
   const parsedBody = await readLimitedJsonBody<{
     message?: unknown
     conversationId?: unknown
+    history?: unknown
   }>(request, RESEARCH_BODY_LIMIT_BYTES)
   if (!parsedBody.ok) return parsedBody.response
 
   const message = trimMessage(parsedBody.body.message)
   const conversationId = normalizeConversationId(parsedBody.body.conversationId)
+  const history = parseResearchHistory(parsedBody.body.history)
   if (!message) return NextResponse.json({ error: "Message is required" }, { status: 400 })
 
   const budget = await checkResearchBudget(clientId, conversationId)
@@ -578,7 +609,7 @@ export async function POST(request: Request) {
   }
 
   const links = await gatherResearchContext(message)
-  const agentAnswer = await askResearchAgent(message, conversationId, links).catch(() => null)
+  const agentAnswer = await askResearchAgent(message, conversationId, links, history).catch(() => null)
   const responseText =
     agentAnswer?.content && !isWeakResearchAnswer(agentAnswer.content) ? agentAnswer.content : fallbackResearchAnswer(message, links)
 

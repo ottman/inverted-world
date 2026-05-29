@@ -154,7 +154,7 @@ export function ArchiveOnlyPage({
               <span>{selectedTopic.title}</span>
               <Youtube className="h-5 w-5" />
             </div>
-            <h2 className="iw-serif mt-4 text-5xl leading-[0.86] text-[#fff8e6] sm:text-6xl lg:text-5xl xl:text-6xl">
+            <h2 className="iw-serif mt-4 break-words [overflow-wrap:anywhere] text-5xl leading-[0.86] text-[#fff8e6] sm:text-6xl lg:text-5xl xl:text-6xl">
               {leadVideo?.title || "Live uploads"}
             </h2>
             <p className="mt-3 text-xs uppercase tracking-[0.14em] text-[#f4efe2]/48">{leadVideo?.date || "latest upload"}</p>
