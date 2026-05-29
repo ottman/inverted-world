@@ -436,6 +436,7 @@ function conversationalResearchReply(message: string) {
 async function askResearchAgent(message: string, conversationId: string | undefined, links: ResearchLink[]) {
   const { sdk, config } = createRecursivServerClient({ timeout: 120000, allowDeveloperApiKey: true })
   if (!config.agentId) return null
+  const agentId = config.agentId
 
   const prompt = [
     "You are the Inverted World research analyst: a sharp, well-read, genuinely intelligent investigator. Think like a top research analyst and adapt your answer to the actual question instead of forcing a fixed template.",
@@ -455,17 +456,36 @@ async function askResearchAgent(message: string, conversationId: string | undefi
     .filter(Boolean)
     .join("\n\n")
 
-  const response = await sdk.agents.chatStreamText(config.agentId, {
-    message: prompt,
-    conversation_id: conversationId,
-    new_conversation: !conversationId,
-  })
+  // A Recursiv conversation_id is a bare UUID the server issued. The chat sends its OWN
+  // client-generated id (e.g. "research-<uuid>") on the very first message, and asking the
+  // agent to CONTINUE a conversation it never created errors instantly -> fallback every time.
+  // So only continue when the id looks like a Recursiv UUID; otherwise start a fresh
+  // conversation and return the real id for the client to reuse on follow-ups.
+  const recursivConversationId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  const continueId = conversationId && recursivConversationId.test(conversationId) ? conversationId : undefined
+
+  const callAgent = (cid: string | undefined) =>
+    sdk.agents.chatStreamText(agentId, {
+      message: prompt,
+      conversation_id: cid,
+      new_conversation: !cid,
+    })
+
+  let response
+  try {
+    response = await callAgent(continueId)
+  } catch (error) {
+    // Continuing an existing conversation failed (invalid/expired/unknown id) — don't drop
+    // straight to the fallback; retry once as a brand-new conversation.
+    if (!continueId) throw error
+    response = await callAgent(undefined)
+  }
   const content = String(response.content || "").trim()
   if (!content) return null
 
   return {
     content,
-    conversationId: response.conversationId || conversationId,
+    conversationId: response.conversationId || continueId,
   }
 }
 
@@ -500,12 +520,9 @@ function fallbackResearchAnswer(message: string, links: ResearchLink[]) {
     return [knownRead, sourceLines.length ? `## Source trail\n${sourceLines.join("\n")}` : ""].filter(Boolean).join("\n\n")
   }
 
-  const notice =
-    "The live research engine is busy or unreachable right now, so I can't give a full answer to this one. Please try again in a moment."
-  if (sourceLines.length) {
-    return [notice, `## Related Inverted World sources\n${sourceLines.join("\n")}`].join("\n\n")
-  }
-  return notice
+  // Agent-unreachable case: keep it clean. Don't append a "Related sources" list — during a
+  // failure those local links are often only loosely related and read like a wrong answer.
+  return "The live research engine is busy or unreachable right now, so I can't give a full answer to this one. Please try again in a moment."
 }
 
 async function checkResearchBudget(clientId: string, conversationId?: string) {
