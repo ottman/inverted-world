@@ -562,8 +562,85 @@ function capItemsPerSource(items: WorldwireItem[], max = WORLDWIRE_MAX_PER_SOURC
   return kept
 }
 
+// newsapi.ai / Event Registry: the primary breadth source — ~30k+ publishers worldwide via one
+// query per lane, returning a hugely diverse pool of outlets. Enabled when NEWSAPI_AI_KEY is set.
+const NEWSAPI_AI_ENDPOINT = "https://eventregistry.org/api/v1/article/getArticles"
+
+type NewsApiAiArticle = {
+  title?: string
+  url?: string
+  dateTime?: string
+  image?: string
+  source?: { title?: string; uri?: string }
+}
+
+// Event Registry needs a keyword ARRAY with keywordOper:"or" — a multi-word string is treated as
+// an exact phrase (returns ~nothing). Convert the lane's Google-style query into OR keywords.
+function newsApiKeywords(lane: WorldwireLane): string[] {
+  const terms = `${lane.query || ""} ${lane.title || ""}`
+    .replace(/\b(?:OR|AND)\b/gi, " ")
+    .replace(/["'()]/g, " ")
+    .split(/\s+/)
+    .map((term) => term.trim())
+    .filter((term) => term.length > 2)
+  return Array.from(new Set(terms)).slice(0, 8)
+}
+
+async function fetchNewsApiAiLane(lane: WorldwireLane): Promise<WorldwireItem[]> {
+  const apiKey = process.env.NEWSAPI_AI_KEY
+  if (!apiKey) return []
+  const keywords = newsApiKeywords(lane)
+  if (!keywords.length) return []
+  const response = await fetch(NEWSAPI_AI_ENDPOINT, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      action: "getArticles",
+      keyword: keywords,
+      keywordOper: "or",
+      lang: "eng",
+      articlesSortBy: "date",
+      articlesCount: 50,
+      articlesPage: 1,
+      resultType: "articles",
+      dataType: ["news"],
+      isDuplicateFilter: "skipDuplicates",
+      articleBodyLen: 0,
+      apiKey,
+    }),
+    signal: AbortSignal.timeout(9000),
+    next: { revalidate: 600 },
+  })
+  if (!response.ok) return []
+  const data = (await response.json()) as { articles?: { results?: NewsApiAiArticle[] } }
+  return (data.articles?.results || [])
+    .map((article, index) => {
+      const url = article.url || ""
+      const source = sourceLabel(article.source?.title || article.source?.uri, url)
+      const title = cleanNewsTitle(article.title || "Untitled source", source)
+      return {
+        id: `newsapi-${lane.id}-${index}`,
+        title,
+        url,
+        source,
+        sectionId: lane.id,
+        sectionTitle: lane.title,
+        score: scoreWorldwireTitle(title, 80, index, { source, url }),
+        publishedAt: article.dateTime,
+        imageUrl: normalizeImageUrl(article.image),
+      }
+    })
+    .filter((item) => isExternalUrl(item.url) && looksLikeArticleUrl(item.url) && isUsefulWorldwireTitle(item.title))
+}
+
 async function fetchLaneBase(lane: WorldwireLane) {
-  const results = await Promise.allSettled([fetchExaLane(lane), fetchBraveLane(lane), fetchGoogleLane(lane), fetchRssLane(lane)])
+  const results = await Promise.allSettled([
+    fetchNewsApiAiLane(lane),
+    fetchExaLane(lane),
+    fetchBraveLane(lane),
+    fetchGoogleLane(lane),
+    fetchRssLane(lane),
+  ])
   return capItemsPerSource(
     uniqueWorldwireItems(results.flatMap((result) => (result.status === "fulfilled" ? result.value : [])))
       .filter((item) => isExternalUrl(item.url) && looksLikeArticleUrl(item.url) && isUsefulWorldwireTitle(item.title))
