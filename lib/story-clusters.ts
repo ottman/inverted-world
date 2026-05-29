@@ -1,10 +1,10 @@
 import { createRecursivServerClient } from "@/lib/recursiv/client"
 import { queryInvertedWorldDatabase } from "@/lib/recursiv/database"
 
-// Ground-News-style story clusters via newsapi.ai (Event Registry) "Events": each event is the
-// same story clustered across many outlets, with a coverage count. We fetch recent significant
-// events, filter spam/junk, and (elsewhere) have the agent write a viral-neutral headline + a
-// balanced synopsis. No political bias rating here yet — that's a later layer.
+// Story clusters via newsapi.ai (Event Registry) "Events": each event is the same story
+// clustered across many outlets, with a coverage count. We fetch recent significant events,
+// filter spam/junk, and (elsewhere) have the agent write a viral-neutral headline + a balanced
+// synopsis. No political bias rating here yet — that's a later layer.
 
 const NEWSAPI_AI_EVENTS_ENDPOINT = "https://eventregistry.org/api/v1/event/getEvents"
 

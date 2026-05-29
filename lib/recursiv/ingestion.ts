@@ -1105,7 +1105,7 @@ function compactWorldwireItem(item: WorldwireItem): WorldwireItem {
   }
 }
 
-// Ground-News-style story clusters: fetch newsapi.ai Events, have the agent write a viral-neutral
+// Story clusters: fetch newsapi.ai Events, have the agent write a viral-neutral
 // headline + synopsis, store as a coverage_snapshots row (source='top-stories'). Uses the same
 // direct-DB writer as the rest of ingestion (the SDK REST query path rejects these params).
 export async function syncTopStoriesToRecursiv(options: { limit?: number; sinceDays?: number } = {}) {
