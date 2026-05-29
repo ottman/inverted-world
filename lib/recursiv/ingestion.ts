@@ -1121,6 +1121,13 @@ const TOP_STORIES_MAX_NEW_PER_RUN = 48
 const COVERAGE_CONCURRENCY = 5
 const IMAGE_CONCURRENCY = 8
 
+// A story has a real agent-written body (not the event-summary fallback). Used to pick which stored
+// stories still need self-healing on a later run.
+function hasFullStoryBody(story: StoryCluster): boolean {
+  const body = story.body || ""
+  return body.length >= 1200 && body !== (story.summary || "")
+}
+
 // Turn raw newsapi.ai events into full stories: who's covering each (so the narrative can attribute
 // facts to named outlets, which we linkify on the detail page), then a viral-neutral headline +
 // long synopsis body, then a rights-cleared (CC/PD) Openverse image. Bounded concurrency keeps the
@@ -1133,7 +1140,8 @@ async function enrichFreshTopStories(events: StoryCluster[]): Promise<StoryClust
       await new Promise((resolve) => setTimeout(resolve, 400))
       coveringArticles = await fetchEventCoverage(event.uri).catch(() => [])
     }
-    return { ...event, coveringArticles }
+    // When re-processing a story (self-heal) and the re-fetch comes back empty, keep what it had.
+    return { ...event, coveringArticles: coveringArticles.length ? coveringArticles : event.coveringArticles || [] }
   })
   const narrated = await generateStoryNarratives(withCoverage)
   return mapWithConcurrency(narrated, IMAGE_CONCURRENCY, async (story) => {
@@ -1144,7 +1152,8 @@ async function enrichFreshTopStories(events: StoryCluster[]): Promise<StoryClust
       story.concepts[1],
       story.title.split(/\s+/).filter((word) => word.length > 3).slice(0, 3).join(" "),
     ]).catch(() => null)
-    return { ...story, image: image || undefined }
+    // Never drop an image we already had if the fresh lookup fails.
+    return { ...story, image: image || story.image || undefined }
   })
 }
 
@@ -1168,21 +1177,32 @@ export async function syncTopStoriesToRecursiv(options: { limit?: number; sinceD
   const candidates = await fetchNewsApiEvents({ limit: discoveryLimit, sinceDays: options.sinceDays ?? 2 })
   if (!candidates.length && !existing.length) return { stored: 0, reason: "no-events" as const }
 
-  const freshEvents = candidates.filter((event) => !existingByUri.has(event.uri)).slice(0, maxNew)
-  const newStories = await enrichFreshTopStories(freshEvents)
+  // Process genuinely-new events first; then, with whatever per-run budget is left, self-heal
+  // existing stories still carrying a fallback body (e.g. a previous run hit the agent's daily
+  // quota). Over successive hourly runs every story ends up with a full sourced body without ever
+  // bursting the quota in one go.
+  const newEvents = candidates.filter((event) => !existingByUri.has(event.uri))
+  const repairTargets = existing.filter((story) => !hasFullStoryBody(story))
+  const toProcess = [...newEvents, ...repairTargets].slice(0, maxNew)
+  const processed = await enrichFreshTopStories(toProcess)
+  const processedByUri = new Map(processed.map((story) => [story.uri, story]))
 
-  // Guarantee every freshly-processed story is kept; fill the remaining slots with the most recent
-  // existing stories; drop the oldest beyond the limit. Final display order is newest-first.
-  const newUris = new Set(newStories.map((story) => story.uri))
-  const room = Math.max(0, limit - newStories.length)
-  const keptExisting = existing
-    .filter((story) => story?.uri && !newUris.has(story.uri))
-    .sort((left, right) => (right.eventDate || "").localeCompare(left.eventDate || ""))
-    .slice(0, room)
-  const stories = [...newStories, ...keptExisting].sort(
-    (left, right) => (right.eventDate || "").localeCompare(left.eventDate || ""),
-  )
+  // Merge: a freshly-processed story always wins over its prior version; keep the freshest up to the
+  // rolling limit and drop the oldest beyond it. Final display order is newest-first.
+  const merged: StoryCluster[] = []
+  const seen = new Set<string>()
+  for (const story of [...processed, ...existing]) {
+    if (!story?.uri || seen.has(story.uri)) continue
+    seen.add(story.uri)
+    merged.push(processedByUri.get(story.uri) || story)
+  }
+  const stories = merged.sort((left, right) => (right.eventDate || "").localeCompare(left.eventDate || "")).slice(0, limit)
   const totalCoverage = stories.reduce((sum, story) => sum + (story.articleCount || 0), 0)
+
+  const newEventUris = new Set(newEvents.map((event) => event.uri))
+  const newThisRun = processed.filter((story) => newEventUris.has(story.uri)).length
+  const healedThisRun = processed.length - newThisRun
+  const fullBodies = stories.filter(hasFullStoryBody).length
 
   const { sdk, config } = getInvertedWorldDatabase()
   await sdk.databases.query({
@@ -1197,10 +1217,10 @@ export async function syncTopStoriesToRecursiv(options: { limit?: number; sinceD
       JSON.stringify(stories),
       "Top story clusters across the spectrum (newsapi.ai Events).",
       String(Number.isFinite(totalCoverage) ? totalCoverage : 0),
-      JSON.stringify({ generatedBy: "newsapi-ai-events-v2-rolling", storyCount: stories.length, newThisRun: newStories.length }),
+      JSON.stringify({ generatedBy: "newsapi-ai-events-v2-rolling", storyCount: stories.length, newThisRun, healedThisRun, fullBodies }),
     ],
   })
-  return { stored: stories.length, newThisRun: newStories.length, totalCoverage }
+  return { stored: stories.length, newThisRun, healedThisRun, fullBodies, totalCoverage }
 }
 
 export async function syncWorldwireCoverageToRecursiv(options: { limitPerLane?: number } = {}) {

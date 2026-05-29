@@ -161,7 +161,10 @@ export async function mapWithConcurrency<T, R>(
 // single oversized body can't take its neighbours down. Falls back to the event's own title/summary
 // for any story the agent never returns.
 const NARRATIVE_BATCH_SIZE = 3
-const NARRATIVE_CONCURRENCY = 4
+const NARRATIVE_CONCURRENCY = 2
+// The agent emits this when the account's daily response quota is spent; it isn't JSON, so treat it
+// as a hard stop for the run instead of parsing it as a body.
+const AGENT_LIMIT_SENTINEL = /daily response limit|Upgrade for higher limits/i
 
 type StoryNarrative = { headline?: string; synopsis?: string; body?: string; imageQuery?: string }
 
@@ -241,21 +244,38 @@ export async function generateStoryNarratives(stories: StoryCluster[]): Promise<
   }
 
   const byId = new Map<string, StoryNarrative>()
-  const runChunk = async (chunk: StoryCluster[]): Promise<void> => {
+  // Once the agent reports its daily response limit, every further call returns the same notice
+  // (not JSON) — so we stop calling and let the rest fall back, rather than burning the budget and
+  // overwriting nothing useful. The hourly job self-heals these on a later run when quota returns.
+  let quotaExhausted = false
+  // Retry thrown calls with exponential backoff so a transiently-throttled call waits its turn.
+  const callAgent = async (chunk: StoryCluster[], attempt = 0): Promise<string | null> => {
     try {
       const response = await sdk.agents.chatStreamText(resolvedAgentId, {
         message: buildNarrativePrompt(chunk),
         new_conversation: true,
       })
-      parseNarrativeRows(String(response.content || ""), byId)
+      return String(response.content || "")
     } catch {
-      // fall through to the per-story retry below
+      if (attempt >= 4) return null
+      await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1) * (attempt + 1)))
+      return callAgent(chunk, attempt + 1)
     }
-    // Any story the chunk didn't yield (truncated/invalid JSON, or the call threw) gets one
-    // single-story retry — small enough that the body can't overflow the output budget.
+  }
+  const runChunk = async (chunk: StoryCluster[]): Promise<void> => {
+    if (quotaExhausted) return
+    const content = await callAgent(chunk)
+    if (content && AGENT_LIMIT_SENTINEL.test(content)) {
+      quotaExhausted = true
+      return
+    }
+    if (content) parseNarrativeRows(content, byId)
+    // Any story the chunk didn't yield (truncated/invalid JSON) gets a single-story retry — small
+    // enough that the body can't overflow the output budget.
     const missing = chunk.filter((story) => !byId.has(story.uri))
-    if (missing.length && chunk.length > 1) {
+    if (missing.length && chunk.length > 1 && !quotaExhausted) {
       for (const story of missing) {
+        if (quotaExhausted) break
         await runChunk([story])
         if (!byId.has(story.uri)) await runChunk([story]) // one extra single-story attempt
       }
