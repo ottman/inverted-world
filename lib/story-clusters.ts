@@ -27,10 +27,14 @@ export type StoryCluster = {
   headline?: string
   synopsis?: string // short, for cards
   body?: string // full neutral synopsis article, for the detail page
+  bodySource?: "agent" | "synth" // "agent" = model-written; "synth" = built from coverage (interim)
   imageQuery?: string // AI-crafted visual search terms for a rights-cleared image
   image?: RightsClearedImage // rights-cleared (CC/PD) image via Openverse
+  imageChecked?: boolean // a relevance-scored image lookup has been attempted (don't retry forever)
   // The actual outlets + their headlines covering this story (newsapi.ai event articles):
   coveringArticles?: CoveringArticle[]
+  // "lane" distinguishes the mainstream "everyone's covering" set from the under-covered fringe set.
+  lane?: "top" | "fringe"
 }
 
 type RawEvent = {
@@ -132,6 +136,133 @@ export async function fetchNewsApiEvents(options: { limit?: number; sinceDays?: 
   return stories
 }
 
+// ── "What nobody's talking about": stories MAINSTREAM media isn't covering ───────────────────────
+// The defining signal is mainstream-absence, not topic. We discover recent clustered stories with a
+// genuine (independent/social) footprint but LOW total coverage — big legacy outlets blanket a story
+// with hundreds of articles, so a low count is a cheap proxy for "the majors aren't on it" — sorted
+// by social engagement so it's what people are actually sharing. The covering-outlet mix is then
+// checked downstream (see mainstreamCoverageCount) to drop anything the majors did pick up.
+
+// Major legacy / wire outlets. If several of these are covering a story, mainstream IS talking.
+const MAINSTREAM_OUTLET_PATTERN =
+  /\b(reuters|associated press|ap news|apnews|new york times|nytimes|washington post|washingtonpost|wall street journal|wsj|bbc|cnn|nbc news|msnbc|abc news|cbs news|npr|pbs|the guardian|bloomberg|politico|the hill|usa today|fox news|foxnews|time magazine|newsweek|forbes|axios|cnbc|los angeles times|la times|financial times|the economist|sky news|al jazeera|the independent|the telegraph|daily mail|mail online|huffpost|huffington post|business insider|vox|the atlantic|vanity fair|the new yorker|national review|reuters)\b/i
+
+export function mainstreamCoverageCount(story: StoryCluster): number {
+  const seen = new Set<string>()
+  for (const article of story.coveringArticles || []) {
+    const outlet = (article.outlet || "").toLowerCase()
+    if (MAINSTREAM_OUTLET_PATTERN.test(outlet)) seen.add(outlet.replace(/\s+/g, " ").trim())
+  }
+  return seen.size
+}
+
+// True when big legacy outlets are essentially absent from a story's coverage — i.e. "nobody [in
+// the mainstream] is talking about it."
+export function isMainstreamAbsent(story: StoryCluster, maxMainstream = 1): boolean {
+  return mainstreamCoverageCount(story) <= maxMainstream
+}
+
+// The Inverted World beat: subjects the establishment press chronically under-covers. Discovery is
+// anchored on these concept URIs (so stories are substantive and on-brand, not random local news),
+// then gated on a beat term in the TITLE/SUMMARY, then — the user's defining criterion — checked for
+// mainstream-absence downstream (mainstreamCoverageCount) so only stories the majors skipped remain.
+// Event Registry caps concept filters at 10 for this subscription tier — keep the highest-signal.
+const FRINGE_CONCEPT_URIS = [
+  "http://en.wikipedia.org/wiki/Unidentified_flying_object",
+  "http://en.wikipedia.org/wiki/Extraterrestrial_life",
+  "http://en.wikipedia.org/wiki/Area_51",
+  "http://en.wikipedia.org/wiki/Roswell_incident",
+  "http://en.wikipedia.org/wiki/Jeffrey_Epstein",
+  "http://en.wikipedia.org/wiki/Bigfoot",
+  "http://en.wikipedia.org/wiki/Loch_Ness_Monster",
+  "http://en.wikipedia.org/wiki/Paranormal",
+  "http://en.wikipedia.org/wiki/Mass_surveillance",
+  "http://en.wikipedia.org/wiki/Whistleblower",
+]
+
+const FRINGE_TITLE_PATTERN =
+  /\b(ufo|uap|u\.f\.o|alien|extraterrestrial|flying object|roswell|area 51|epstein|maxwell|ghislaine|declassif(?:y|ied|ication)|deep state|men in black|non-?human|tic[ -]?tac|pentagon ufo|aaro|aatip|grusch|disclosure|secret program|black project|cryptid|bigfoot|sasquatch|loch ness|crop circle|paranormal|poltergeist|haunt(?:ed|ing)|remote viewing|mk[- ]?ultra|mind control|false flag|cover-?up|whistleblow|mass surveillance|censorship|psyop|cia|nsa)\b/i
+
+// Beat terms also match entertainment ("Alien action film", "superhero" movies); drop those.
+const FRINGE_EXCLUDE_PATTERN =
+  /\b(film|movie|trailer|box office|sequel|prequel|superhero|web series|tv series|season \d|episode|album|single|song|actor|actress|bollywood|hollywood|netflix|premiere|red carpet|casting|biopic)\b/i
+
+export async function fetchFringeEvents(options: { limit?: number; sinceDays?: number; maxArticles?: number } = {}): Promise<StoryCluster[]> {
+  const apiKey = process.env.NEWSAPI_AI_KEY
+  if (!apiKey) return []
+  const limit = Math.max(1, Math.min(options.limit ?? 24, 80))
+  const sinceDays = Math.max(1, Math.min(options.sinceDays ?? 14, 45))
+  // Mainstream blankets big stories with hundreds of articles; cap so we surface what the majors
+  // aren't saturating. (A precise covering-outlet check happens after coverage is fetched.)
+  const maxArticles = Math.max(6, options.maxArticles ?? 90)
+  const dateStart = new Date(Date.now() - sinceDays * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+
+  const stories: StoryCluster[] = []
+  const seen = new Set<string>()
+  // Paginate (Event Registry caps at 50/page); over-fetch since the gates prune heavily.
+  for (let page = 1; page <= 4 && stories.length < limit * 2; page += 1) {
+    let response: Response
+    try {
+      response = await fetch(NEWSAPI_AI_EVENTS_ENDPOINT, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          action: "getEvents",
+          resultType: "events",
+          conceptUri: FRINGE_CONCEPT_URIS,
+          conceptOper: "or",
+          eventsSortBy: "date",
+          eventsCount: NEWSAPI_EVENTS_PAGE_SIZE,
+          eventsPage: page,
+          lang: "eng",
+          dateStart,
+          minArticlesInEvent: 3,
+          includeEventConcepts: true,
+          includeEventSummary: true,
+          eventImageCount: 1,
+          apiKey,
+        }),
+        signal: AbortSignal.timeout(15000),
+        next: { revalidate: 1800 },
+      })
+    } catch {
+      break
+    }
+    if (!response.ok) break
+    const data = (await response.json().catch(() => null)) as { events?: { results?: RawEvent[] } } | null
+    const events = data?.events?.results || []
+    if (!events.length) break
+
+    for (const event of events) {
+      if (stories.length >= limit * 2) break
+      const title = engText(event.title)
+      const summary = engText(event.summary)
+      const articleCount = event.totalArticleCount || 0
+      if (articleCount > maxArticles) continue // mainstream-saturated → not "nobody's talking about"
+      if (!FRINGE_TITLE_PATTERN.test(`${title} ${summary}`)) continue // on the beat, not a stray tag
+      if (FRINGE_EXCLUDE_PATTERN.test(title)) continue // not film/TV/celebrity that merely matched
+      const concepts = (event.concepts || [])
+        .map((concept) => engText(concept.label))
+        .filter(Boolean)
+        .slice(0, 6)
+      if (!event.uri || seen.has(event.uri) || !isQualityStory(title, summary, concepts)) continue
+      seen.add(event.uri)
+      stories.push({
+        uri: event.uri,
+        title,
+        summary,
+        articleCount,
+        concepts,
+        eventDate: event.eventDate,
+        imageUrl: Array.isArray(event.images) ? event.images[0] : undefined,
+        lane: "fringe",
+      })
+    }
+    if (events.length < NEWSAPI_EVENTS_PAGE_SIZE) break
+  }
+  return stories
+}
+
 // Run an async mapper over items with a bounded number of concurrent workers. Used to keep large
 // batches (10x stories) from hammering the agent / newsapi.ai / Openverse all at once.
 export async function mapWithConcurrency<T, R>(
@@ -224,6 +355,25 @@ function parseNarrativeRows(content: string, into: Map<string, StoryNarrative>) 
   }
 }
 
+// Cheap one-shot probe: is the agent's daily response quota currently available? Used to skip the
+// (newsapi-token-spending) self-heal repair pass when the agent would just return the limit notice.
+export async function agentQuotaAvailable(): Promise<boolean> {
+  let client
+  try {
+    client = createRecursivServerClient({ timeout: 30000, allowDeveloperApiKey: true })
+  } catch {
+    return false
+  }
+  const agentId = client.config.agentId
+  if (!agentId) return false
+  try {
+    const response = await client.sdk.agents.chatStreamText(agentId, { message: "Reply with: ok", new_conversation: true })
+    return !AGENT_LIMIT_SENTINEL.test(String(response.content || ""))
+  } catch {
+    return false
+  }
+}
+
 export async function generateStoryNarratives(stories: StoryCluster[]): Promise<StoryCluster[]> {
   if (!stories.length) return stories
   let sdk
@@ -285,30 +435,99 @@ export async function generateStoryNarratives(stories: StoryCluster[]): Promise<
 
   return stories.map((story) => {
     const gen = byId.get(story.uri)
+    // Prefer the model-written body; otherwise synthesize a full, complete article from the event
+    // summary + the outlets covering it, so the story never renders as a stub that "cuts off" a few
+    // lines in. `bodySource` lets the self-heal step know to upgrade synth → agent when quota returns.
+    const agentBody = gen?.body && gen.body.length >= 400 ? gen.body : ""
     return {
       ...story,
       headline: gen?.headline || story.title,
       synopsis: gen?.synopsis || story.summary,
-      body: gen?.body || gen?.synopsis || story.summary,
+      body: agentBody || buildSynthesizedBody(story, gen?.synopsis),
+      bodySource: agentBody ? ("agent" as const) : ("synth" as const),
       imageQuery: gen?.imageQuery || story.concepts.slice(0, 2).join(" "),
     }
   })
 }
 
+// Build a complete, neutral synopsis article from data we already have (event summary + the outlets
+// covering the story and their headlines) — used when the agent is unavailable (e.g. its daily quota
+// is spent). It reads as a real multi-paragraph article, attributes framing to specific named
+// outlets (which the detail page linkifies), and always ends cleanly. Self-heal later replaces it.
+export function buildSynthesizedBody(story: StoryCluster, leadOverride?: string): string {
+  const lead = (leadOverride || story.summary || story.title || "").trim()
+  const covering = (story.coveringArticles || []).filter((article) => article.outlet && article.headline)
+  const paragraphs: string[] = []
+
+  if (lead) paragraphs.push(lead)
+
+  if (covering.length) {
+    const count = story.articleCount || covering.length
+    paragraphs.push(
+      `The story is being covered by ${count.toLocaleString()} outlet${count === 1 ? "" : "s"} across the spectrum. ` +
+        `${covering[0].outlet} reported “${trimHeadline(covering[0].headline)}.”` +
+        (covering[1] ? ` ${covering[1].outlet} framed it as “${trimHeadline(covering[1].headline)}.”` : ""),
+    )
+
+    // Weave the remaining outlets' framings, a few per paragraph, varying the verbs.
+    const verbs = ["reported", "noted", "described it as", "led with", "highlighted", "characterized it as"]
+    const rest = covering.slice(2, 12)
+    for (let index = 0; index < rest.length; index += 2) {
+      const pair = rest.slice(index, index + 2)
+      const sentence = pair
+        .map((article, offset) => {
+          const verb = verbs[(index + offset) % verbs.length]
+          return `${article.outlet} ${verb} “${trimHeadline(article.headline)}.”`
+        })
+        .join(" ")
+      paragraphs.push(sentence)
+    }
+
+    const topics = story.concepts.slice(0, 4).join(", ")
+    paragraphs.push(
+      `Coverage spans ${count.toLocaleString()} outlet${count === 1 ? "" : "s"}${topics ? `, touching on ${topics}` : ""}. ` +
+        `Reporting continues to develop; this summary draws on how the participating outlets are currently framing the story.`,
+    )
+  } else if (story.concepts.length) {
+    paragraphs.push(
+      `This developing story relates to ${story.concepts.slice(0, 4).join(", ")}. ` +
+        `Additional sourced detail is being compiled as more outlets weigh in.`,
+    )
+  }
+
+  return paragraphs.filter(Boolean).join("\n\n")
+}
+
+function trimHeadline(headline: string): string {
+  const clean = headline.replace(/\s+/g, " ").replace(/["“”]+/g, "").trim()
+  return clean.length > 160 ? `${clean.slice(0, 157).trim()}…` : clean
+}
+
 type TopStoriesRow = { items?: unknown }
 
 // ── Read (for /news rendering) ─────────────────────────────────────────────────────────────────
-export async function fetchRecursivTopStories(options: { limit?: number } = {}): Promise<StoryCluster[]> {
-  const limit = Math.max(1, Math.min(options.limit ?? 12, 250))
+async function fetchStorySnapshot(source: string, limit: number): Promise<StoryCluster[]> {
   const rows = await queryInvertedWorldDatabase<TopStoriesRow>(
     `SELECT items FROM coverage_snapshots
-     WHERE source = 'top-stories'
+     WHERE source = $1
      ORDER BY captured_at DESC, created_at DESC
      LIMIT 1`,
+    [source],
   )
   const raw = rows?.[0]?.items
   const items = typeof raw === "string" ? safeParseStories(raw) : Array.isArray(raw) ? (raw as StoryCluster[]) : []
   return items.filter((story) => story && story.uri && (story.headline || story.title)).slice(0, limit)
+}
+
+// Mainstream "What everyone's talking about" set.
+export async function fetchRecursivTopStories(options: { limit?: number } = {}): Promise<StoryCluster[]> {
+  return fetchStorySnapshot("top-stories", Math.max(1, Math.min(options.limit ?? 12, 250)))
+}
+
+// Under-covered "What nobody's talking about" set.
+export async function fetchRecursivFringeStories(options: { limit?: number } = {}): Promise<StoryCluster[]> {
+  const stories = await fetchStorySnapshot("fringe-stories", Math.max(1, Math.min(options.limit ?? 24, 120)))
+  return stories.map((story) => ({ ...story, lane: "fringe" as const }))
 }
 
 function safeParseStories(value: string): StoryCluster[] {
@@ -369,8 +588,12 @@ export async function fetchEventCoverage(eventUri: string, limit = 18): Promise<
   }
   return out
 }
-// Read a single stored story cluster by its event uri (for the detail page).
+// Read a single stored story cluster by its event uri (for the detail page). Checks both the
+// mainstream and the fringe sets so every card — from either /news section — has a working page.
 export async function fetchRecursivTopStory(id: string): Promise<StoryCluster | null> {
-  const stories = await fetchRecursivTopStories({ limit: 250 })
-  return stories.find((story) => story.uri === id) || null
+  const [top, fringe] = await Promise.all([
+    fetchRecursivTopStories({ limit: 250 }),
+    fetchRecursivFringeStories({ limit: 120 }).catch(() => [] as StoryCluster[]),
+  ])
+  return top.find((story) => story.uri === id) || fringe.find((story) => story.uri === id) || null
 }

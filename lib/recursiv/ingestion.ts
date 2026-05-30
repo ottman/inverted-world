@@ -10,13 +10,18 @@ import { fetchLiveArticlesForTopic } from "@/lib/live-articles"
 import { fetchMediaSeedItemsForSync, mediaItemMetadata } from "@/lib/media-library"
 import {
   fetchNewsApiEvents,
+  fetchFringeEvents,
   generateStoryNarratives,
   fetchEventCoverage,
   fetchRecursivTopStories,
+  fetchRecursivFringeStories,
+  buildSynthesizedBody,
+  isMainstreamAbsent,
+  agentQuotaAvailable,
   mapWithConcurrency,
   type StoryCluster,
 } from "@/lib/story-clusters"
-import { fetchOpenverseImageFromQueries } from "@/lib/openverse"
+import { fetchBestRelevantOpenverseImage, imageRelevanceTerms, type RightsClearedImage } from "@/lib/openverse"
 import { generatedSvgThumbnail } from "@/lib/generated-thumbnail"
 import { createRecursivServerClient } from "@/lib/recursiv/client"
 import { executeDirectInvertedWorldDatabaseSql, hasDirectInvertedWorldDatabase } from "@/lib/recursiv/database"
@@ -1120,12 +1125,42 @@ const TOP_STORIES_DEFAULT_LIMIT = 160
 const TOP_STORIES_MAX_NEW_PER_RUN = 48
 const COVERAGE_CONCURRENCY = 5
 const IMAGE_CONCURRENCY = 8
+const IMAGE_REFRESH_PER_RUN = 40
 
-// A story has a real agent-written body (not the event-summary fallback). Used to pick which stored
-// stories still need self-healing on a later run.
+// Re-pick images for stories whose current picture isn't clearly relevant to the article (older rows
+// stored before relevance scoring). Bounded per run + marked `imageChecked` so it converges over a
+// few runs and never retries forever. Openverse is free, so this costs no quota — only HTTP.
+async function refreshLowRelevanceImages(stories: StoryCluster[]): Promise<StoryCluster[]> {
+  const needs = stories.filter((story) => !story.imageChecked && ((story.image?.relevance) || 0) < 1).slice(0, IMAGE_REFRESH_PER_RUN)
+  if (!needs.length) return stories
+  const attempted = new Set(needs.map((story) => story.uri))
+  const better = new Map<string, RightsClearedImage>()
+  await mapWithConcurrency(needs, IMAGE_CONCURRENCY, async (story) => {
+    const terms = imageRelevanceTerms([story.title, ...story.concepts])
+    const image = await fetchBestRelevantOpenverseImage(
+      [
+        story.imageQuery,
+        story.concepts.slice(0, 2).join(" "),
+        story.concepts[0],
+        story.concepts[1],
+        story.title.split(/\s+/).filter((word) => word.length > 3).slice(0, 4).join(" "),
+      ],
+      terms,
+    ).catch(() => null)
+    if (image && (image.relevance || 0) > ((story.image?.relevance) || 0)) better.set(story.uri, image)
+  })
+  return stories.map((story) =>
+    attempted.has(story.uri) ? { ...story, image: better.get(story.uri) || story.image, imageChecked: true } : story,
+  )
+}
+
+// A story has a real agent-written body (not the synthesized/summary interim). Used to pick which
+// stored stories still need self-healing (an agent rewrite) on a later run once quota is available.
 function hasFullStoryBody(story: StoryCluster): boolean {
+  if (story.bodySource === "agent") return true
+  // Tolerate pre-`bodySource` rows: a long body that isn't the bare summary counts as agent-written.
   const body = story.body || ""
-  return body.length >= 1200 && body !== (story.summary || "")
+  return !story.bodySource && body.length >= 1200 && body !== (story.summary || "")
 }
 
 // Turn raw newsapi.ai events into full stories: who's covering each (so the narrative can attribute
@@ -1145,47 +1180,80 @@ async function enrichFreshTopStories(events: StoryCluster[]): Promise<StoryClust
   })
   const narrated = await generateStoryNarratives(withCoverage)
   return mapWithConcurrency(narrated, IMAGE_CONCURRENCY, async (story) => {
-    const image = await fetchOpenverseImageFromQueries([
-      story.imageQuery,
-      story.concepts.slice(0, 2).join(" "),
-      story.concepts[0],
-      story.concepts[1],
-      story.title.split(/\s+/).filter((word) => word.length > 3).slice(0, 3).join(" "),
-    ]).catch(() => null)
-    // Never drop an image we already had if the fresh lookup fails.
-    return { ...story, image: image || story.image || undefined }
+    // Score Openverse candidates by how well they match the story's own terms so the picture is
+    // actually about the article, not just any rights-cleared photo the query surfaced.
+    const relevanceTerms = imageRelevanceTerms([story.title, ...story.concepts])
+    const image = await fetchBestRelevantOpenverseImage(
+      [
+        story.imageQuery,
+        story.concepts.slice(0, 2).join(" "),
+        story.concepts[0],
+        story.concepts[1],
+        story.title.split(/\s+/).filter((word) => word.length > 3).slice(0, 4).join(" "),
+      ],
+      relevanceTerms,
+    ).catch(() => null)
+    // Keep the better of the fresh pick vs. whatever we already had (don't downgrade on a miss).
+    const prior = story.image
+    const next = image && (!prior || (image.relevance || 0) >= (prior.relevance || 0)) ? image : prior
+    return { ...story, image: next || undefined }
   })
 }
 
-// Story clusters: maintain a ROLLING set of top stories (default 160). Each run discovers the
-// current top events, fully processes only the ones we don't already have (the expensive part), and
-// merges them in front of the existing set — keeping the freshest `limit` and letting older stories
-// age off. This is what makes "10x stories, new ones hourly" sustainable against the newsapi.ai
-// token budget: a full set means only the handful of genuinely-new events get reprocessed per hour.
-// Stored as a coverage_snapshots row (source='top-stories') via the direct-DB writer.
-export async function syncTopStoriesToRecursiv(options: { limit?: number; sinceDays?: number; maxNew?: number; rebuild?: boolean } = {}) {
-  const limit = Math.max(1, Math.min(options.limit ?? TOP_STORIES_DEFAULT_LIMIT, 250))
-  const maxNew = Math.max(1, Math.min(options.maxNew ?? (options.rebuild ? limit : TOP_STORIES_MAX_NEW_PER_RUN), limit))
+const FRINGE_DEFAULT_LIMIT = 36
+const FRINGE_MAX_NEW_PER_RUN = 18
+
+// Maintain a ROLLING set of story clusters for one lane. Each run discovers current events, fully
+// processes only the ones we don't already have (the expensive coverage + narrative + image step),
+// optionally self-heals stale (synthesized) bodies when the agent quota is back, and merges newest-
+// first up to `limit` — older stories age off. This is what makes "10x stories, new ones hourly"
+// sustainable: a full set means only genuinely-new events get reprocessed per hour. Stored as a
+// coverage_snapshots row keyed by `source` via the direct-DB writer.
+async function runRollingStorySync(opts: {
+  source: string
+  lane: "top" | "fringe"
+  defaultLimit: number
+  defaultMaxNew: number
+  limit?: number
+  maxNew?: number
+  rebuild?: boolean
+  summaryText: string
+  generatedBy: string
+  existingFetcher: (limit: number) => Promise<StoryCluster[]>
+  discover: (discoveryLimit: number) => Promise<StoryCluster[]>
+  postFilter?: (story: StoryCluster) => boolean
+}) {
+  const limit = Math.max(1, Math.min(opts.limit ?? opts.defaultLimit, 250))
+  const maxNew = Math.max(1, Math.min(opts.maxNew ?? (opts.rebuild ? limit : opts.defaultMaxNew), limit))
 
   // rebuild=true ignores the existing set and reprocesses everything fresh (one-time clean backfill);
   // the hourly cron omits it so it only pays for genuinely-new events.
-  const existing = options.rebuild ? [] : await fetchRecursivTopStories({ limit }).catch(() => [])
+  const existing = opts.rebuild ? [] : await opts.existingFetcher(limit).catch(() => [])
   const existingByUri = new Map(existing.map((story) => [story.uri, story]))
 
   // Shallow scan once the set is full (cheap discovery of what's new); deep scan while backfilling.
   const discoveryLimit = existing.length >= limit ? Math.min(limit, 100) : limit
-  const candidates = await fetchNewsApiEvents({ limit: discoveryLimit, sinceDays: options.sinceDays ?? 2 })
+  const candidates = await opts.discover(discoveryLimit)
   if (!candidates.length && !existing.length) return { stored: 0, reason: "no-events" as const }
 
   // Process genuinely-new events first; then, with whatever per-run budget is left, self-heal
-  // existing stories still carrying a fallback body (e.g. a previous run hit the agent's daily
-  // quota). Over successive hourly runs every story ends up with a full sourced body without ever
-  // bursting the quota in one go.
+  // existing stories still carrying a synthesized/summary body (e.g. a previous run hit the agent's
+  // daily quota). Skip the repair pass entirely when the agent quota is spent — re-fetching their
+  // coverage would just spend newsapi tokens for a body the agent can't rewrite yet.
   const newEvents = candidates.filter((event) => !existingByUri.has(event.uri))
-  const repairTargets = existing.filter((story) => !hasFullStoryBody(story))
+  const staleStories = existing.filter((story) => !hasFullStoryBody(story))
+  const repairTargets = staleStories.length && (await agentQuotaAvailable()) ? staleStories : []
   const toProcess = [...newEvents, ...repairTargets].slice(0, maxNew)
-  const processed = await enrichFreshTopStories(toProcess)
+  const processed = (await enrichFreshTopStories(toProcess)).map((story) => ({ ...story, lane: opts.lane }))
   const processedByUri = new Map(processed.map((story) => [story.uri, story]))
+
+  // For any kept (not-reprocessed) story that doesn't have a real agent body yet, (re)synthesize a
+  // complete article from its stored coverage right here — free, no network — so stories never
+  // render as a stub that "cuts off" a few lines in, even while the agent quota is spent.
+  const normalizeBody = (story: StoryCluster): StoryCluster =>
+    story.bodySource === "agent"
+      ? story
+      : { ...story, body: buildSynthesizedBody(story), bodySource: "synth" as const }
 
   // Merge: a freshly-processed story always wins over its prior version; keep the freshest up to the
   // rolling limit and drop the oldest beyond it. Final display order is newest-first.
@@ -1194,9 +1262,13 @@ export async function syncTopStoriesToRecursiv(options: { limit?: number; sinceD
   for (const story of [...processed, ...existing]) {
     if (!story?.uri || seen.has(story.uri)) continue
     seen.add(story.uri)
-    merged.push(processedByUri.get(story.uri) || story)
+    merged.push(processedByUri.get(story.uri) || normalizeBody({ ...story, lane: opts.lane }))
   }
-  const stories = merged.sort((left, right) => (right.eventDate || "").localeCompare(left.eventDate || "")).slice(0, limit)
+  // Lane-specific gate (e.g. the fringe lane drops anything the mainstream picked up), applied after
+  // coverage is known. Then keep the freshest up to the rolling limit, and converge images.
+  const filtered = opts.postFilter ? merged.filter(opts.postFilter) : merged
+  const ranked = filtered.sort((left, right) => (right.eventDate || "").localeCompare(left.eventDate || "")).slice(0, limit)
+  const stories = await refreshLowRelevanceImages(ranked)
   const totalCoverage = stories.reduce((sum, story) => sum + (story.articleCount || 0), 0)
 
   const newEventUris = new Set(newEvents.map((event) => event.uri))
@@ -1211,16 +1283,52 @@ export async function syncTopStoriesToRecursiv(options: { limit?: number; sinceD
     sql: `INSERT INTO coverage_snapshots (topic_id, query, source, items, summary, velocity_score, metadata)
       VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7::jsonb)`,
     params: [
-      "top-stories",
-      "top-stories",
-      "top-stories",
+      opts.source,
+      opts.source,
+      opts.source,
       JSON.stringify(stories),
-      "Top story clusters across the spectrum (newsapi.ai Events).",
+      opts.summaryText,
       String(Number.isFinite(totalCoverage) ? totalCoverage : 0),
-      JSON.stringify({ generatedBy: "newsapi-ai-events-v2-rolling", storyCount: stories.length, newThisRun, healedThisRun, fullBodies }),
+      JSON.stringify({ generatedBy: opts.generatedBy, storyCount: stories.length, newThisRun, healedThisRun, fullBodies }),
     ],
   })
   return { stored: stories.length, newThisRun, healedThisRun, fullBodies, totalCoverage }
+}
+
+// Mainstream "What everyone's talking about" — rolling 160, hourly.
+export async function syncTopStoriesToRecursiv(options: { limit?: number; sinceDays?: number; maxNew?: number; rebuild?: boolean } = {}) {
+  return runRollingStorySync({
+    source: "top-stories",
+    lane: "top",
+    defaultLimit: TOP_STORIES_DEFAULT_LIMIT,
+    defaultMaxNew: TOP_STORIES_MAX_NEW_PER_RUN,
+    limit: options.limit,
+    maxNew: options.maxNew,
+    rebuild: options.rebuild,
+    summaryText: "Top story clusters across the spectrum (newsapi.ai Events).",
+    generatedBy: "newsapi-ai-events-v2-rolling",
+    existingFetcher: (limit) => fetchRecursivTopStories({ limit }),
+    discover: (discoveryLimit) => fetchNewsApiEvents({ limit: discoveryLimit, sinceDays: options.sinceDays ?? 2 }),
+  })
+}
+
+// Under-covered "What nobody's talking about" — rolling fringe/anomaly set, hourly.
+export async function syncUnderCoveredStoriesToRecursiv(options: { limit?: number; sinceDays?: number; maxNew?: number; rebuild?: boolean } = {}) {
+  return runRollingStorySync({
+    source: "fringe-stories",
+    lane: "fringe",
+    defaultLimit: FRINGE_DEFAULT_LIMIT,
+    defaultMaxNew: FRINGE_MAX_NEW_PER_RUN,
+    limit: options.limit,
+    maxNew: options.maxNew,
+    rebuild: options.rebuild,
+    summaryText: "Stories the mainstream isn't covering (newsapi.ai Events).",
+    generatedBy: "newsapi-ai-mainstream-absent-v2-rolling",
+    existingFetcher: (limit) => fetchRecursivFringeStories({ limit }),
+    discover: (discoveryLimit) => fetchFringeEvents({ limit: discoveryLimit, sinceDays: options.sinceDays ?? 10 }),
+    // The defining gate: keep only stories big legacy outlets are essentially absent from.
+    postFilter: (story) => isMainstreamAbsent(story, 1),
+  })
 }
 
 export async function syncWorldwireCoverageToRecursiv(options: { limitPerLane?: number } = {}) {
@@ -2324,6 +2432,7 @@ export async function runFullPipelineInRecursiv(options: { mode?: string | null;
     ["topic-pulse", () => syncTopicPulseToRecursiv({ profileReader })],
     ["worldwire", syncWorldwireCoverageToRecursiv],
     ["top-stories", () => syncTopStoriesToRecursiv()],
+    ["under-covered-stories", () => syncUnderCoveredStoriesToRecursiv()],
     ["claim-dossiers", generateClaimDossiersInRecursiv],
     ["article-generation", generateArticleDraftsInRecursiv],
     ["image-generation", generateImagesForDraftsInRecursiv],

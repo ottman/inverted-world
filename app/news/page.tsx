@@ -13,7 +13,7 @@ import {
   type ClaimSourceLink,
 } from "@/lib/recursiv/content"
 import { maybeStartNewsRefresh } from "@/lib/recursiv/news-refresh"
-import { fetchRecursivTopStories, type StoryCluster } from "@/lib/story-clusters"
+import { fetchRecursivTopStories, fetchRecursivFringeStories, type StoryCluster } from "@/lib/story-clusters"
 import { cn } from "@/lib/utils"
 import {
   WORLDWIRE_LANES,
@@ -208,13 +208,71 @@ const MAX_PER_HOST_PER_LANE = Math.max(1, Math.min(Math.trunc(Number(process.env
 // Hard cap on how many articles any single outlet contributes to the whole board ("a couple").
 const NEWS_MAX_PER_OUTLET = Math.max(1, Math.min(Math.trunc(Number(process.env.NEWS_MAX_PER_OUTLET)) || 2, 6))
 
+function StoryClusterSection({
+  eyebrow,
+  title,
+  note,
+  stories,
+}: {
+  eyebrow: string
+  title: string
+  note: string
+  stories: StoryCluster[]
+}) {
+  return (
+    <section className={cn("grid gap-3 p-3", archiveSurface)}>
+      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[#f4efe2]/10 pb-3">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#df2f2f]">{eyebrow}</p>
+          <h2 className="iw-serif text-4xl leading-none text-[#fff8e6]">{title}</h2>
+        </div>
+        <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/46">{note}</div>
+      </div>
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {stories.map((story) => (
+          <a
+            key={story.uri}
+            href={`/news/story/${encodeURIComponent(story.uri)}`}
+            className="group flex flex-col gap-2 bg-[#050504]/40 p-4 transition hover:bg-[#050504]/66"
+          >
+            {story.image?.url ? (
+              <div className="-mx-4 -mt-4 mb-1 aspect-[16/9] overflow-hidden bg-black/40">
+                <img
+                  src={story.image.url}
+                  alt=""
+                  loading="lazy"
+                  className="h-full w-full object-cover opacity-90 transition group-hover:opacity-100"
+                />
+              </div>
+            ) : null}
+            <h3 className="iw-serif text-3xl font-bold leading-[1.0] text-[#fff8e6] transition group-hover:text-[#df2f2f] sm:text-4xl">
+              {story.headline || story.title}
+            </h3>
+            <p className="text-sm leading-6 text-[#f4efe2]/72">{story.synopsis || story.summary}</p>
+            <div className="mt-auto flex flex-wrap items-center gap-2 pt-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/46">
+              <span className="text-[#df2f2f]">{story.articleCount.toLocaleString()} articles covering</span>
+              {story.coveringArticles?.length ? <span>· {story.coveringArticles.length}+ outlets</span> : null}
+              {story.concepts.slice(0, 3).map((concept) => (
+                <span key={concept} className="bg-black/30 px-2 py-1">
+                  {concept}
+                </span>
+              ))}
+            </div>
+          </a>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 export default async function NewsPage() {
   const refreshKickoff = maybeStartNewsRefresh("news-page").catch(() => null)
-  const [dossiers, topicFeeds, worldwire, topStories] = await Promise.all([
+  const [dossiers, topicFeeds, worldwire, topStories, fringeStories] = await Promise.all([
     fetchRecursivClaimDossiers({ limit: 48 }).then((items) => items || []),
     fetchLiveArticlesByTopic({ allowProviderFallbacks: false, limitPerTopic: 10 }).catch(() => ({})),
     fetchRecursivWorldwireItems({ limitPerLane: 120 }).then((items) => items || []),
-    fetchRecursivTopStories({ limit: 48 }).catch(() => [] as StoryCluster[]),
+    fetchRecursivTopStories({ limit: 160 }).catch(() => [] as StoryCluster[]),
+    fetchRecursivFringeStories({ limit: 36 }).catch(() => [] as StoryCluster[]),
   ])
   void refreshKickoff
 
@@ -265,50 +323,21 @@ export default async function NewsPage() {
       {laneGroups.length ? <NewsCategoryStrip groups={laneGroups} /> : null}
 
       {topStories.length ? (
-        <section className={cn("grid gap-3 p-3", archiveSurface)}>
-          <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[#f4efe2]/10 pb-3">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#df2f2f]">Top Stories</p>
-              <h2 className="iw-serif text-4xl leading-none text-[#fff8e6]">What everyone is covering</h2>
-            </div>
-            <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/46">
-              {topStories.length} stories · clustered across the spectrum
-            </div>
-          </div>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {topStories.map((story) => (
-              <a
-                key={story.uri}
-                href={`/news/story/${encodeURIComponent(story.uri)}`}
-                className="group flex flex-col gap-2 bg-[#050504]/40 p-4 transition hover:bg-[#050504]/66"
-              >
-                {story.image?.url ? (
-                  <div className="-mx-4 -mt-4 mb-1 aspect-[16/9] overflow-hidden bg-black/40">
-                    <img
-                      src={story.image.url}
-                      alt=""
-                      loading="lazy"
-                      className="h-full w-full object-cover opacity-90 transition group-hover:opacity-100"
-                    />
-                  </div>
-                ) : null}
-                <h3 className="iw-serif text-3xl font-bold leading-[1.0] text-[#fff8e6] transition group-hover:text-[#df2f2f] sm:text-4xl">
-                  {story.headline || story.title}
-                </h3>
-                <p className="text-sm leading-6 text-[#f4efe2]/72">{story.synopsis || story.summary}</p>
-                <div className="mt-auto flex flex-wrap items-center gap-2 pt-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/46">
-                  <span className="text-[#df2f2f]">{story.articleCount.toLocaleString()} articles covering</span>
-                  {story.coveringArticles?.length ? <span>· {story.coveringArticles.length}+ outlets</span> : null}
-                  {story.concepts.slice(0, 3).map((concept) => (
-                    <span key={concept} className="bg-black/30 px-2 py-1">
-                      {concept}
-                    </span>
-                  ))}
-                </div>
-              </a>
-            ))}
-          </div>
-        </section>
+        <StoryClusterSection
+          eyebrow="Top Stories"
+          title="What everyone's talking about"
+          note={`${topStories.length} stories · clustered across the spectrum`}
+          stories={topStories}
+        />
+      ) : null}
+
+      {fringeStories.length ? (
+        <StoryClusterSection
+          eyebrow="Mainstream Blackout"
+          title="What nobody's talking about"
+          note={`${fringeStories.length} stories the major outlets aren't covering`}
+          stories={fringeStories}
+        />
       ) : null}
 
       {lead ? (

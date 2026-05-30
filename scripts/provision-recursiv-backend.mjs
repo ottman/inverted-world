@@ -303,6 +303,11 @@ const JOBS = [
     endpoint: "/api/recursiv/jobs/top-stories?async=1",
   },
   {
+    name: "inverted-world-under-covered-stories",
+    cron: "30 * * * *",
+    endpoint: "/api/recursiv/jobs/under-covered-stories?async=1",
+  },
+  {
     name: "inverted-world-article-generation",
     cron: "35 */6 * * *",
     endpoint: "/api/recursiv/jobs/article-generation?limit=2&useAgent=0&async=1",

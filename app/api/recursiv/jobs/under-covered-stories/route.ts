@@ -1,0 +1,18 @@
+import { NextRequest } from "next/server"
+import { syncUnderCoveredStoriesToRecursiv } from "@/lib/recursiv/ingestion"
+import { runRecursivJob } from "@/lib/recursiv/job-runner"
+
+export const dynamic = "force-dynamic"
+export const runtime = "nodejs"
+
+export async function POST(request: NextRequest) {
+  const url = new URL(request.url)
+  return runRecursivJob(request, "under-covered-stories", () =>
+    syncUnderCoveredStoriesToRecursiv({
+      limit: Number(url.searchParams.get("limit") || "") || undefined,
+      sinceDays: Number(url.searchParams.get("sinceDays") || "") || undefined,
+      maxNew: Number(url.searchParams.get("maxNew") || "") || undefined,
+      rebuild: /^(1|true|yes)$/i.test(url.searchParams.get("rebuild") || ""),
+    }),
+  )
+}
