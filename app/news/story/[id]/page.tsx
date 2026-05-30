@@ -159,7 +159,9 @@ export default async function StoryPage({ params }: { params: Promise<{ id: stri
             <img
               src={heroImageUrl}
               alt={story.headline || story.title}
-              className={cn("h-full w-full", hasRealImage ? "object-cover" : "object-contain p-10 opacity-80")}
+              // object-top biases the 16:9 crop toward the top of the frame so faces/heads aren't
+              // sliced off the way a centered crop does.
+              className={cn("h-full w-full", hasRealImage ? "object-cover object-top" : "object-contain p-10 opacity-80")}
             />
           </div>
           {hasRealImage ? (

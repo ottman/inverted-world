@@ -241,7 +241,7 @@ function StoryClusterSection({
                   src={story.image.url}
                   alt=""
                   loading="lazy"
-                  className="h-full w-full object-cover opacity-90 transition group-hover:opacity-100"
+                  className="h-full w-full object-cover object-top opacity-90 transition group-hover:opacity-100"
                 />
               </div>
             ) : null}
@@ -590,7 +590,7 @@ function HeadlineImage({ item, size }: { item: NewsBoardItem; size: "lead" | "ma
         alt=""
         loading={size === "lead" ? "eager" : "lazy"}
         decoding="async"
-        className="h-full w-full object-cover [image-rendering:auto]"
+        className="h-full w-full object-cover object-top [image-rendering:auto]"
       />
     </span>
   )
