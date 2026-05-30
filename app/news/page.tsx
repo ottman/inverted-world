@@ -231,8 +231,7 @@ function toCardData(story: StoryCluster): StoryCardData {
 
 export default async function NewsPage() {
   const refreshKickoff = maybeStartNewsRefresh("news-page").catch(() => null)
-  const [dossiers, topStoriesRaw, fringeStoriesRaw, weirdRaw, comedyRaw, popRaw, viralRaw] = await Promise.all([
-    fetchRecursivClaimDossiers({ limit: 12 }).then((items) => items || []),
+  const [topStoriesRaw, fringeStoriesRaw, weirdRaw, comedyRaw, popRaw, viralRaw] = await Promise.all([
     fetchRecursivTopStories({ limit: 160 }).catch(() => [] as StoryCluster[]),
     fetchRecursivFringeStories({ limit: 36 }).catch(() => [] as StoryCluster[]),
     fetchRecursivThemedStories("weird", { limit: 40 }).catch(() => [] as StoryCluster[]),
@@ -282,38 +281,6 @@ export default async function NewsPage() {
       heroDescription=""
     >
       {topStories.length ? <NewsFeed topCards={topStories.map(toCardData)} themes={themes} /> : null}
-
-      {dossiers.length ? (
-        <section className={cn("mt-5 grid gap-3 p-3", archiveSurface)}>
-          <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[#f4efe2]/10 pb-3">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#df2f2f]">Inverted files</p>
-              <h2 className="iw-serif text-4xl leading-none text-[#fff8e6]">The deeper reads</h2>
-            </div>
-            <div className="flex gap-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/46">
-              <span>{formatScore(dossiers[0].xVelocityScore)} heat</span>
-              <span>{dossiers.reduce((sum, dossier) => sum + dossier.sourceCount, 0)} sources</span>
-              <span>{dossiers.reduce((sum, dossier) => sum + dossier.xSignalCount, 0)} X signals</span>
-            </div>
-          </div>
-          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-            {dossiers.slice(0, 6).map((dossier) => (
-              <a key={dossier.slug} href={`/news/${dossier.slug}`} className="group grid gap-2 bg-[#050504]/42 p-3 transition hover:bg-black/70">
-                <span className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.13em] text-[#df2f2f]">
-                  <RadioTower className="h-3.5 w-3.5" />
-                  {dossier.evidenceGrade} / {dossier.sourceCount} sources
-                </span>
-                <span className="iw-serif text-2xl leading-none text-[#fff8e6] group-hover:text-[#df2f2f]">{dossier.title}</span>
-                {dossier.deck ? <span className="text-xs leading-5 text-[#f4efe2]/58">{dossier.deck}</span> : null}
-                <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/48 group-hover:text-[#fff8e6]">
-                  Open file
-                  <ArrowUpRight className="h-3.5 w-3.5 text-[#df2f2f]" />
-                </span>
-              </a>
-            ))}
-          </div>
-        </section>
-      ) : null}
     </InvertedPageShell>
   )
 }

@@ -166,7 +166,9 @@ export default async function StoryPage({ params }: { params: Promise<{ id: stri
           </div>
           {hasRealImage ? (
             <figcaption className="text-[10px] uppercase tracking-[0.12em] text-[#f4efe2]/40">
-              {story.image?.attribution ? (
+              {/^ai-generated/i.test(story.image?.license || "") ? (
+                <span>AI-generated illustration</span>
+              ) : story.image?.attribution ? (
                 <a href={story.image.sourceUrl} target="_blank" rel="noopener noreferrer" className="transition hover:text-[#df2f2f]">
                   {story.image.attribution}
                 </a>

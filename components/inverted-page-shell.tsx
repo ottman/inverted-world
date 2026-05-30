@@ -134,15 +134,13 @@ export function InvertedPageShell({
                 className="h-10 w-auto max-w-[76vw] shrink sm:h-11 sm:max-w-none"
               />
             </a>
-            <nav className="iw-serif flex w-full items-center gap-3 overflow-x-auto text-lg font-normal leading-none tracking-normal text-[#f4efe2]/70 lg:justify-center lg:gap-5 lg:text-xl">
+            <nav className="iw-serif flex w-full items-center justify-center gap-6 text-lg font-normal leading-none tracking-normal text-[#f4efe2]/70 lg:gap-8 lg:text-xl">
+              <a className="shrink-0 transition hover:text-[#df2f2f]" href="/archive">
+                Tales
+              </a>
               <a className="shrink-0 transition hover:text-[#df2f2f]" href="/news">
                 Breaking News
               </a>
-              {topics.map((topic) => (
-                <a key={topic.id} className="shrink-0 transition hover:text-[#df2f2f]" href={`/#topic-${topic.id}`}>
-                  {topic.title}
-                </a>
-              ))}
             </nav>
             <div className="hidden lg:block" aria-hidden="true" />
           </div>

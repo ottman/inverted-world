@@ -131,6 +131,30 @@ export async function fetchBestRelevantOpenverseImage(
   return best ? toRightsClearedImage(best.result, best.relevance) : null
 }
 
+// AI-generated thumbnail via Pollinations (free, keyless text-to-image) — used when no rights-cleared
+// photo is relevant enough, so a story never shows an irrelevant "dud". The URL is deterministic per
+// prompt (Pollinations caches by URL), so it's stable to store and reload.
+const POLLINATIONS_ENDPOINT = "https://image.pollinations.ai/prompt/"
+export function aiThumbnailImage(prompt: string): RightsClearedImage | null {
+  const trimmed = (prompt || "").replace(/\s+/g, " ").trim().slice(0, 180)
+  if (!trimmed) return null
+  const styled = `${trimmed}, editorial news photograph, photojournalistic, realistic, cinematic lighting, no text, no watermark`
+  const url = `${POLLINATIONS_ENDPOINT}${encodeURIComponent(styled)}?width=1024&height=576&nologo=true&model=flux`
+  return { url, license: "AI-generated", relevance: 99 }
+}
+
+// Best thumbnail for a story: a relevance-scored rights-cleared photo when one clearly matches
+// (>=1 of the story's key terms in its title/tags), otherwise an AI-generated image. Never a dud.
+export async function fetchStoryThumbnail(
+  queries: Array<string | undefined>,
+  relevanceTerms: string[],
+  aiPrompt: string,
+): Promise<RightsClearedImage | null> {
+  const photo = await fetchBestRelevantOpenverseImage(queries, relevanceTerms).catch(() => null)
+  if (photo && (photo.relevance || 0) >= 1) return photo
+  return aiThumbnailImage(aiPrompt) || photo
+}
+
 // Back-compat: cascade queries with no relevance signal (returns the first rights-cleared hit).
 export async function fetchOpenverseImageFromQueries(queries: Array<string | undefined>): Promise<RightsClearedImage | null> {
   return fetchBestRelevantOpenverseImage(queries, [])

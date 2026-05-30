@@ -28,8 +28,9 @@ export type ThemeFeed = {
 
 type Selection = { kind: "all" } | { kind: "category"; name: string } | { kind: "theme"; key: string }
 
-// ONE navigation for the whole news page: a single bar of chips — All, the top-story categories
-// (Politics, Sports, …), then the themed sections — that all drive ONE grid below.
+// ONE navigation for the whole news page, in the homepage's style: a grid of category cards — All,
+// the top-story categories (Politics, Sports, …), then the themed sections — that all drive ONE feed
+// below. Same single-nav filtering as before, dressed in the homepage's topic-index card look.
 export function NewsFeed({ topCards, themes }: { topCards: StoryCardData[]; themes: ThemeFeed[] }) {
   const categories = useMemo(() => {
     const counts = new Map<string, number>()
@@ -54,15 +55,18 @@ export function NewsFeed({ topCards, themes }: { topCards: StoryCardData[]; them
 
   return (
     <section className={cn("grid gap-4 p-3 pt-4", archiveSurface)}>
-      <nav className="-mx-1 flex flex-wrap items-center gap-1.5 px-1" aria-label="News sections and categories">
-        <Chip
+      <nav
+        className="grid gap-2 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6"
+        aria-label="News sections and categories"
+      >
+        <CategoryCard
           label="All"
           count={topCards.length}
           active={selection.kind === "all"}
           onClick={() => setSelection({ kind: "all" })}
         />
         {categories.map((category) => (
-          <Chip
+          <CategoryCard
             key={category.name}
             label={category.name}
             count={category.count}
@@ -70,9 +74,8 @@ export function NewsFeed({ topCards, themes }: { topCards: StoryCardData[]; them
             onClick={() => setSelection({ kind: "category", name: category.name })}
           />
         ))}
-        {themes.length ? <span className="mx-1 h-4 w-px self-center bg-[#f4efe2]/18" aria-hidden /> : null}
         {themes.map((theme) => (
-          <Chip
+          <CategoryCard
             key={theme.key}
             label={theme.chip}
             count={theme.cards.length}
@@ -136,7 +139,9 @@ function StoryCard({ card }: { card: StoryCardData }) {
   )
 }
 
-function Chip({
+// A single category tile — the homepage topic-index card look (red uppercase label + count), but it
+// filters the feed instead of jumping to a section. Themed sections get the red accent fill.
+function CategoryCard({
   label,
   count,
   active,
@@ -153,17 +158,32 @@ function Chip({
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={active}
       className={cn(
-        "flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] transition",
+        "group grid min-h-[84px] content-between p-3 text-left transition",
         active
-          ? "bg-[#df2f2f] text-[#fff8e6]"
+          ? "bg-[#df2f2f]"
           : accent
-            ? "bg-[#df2f2f]/14 text-[#fff8e6]/80 hover:bg-[#df2f2f]/28"
-            : "bg-black/30 text-[#f4efe2]/64 hover:bg-black/52 hover:text-[#fff8e6]",
+            ? "bg-[#df2f2f]/12 hover:bg-[#df2f2f]/24"
+            : "bg-[#050504]/38 hover:bg-black/62",
       )}
     >
-      {label}
-      <span className={cn("text-[10px]", active ? "text-[#fff8e6]/70" : "text-[#f4efe2]/40")}>{count}</span>
+      <span
+        className={cn(
+          "block text-[11px] font-semibold uppercase leading-4 tracking-[0.14em]",
+          active ? "text-[#fff8e6]" : accent ? "text-[#fff8e6]/90" : "text-[#df2f2f]",
+        )}
+      >
+        {label}
+      </span>
+      <span
+        className={cn(
+          "mt-3 text-[10px] font-semibold uppercase tracking-[0.11em]",
+          active ? "text-[#fff8e6]/80" : "text-[#f4efe2]/46 group-hover:text-[#fff8e6]/80",
+        )}
+      >
+        {count} {count === 1 ? "story" : "stories"}
+      </span>
     </button>
   )
 }
