@@ -214,7 +214,7 @@ export default async function NewsPage() {
     fetchRecursivClaimDossiers({ limit: 48 }).then((items) => items || []),
     fetchLiveArticlesByTopic({ allowProviderFallbacks: false, limitPerTopic: 10 }).catch(() => ({})),
     fetchRecursivWorldwireItems({ limitPerLane: 120 }).then((items) => items || []),
-    fetchRecursivTopStories({ limit: 12 }).catch(() => [] as StoryCluster[]),
+    fetchRecursivTopStories({ limit: 48 }).catch(() => [] as StoryCluster[]),
   ])
   void refreshKickoff
 

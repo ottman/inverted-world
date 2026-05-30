@@ -41,7 +41,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
     }))
 
-    const stories = (await fetchRecursivTopStories({ limit: 30 })) || []
+    const stories = (await fetchRecursivTopStories({ limit: 200 })) || []
     const storyRoutes: MetadataRoute.Sitemap = stories.map((story) => ({
       url: `${baseUrl}/news/story/${story.uri}`,
       lastModified: story.eventDate ? new Date(story.eventDate) : new Date(),
