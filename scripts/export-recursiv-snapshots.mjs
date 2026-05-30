@@ -172,6 +172,11 @@ const NEWS_EXPORTS = [
   },
   {
     key: "coverageSnapshots",
+    // Only the 'worldwire' rows are ever read from the committed fallback (see
+    // snapshotCoverageRows() in lib/recursiv/content.ts, filtered to source='worldwire').
+    // Story-cluster rows (top-stories / fringe / themed) are read live from the DB, NOT this
+    // file — including them here ballooned the snapshot to ~33MB of story bodies, which OOM'd
+    // the server on its static import. Export ONLY worldwire so the fallback stays small.
     sql: `SELECT COALESCE(jsonb_agg(to_jsonb(export_row) ORDER BY export_row.captured_at DESC), '[]'::jsonb)::text
       FROM (
         SELECT
@@ -187,8 +192,9 @@ const NEWS_EXPORTS = [
           metadata,
           created_at
         FROM coverage_snapshots
+        WHERE source = 'worldwire'
         ORDER BY captured_at DESC
-        LIMIT 500
+        LIMIT 200
       ) export_row`,
   },
 ]
