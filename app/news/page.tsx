@@ -20,7 +20,7 @@ import {
   tidyCategoryLabel,
   type StoryCluster,
 } from "@/lib/story-clusters"
-import { StoryCategoryBoard, type StoryCardData } from "@/components/story-category-board"
+import { NewsFeed, type StoryCardData, type ThemeFeed } from "@/components/story-category-board"
 import { cn } from "@/lib/utils"
 import {
   WORLDWIRE_LANES,
@@ -263,6 +263,16 @@ export default async function NewsPage() {
     source: story.category || "Top Stories",
   }))
 
+  // One nav for the whole page: All + the top-story categories + the themed sections, all driving
+  // one grid (see NewsFeed). Themes are filtered to the non-empty ones.
+  const themes: ThemeFeed[] = [
+    { key: "viral", chip: "Viral", title: "Viral", cards: viralStories.map(toCardData) },
+    { key: "weird", chip: "Weird", title: "Weird", cards: weirdStories.map(toCardData) },
+    { key: "comedy", chip: "Comedy", title: "Comedy", cards: comedyStories.map(toCardData) },
+    { key: "pop", chip: "Pop & Music", title: "Pop & Music", cards: popStories.map(toCardData) },
+    { key: "blackout", chip: "Blackout", title: "What nobody's talking about", cards: fringeStories.map(toCardData) },
+  ].filter((theme) => theme.cards.length > 0)
+
   return (
     <InvertedPageShell
       eyebrow="News"
@@ -271,59 +281,7 @@ export default async function NewsPage() {
       heroTitle="News"
       heroDescription=""
     >
-      {topStories.length ? (
-        <StoryCategoryBoard
-          eyebrow="Top Stories"
-          title="What everyone's talking about"
-          note={`${topStories.length} stories · clustered across the spectrum`}
-          cards={topStories.map(toCardData)}
-        />
-      ) : null}
-
-      {fringeStories.length ? (
-        <StoryCategoryBoard
-          eyebrow="Mainstream Blackout"
-          title="What nobody's talking about"
-          note={`${fringeStories.length} stories the major outlets aren't covering`}
-          cards={fringeStories.map(toCardData)}
-        />
-      ) : null}
-
-      {weirdStories.length ? (
-        <StoryCategoryBoard
-          eyebrow="The Strange"
-          title="Weird"
-          note={`${weirdStories.length} strange, unexplained & paranormal stories`}
-          cards={weirdStories.map(toCardData)}
-        />
-      ) : null}
-
-      {comedyStories.length ? (
-        <StoryCategoryBoard
-          eyebrow="Laughs"
-          title="Comedy"
-          note={`${comedyStories.length} comedy & satire stories`}
-          cards={comedyStories.map(toCardData)}
-        />
-      ) : null}
-
-      {popStories.length ? (
-        <StoryCategoryBoard
-          eyebrow="Culture"
-          title="Pop & Music"
-          note={`${popStories.length} pop culture & music stories`}
-          cards={popStories.map(toCardData)}
-        />
-      ) : null}
-
-      {viralStories.length ? (
-        <StoryCategoryBoard
-          eyebrow="Trending"
-          title="Viral"
-          note={`${viralStories.length} most-shared stories right now`}
-          cards={viralStories.map(toCardData)}
-        />
-      ) : null}
+      {topStories.length ? <NewsFeed topCards={topStories.map(toCardData)} themes={themes} /> : null}
 
       {dossiers.length ? (
         <section className={cn("mt-5 grid gap-3 p-3", archiveSurface)}>
