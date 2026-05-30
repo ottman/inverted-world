@@ -35,9 +35,11 @@ export type StoryCluster = {
   imageChecked?: boolean // a relevance-scored image lookup has been attempted (don't retry forever)
   // The actual outlets + their headlines covering this story (newsapi.ai event articles):
   coveringArticles?: CoveringArticle[]
-  // "lane" distinguishes the mainstream "everyone's covering" set from the under-covered fringe set.
-  lane?: "top" | "fringe"
+  // Which themed set this story belongs to (mainstream, fringe, weird, comedy, pop, viral).
+  lane?: StoryLane
 }
+
+export type StoryLane = "top" | "fringe" | "weird" | "comedy" | "pop" | "viral"
 
 type RawEvent = {
   uri?: string
@@ -376,6 +378,175 @@ export function dedupeNearDuplicateStories(stories: StoryCluster[], against: Sto
   return out
 }
 
+// ── Themed sections: Weird / Comedy / Pop & Music / Viral ────────────────────────────────────────
+// Each is a newsapi.ai query anchored on concept URIs (≤10 per the plan tier) and gated on a
+// theme term in the TITLE/SUMMARY so a stray concept tag doesn't pull in off-topic news. Viral is
+// the exception: it's broad and sorted by social engagement (what's actually being shared).
+type ThemedConfig = {
+  lane: StoryLane
+  conceptUris?: string[]
+  titlePattern?: RegExp
+  excludePattern?: RegExp
+  sortBy?: "date" | "socialScore" | "size"
+  sinceDays?: number
+  minArticles?: number
+}
+
+const WEIRD_CONFIG: ThemedConfig = {
+  lane: "weird",
+  conceptUris: [
+    "http://en.wikipedia.org/wiki/Unidentified_flying_object",
+    "http://en.wikipedia.org/wiki/Paranormal",
+    "http://en.wikipedia.org/wiki/Ghost",
+    "http://en.wikipedia.org/wiki/Bigfoot",
+    "http://en.wikipedia.org/wiki/Loch_Ness_Monster",
+    "http://en.wikipedia.org/wiki/Cryptozoology",
+    "http://en.wikipedia.org/wiki/Extraterrestrial_life",
+    "http://en.wikipedia.org/wiki/Supernatural",
+  ],
+  titlePattern:
+    /\b(weird|bizarre|strange|mysterious|unexplained|oddity|odd|freak|uncanny|paranormal|ufo|uap|alien|extraterrestrial|cryptid|bigfoot|sasquatch|loch ness|ghost|haunt(?:ed|ing)|poltergeist|supernatural|inexplicable|baffl(?:e|ing)|eerie|creepy|anomaly)\b/i,
+  sortBy: "date",
+  sinceDays: 14,
+}
+
+const COMEDY_CONFIG: ThemedConfig = {
+  lane: "comedy",
+  conceptUris: [
+    "http://en.wikipedia.org/wiki/Comedian",
+    "http://en.wikipedia.org/wiki/Stand-up_comedy",
+    "http://en.wikipedia.org/wiki/Comedy",
+    "http://en.wikipedia.org/wiki/Satire",
+    "http://en.wikipedia.org/wiki/Saturday_Night_Live",
+    "http://en.wikipedia.org/wiki/Sitcom",
+    "http://en.wikipedia.org/wiki/Sketch_comedy",
+  ],
+  titlePattern:
+    /\b(comedy|comedian|comedic|stand-?up|satire|satirical|sketch|sitcom|snl|saturday night live|late-?night|roast|parody|jokes?|humou?r|improv|netflix special|funny)\b/i,
+  sortBy: "date",
+  sinceDays: 14,
+}
+
+const POP_CONFIG: ThemedConfig = {
+  lane: "pop",
+  conceptUris: [
+    "http://en.wikipedia.org/wiki/Pop_music",
+    "http://en.wikipedia.org/wiki/Music",
+    "http://en.wikipedia.org/wiki/Album",
+    "http://en.wikipedia.org/wiki/Concert",
+    "http://en.wikipedia.org/wiki/Hip_hop_music",
+    "http://en.wikipedia.org/wiki/Singing",
+    "http://en.wikipedia.org/wiki/Music_industry",
+    "http://en.wikipedia.org/wiki/Music_festival",
+  ],
+  titlePattern:
+    /\b(music|musician|song|album|single|ep|mixtape|concert|tour|setlist|singer|band|rapper|pop star|chart|billboard|grammy|spotify|festival|headlin(?:e|er)|debut|track ?list|residency)\b/i,
+  sortBy: "size",
+  sinceDays: 12,
+}
+
+async function fetchThemedEvents(config: ThemedConfig, options: { limit?: number; sinceDays?: number } = {}): Promise<StoryCluster[]> {
+  const apiKey = process.env.NEWSAPI_AI_KEY
+  if (!apiKey) return []
+  const limit = Math.max(1, Math.min(options.limit ?? 24, 80))
+  const sinceDays = Math.max(1, Math.min(options.sinceDays ?? config.sinceDays ?? 7, 30))
+  const minArticles = Math.max(3, config.minArticles ?? 4)
+  const dateStart = new Date(Date.now() - sinceDays * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+
+  const stories: StoryCluster[] = []
+  const seen = new Set<string>()
+  for (let page = 1; page <= 4 && stories.length < limit * 2; page += 1) {
+    let response: Response
+    try {
+      response = await fetch(NEWSAPI_AI_EVENTS_ENDPOINT, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          action: "getEvents",
+          resultType: "events",
+          ...(config.conceptUris?.length ? { conceptUri: config.conceptUris, conceptOper: "or" } : {}),
+          eventsSortBy: config.sortBy ?? "date",
+          eventsCount: NEWSAPI_EVENTS_PAGE_SIZE,
+          eventsPage: page,
+          lang: "eng",
+          dateStart,
+          minArticlesInEvent: minArticles,
+          includeEventConcepts: true,
+          includeEventSummary: true,
+          includeEventCategories: true,
+          eventImageCount: 1,
+          apiKey,
+        }),
+        signal: AbortSignal.timeout(15000),
+        next: { revalidate: 1800 },
+      })
+    } catch {
+      break
+    }
+    if (!response.ok) break
+    const data = (await response.json().catch(() => null)) as { events?: { results?: RawEvent[] } } | null
+    const events = data?.events?.results || []
+    if (!events.length) break
+
+    for (const event of events) {
+      if (stories.length >= limit * 2) break
+      const title = engText(event.title)
+      const summary = engText(event.summary)
+      if (config.titlePattern && !config.titlePattern.test(`${title} ${summary}`)) continue
+      if (config.excludePattern && config.excludePattern.test(title)) continue
+      const concepts = (event.concepts || [])
+        .map((concept) => engText(concept.label))
+        .filter(Boolean)
+        .slice(0, 6)
+      if (!event.uri || seen.has(event.uri) || !isQualityStory(title, summary, concepts)) continue
+      seen.add(event.uri)
+      stories.push({
+        uri: event.uri,
+        title,
+        summary,
+        articleCount: event.totalArticleCount || 0,
+        concepts,
+        category: extractEventCategory(event.categories),
+        eventDate: event.eventDate,
+        imageUrl: Array.isArray(event.images) ? event.images[0] : undefined,
+        lane: config.lane,
+      })
+    }
+    if (events.length < NEWSAPI_EVENTS_PAGE_SIZE) break
+  }
+  return stories
+}
+
+export const fetchWeirdEvents = (options: { limit?: number; sinceDays?: number } = {}) => fetchThemedEvents(WEIRD_CONFIG, options)
+export const fetchComedyEvents = (options: { limit?: number; sinceDays?: number } = {}) => fetchThemedEvents(COMEDY_CONFIG, options)
+export const fetchPopMusicEvents = (options: { limit?: number; sinceDays?: number } = {}) => fetchThemedEvents(POP_CONFIG, options)
+// Viral: broad, sorted by social engagement, recent — what's actually being shared right now.
+export const fetchViralEvents = (options: { limit?: number; sinceDays?: number } = {}) =>
+  fetchThemedEvents({ lane: "viral", sortBy: "socialScore", sinceDays: 4, minArticles: 5 }, options)
+
+// Per-lane HEADLINE gate — stricter than the fetch-time title+summary gate (which let in stories
+// that only mentioned the theme in their summary, e.g. a crash report tagged to a comedian). Applied
+// at read so the displayed set is clean without re-fetching. Viral is intentionally unfiltered.
+const THEME_HEADLINE_PATTERN: Record<ThemedLane, RegExp | null> = {
+  weird: WEIRD_CONFIG.titlePattern ?? null,
+  comedy: COMEDY_CONFIG.titlePattern ?? null,
+  pop: POP_CONFIG.titlePattern ?? null,
+  viral: null,
+}
+
+// Comedy headlines rarely contain a literal comedy word (they're comedian/show names), so for that
+// lane we also accept a strong comedy CONCEPT tag — the real signal — not just the headline.
+const COMEDY_CONCEPT_PATTERN = /\b(comedy|comedian|stand-?up|satire|saturday night live|sketch comedy|sitcom|humou?r)\b/i
+
+export function keepThemedStory(lane: ThemedLane, story: StoryCluster): boolean {
+  if (lane === "viral") return true
+  const headline = `${story.headline || story.title}`
+  const pattern = THEME_HEADLINE_PATTERN[lane]
+  if (pattern && pattern.test(headline)) return true
+  if (lane === "comedy") return (story.concepts || []).some((concept) => COMEDY_CONCEPT_PATTERN.test(concept))
+  return false
+}
+
 // Run an async mapper over items with a bounded number of concurrent workers. Used to keep large
 // batches (10x stories) from hammering the agent / newsapi.ai / Openverse all at once.
 export async function mapWithConcurrency<T, R>(
@@ -631,6 +802,21 @@ export async function fetchRecursivFringeStories(options: { limit?: number } = {
   return stories.map((story) => ({ ...story, lane: "fringe" as const }))
 }
 
+// Themed sets — Weird / Comedy / Pop & Music / Viral.
+export const THEMED_STORY_SOURCES = {
+  weird: "weird-stories",
+  comedy: "comedy-stories",
+  pop: "pop-stories",
+  viral: "viral-stories",
+} as const
+
+export type ThemedLane = keyof typeof THEMED_STORY_SOURCES
+
+export async function fetchRecursivThemedStories(lane: ThemedLane, options: { limit?: number } = {}): Promise<StoryCluster[]> {
+  const stories = await fetchStorySnapshot(THEMED_STORY_SOURCES[lane], Math.max(1, Math.min(options.limit ?? 24, 120)))
+  return stories.map((story) => ({ ...story, lane })).filter((story) => keepThemedStory(lane, story))
+}
+
 function safeParseStories(value: string): StoryCluster[] {
   try {
     const parsed = JSON.parse(value)
@@ -692,9 +878,17 @@ export async function fetchEventCoverage(eventUri: string, limit = 18): Promise<
 // Read a single stored story cluster by its event uri (for the detail page). Checks both the
 // mainstream and the fringe sets so every card — from either /news section — has a working page.
 export async function fetchRecursivTopStory(id: string): Promise<StoryCluster | null> {
-  const [top, fringe] = await Promise.all([
+  const sets = await Promise.all([
     fetchRecursivTopStories({ limit: 250 }),
     fetchRecursivFringeStories({ limit: 120 }).catch(() => [] as StoryCluster[]),
+    fetchRecursivThemedStories("weird", { limit: 80 }).catch(() => [] as StoryCluster[]),
+    fetchRecursivThemedStories("comedy", { limit: 80 }).catch(() => [] as StoryCluster[]),
+    fetchRecursivThemedStories("pop", { limit: 80 }).catch(() => [] as StoryCluster[]),
+    fetchRecursivThemedStories("viral", { limit: 80 }).catch(() => [] as StoryCluster[]),
   ])
-  return top.find((story) => story.uri === id) || fringe.find((story) => story.uri === id) || null
+  for (const set of sets) {
+    const found = set.find((story) => story.uri === id)
+    if (found) return found
+  }
+  return null
 }

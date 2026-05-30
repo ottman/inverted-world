@@ -11,10 +11,16 @@ import { fetchMediaSeedItemsForSync, mediaItemMetadata } from "@/lib/media-libra
 import {
   fetchNewsApiEvents,
   fetchFringeEvents,
+  fetchWeirdEvents,
+  fetchComedyEvents,
+  fetchPopMusicEvents,
+  fetchViralEvents,
   generateStoryNarratives,
   fetchEventCoverage,
   fetchRecursivTopStories,
   fetchRecursivFringeStories,
+  fetchRecursivThemedStories,
+  THEMED_STORY_SOURCES,
   buildSynthesizedBody,
   isMainstreamAbsent,
   dedupeNearDuplicateStories,
@@ -22,6 +28,7 @@ import {
   mapWithConcurrency,
   NARRATIVE_VERSION,
   type StoryCluster,
+  type ThemedLane,
 } from "@/lib/story-clusters"
 import { fetchBestRelevantOpenverseImage, imageRelevanceTerms, type RightsClearedImage } from "@/lib/openverse"
 import { generatedSvgThumbnail } from "@/lib/generated-thumbnail"
@@ -1212,7 +1219,7 @@ const FRINGE_MAX_NEW_PER_RUN = 18
 // coverage_snapshots row keyed by `source` via the direct-DB writer.
 async function runRollingStorySync(opts: {
   source: string
-  lane: "top" | "fringe"
+  lane: StoryCluster["lane"]
   defaultLimit: number
   defaultMaxNew: number
   limit?: number
@@ -1340,6 +1347,55 @@ export async function syncUnderCoveredStoriesToRecursiv(options: { limit?: numbe
     // The defining gate: keep only stories big legacy outlets are essentially absent from.
     postFilter: (story) => isMainstreamAbsent(story, 1),
   })
+}
+
+// ── Themed sets: Weird / Comedy / Pop & Music / Viral ────────────────────────────────────────────
+const THEMED_DEFAULT_LIMIT = 30
+const THEMED_MAX_NEW_PER_RUN = 18
+
+const THEMED_DISCOVER: Record<ThemedLane, (limit: number, sinceDays?: number) => Promise<StoryCluster[]>> = {
+  weird: (limit, sinceDays) => fetchWeirdEvents({ limit, sinceDays }),
+  comedy: (limit, sinceDays) => fetchComedyEvents({ limit, sinceDays }),
+  pop: (limit, sinceDays) => fetchPopMusicEvents({ limit, sinceDays }),
+  viral: (limit, sinceDays) => fetchViralEvents({ limit, sinceDays }),
+}
+
+const THEMED_SUMMARY: Record<ThemedLane, string> = {
+  weird: "Weird, strange and unexplained stories (newsapi.ai Events).",
+  comedy: "Comedy and satire stories (newsapi.ai Events).",
+  pop: "Pop culture and music stories (newsapi.ai Events).",
+  viral: "Viral, most-shared stories (newsapi.ai Events).",
+}
+
+export async function syncThemedStoriesToRecursiv(
+  lane: ThemedLane,
+  options: { limit?: number; sinceDays?: number; maxNew?: number; rebuild?: boolean } = {},
+) {
+  return runRollingStorySync({
+    source: THEMED_STORY_SOURCES[lane],
+    lane,
+    defaultLimit: THEMED_DEFAULT_LIMIT,
+    defaultMaxNew: THEMED_MAX_NEW_PER_RUN,
+    limit: options.limit,
+    maxNew: options.maxNew,
+    rebuild: options.rebuild,
+    summaryText: THEMED_SUMMARY[lane],
+    generatedBy: `newsapi-ai-themed-${lane}-v1-rolling`,
+    existingFetcher: (limit) => fetchRecursivThemedStories(lane, { limit }),
+    discover: (discoveryLimit) => THEMED_DISCOVER[lane](discoveryLimit, options.sinceDays),
+  })
+}
+
+// Run all four themed sets in one job (one cron). Sequential to keep newsapi/agent load bounded.
+export async function syncAllThemedStoriesToRecursiv(options: { rebuild?: boolean; maxNew?: number } = {}) {
+  const lanes: ThemedLane[] = ["weird", "comedy", "pop", "viral"]
+  const results: Record<string, unknown> = {}
+  for (const lane of lanes) {
+    results[lane] = await syncThemedStoriesToRecursiv(lane, { rebuild: options.rebuild, maxNew: options.maxNew }).catch((error) => ({
+      error: error instanceof Error ? error.message : String(error),
+    }))
+  }
+  return results
 }
 
 export async function syncWorldwireCoverageToRecursiv(options: { limitPerLane?: number } = {}) {
