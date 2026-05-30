@@ -20,6 +20,7 @@ import {
   dedupeNearDuplicateStories,
   agentQuotaAvailable,
   mapWithConcurrency,
+  NARRATIVE_VERSION,
   type StoryCluster,
 } from "@/lib/story-clusters"
 import { fetchBestRelevantOpenverseImage, imageRelevanceTerms, type RightsClearedImage } from "@/lib/openverse"
@@ -1158,10 +1159,9 @@ async function refreshLowRelevanceImages(stories: StoryCluster[]): Promise<Story
 // A story has a real agent-written body (not the synthesized/summary interim). Used to pick which
 // stored stories still need self-healing (an agent rewrite) on a later run once quota is available.
 function hasFullStoryBody(story: StoryCluster): boolean {
-  if (story.bodySource === "agent") return true
-  // Tolerate pre-`bodySource` rows: a long body that isn't the bare summary counts as agent-written.
-  const body = story.body || ""
-  return !story.bodySource && body.length >= 1200 && body !== (story.summary || "")
+  // Only a current-prompt agent body counts as done; older agent bodies are re-written by self-heal.
+  if (story.bodySource === "agent") return story.narrativeVersion === NARRATIVE_VERSION
+  return false
 }
 
 // Turn raw newsapi.ai events into full stories: who's covering each (so the narrative can attribute

@@ -29,6 +29,7 @@ export type StoryCluster = {
   synopsis?: string // short, for cards
   body?: string // full neutral synopsis article, for the detail page
   bodySource?: "agent" | "synth" // "agent" = model-written; "synth" = built from coverage (interim)
+  narrativeVersion?: number // which agent-prompt version wrote the body (for rolling out rewrites)
   imageQuery?: string // AI-crafted visual search terms for a rights-cleared image
   image?: RightsClearedImage // rights-cleared (CC/PD) image via Openverse
   imageChecked?: boolean // a relevance-scored image lookup has been attempted (don't retry forever)
@@ -405,6 +406,9 @@ export async function mapWithConcurrency<T, R>(
 // for any story the agent never returns.
 const NARRATIVE_BATCH_SIZE = 3
 const NARRATIVE_CONCURRENCY = 2
+// Bump when the agent prompt/voice changes so stored bodies written by an older prompt are treated
+// as stale and re-written by the self-heal pass. v2 = original-journalism voice, no outlet citations.
+export const NARRATIVE_VERSION = 2
 // The agent emits this when the account's daily response quota is spent; it isn't JSON, so treat it
 // as a hard stop for the run instead of parsing it as a body.
 const AGENT_LIMIT_SENTINEL = /daily response limit|Upgrade for higher limits/i
@@ -426,23 +430,25 @@ function extractJsonArray(text: string): unknown[] | null {
 
 function buildNarrativePrompt(stories: StoryCluster[]): string {
   return [
-    "You are a neutral newswire editor for a balanced news aggregator.",
-    "For EACH story cluster below, write four things:",
-    '1) "headline": a compelling, shareable, but STRICTLY NEUTRAL headline — factual, no partisan spin, no clickbait falsehoods, max ~90 characters.',
-    '2) "synopsis": a balanced 2-sentence summary, neutral tone, for a card.',
-    '3) "body": a full, in-depth neutral synopsis article of AT LEAST 6 and up to 10 substantial paragraphs (roughly 600-900 words). Separate the paragraphs with a blank line. Cover what happened, the context and background, the differing perspectives across outlets, and what remains unconfirmed. Factual and balanced, no editorializing.',
-    "   IMPORTANT for the body: attribute specific facts and claims to the SPECIFIC named outlets covering the story (use the COVERAGE list provided). Write the outlet name in plain prose exactly as listed, e.g. \"Reuters reported...\", \"According to The Guardian,...\", \"BBC News noted...\". Spell each outlet's name out exactly as it appears in COVERAGE so it can be linked. Reference several different outlets across the political spectrum.",
-    '4) "imageQuery": 2-4 concise, CONCRETE visual keywords for finding a relevant stock/public-domain photo (depict the subject, place, or object — NOT names of private individuals). E.g. "romanian apartment building", "drone military".',
+    "You are a staff writer for Inverted World — an independent newsroom that reports straight but with an edge: skeptical of official narratives and press-release spin, willing to say plainly what the establishment press dances around, while staying rigorously factual.",
+    "For EACH story below, write four things and return them as JSON:",
+    '1) "headline": a sharp, compelling, factual headline with a point of view — never clickbait-false, never both-sides mush. Max ~90 characters.',
+    '2) "synopsis": a punchy 2-sentence standfirst (deck) that makes the reader want in.',
+    '3) "body": an ORIGINAL news article of 6 to 9 substantial paragraphs (~600-900 words), paragraphs separated by a blank line. Write it as your OWN reporting — a real article with a strong lead, narrative drive, and a distinct voice with an edge. Lead with what actually matters. Give the context the daily churn skips, name the tension or the thing nobody in power wants said, and be clear-eyed about what is confirmed versus alleged versus spin. Factual at all times — never invent quotes, numbers, or events.',
+    "   CRITICAL on attribution: do NOT write like a wire aggregator. Do NOT cite news outlets by name, do NOT string together other outlets' headlines, and do NOT write phrases like \"Reuters reported\" or \"according to The Guardian.\" Write it as original prose. When you reference a source IN the body, reference only PRIMARY sources — the actual document, agency, official, court filing, dataset, or on-the-record statement — not secondary news coverage.",
+    '4) "imageQuery": 2-4 concise, CONCRETE visual keywords for a relevant stock/public-domain photo (depict the subject, place, or object — NOT names of private individuals). E.g. "romanian apartment building", "military drone".',
     'Return ONLY a raw JSON array (no prose, no markdown fences): [{"id":"<id>","headline":"...","synopsis":"...","body":"...","imageQuery":"..."}]',
-    "Story clusters:",
+    "Stories:",
     stories
       .map((story) => {
+        // Pass the existing coverage purely as background so the writer gets the facts right — it is
+        // NOT to be cited or named in the article.
         const coverage = (story.coveringArticles || [])
           .slice(0, 12)
-          .map((article) => `- ${article.outlet}: ${article.headline}`)
+          .map((article) => `- ${article.headline}`)
           .join("\n")
         return `[${story.uri}]\nTITLE: ${story.title}\nSUMMARY: ${story.summary}\nTOPICS: ${story.concepts.join(", ")}${
-          coverage ? `\nCOVERAGE (outlets + their headlines — attribute to these by name):\n${coverage}` : ""
+          coverage ? `\nWHAT'S BEEN REPORTED (background only — get the facts from here, do NOT name or cite these sources):\n${coverage}` : ""
         }`
       })
       .join("\n\n"),
@@ -557,62 +563,45 @@ export async function generateStoryNarratives(stories: StoryCluster[]): Promise<
       synopsis: gen?.synopsis || story.summary,
       body: agentBody || buildSynthesizedBody(story, gen?.synopsis),
       bodySource: agentBody ? ("agent" as const) : ("synth" as const),
+      narrativeVersion: agentBody ? NARRATIVE_VERSION : undefined,
       imageQuery: gen?.imageQuery || story.concepts.slice(0, 2).join(" "),
     }
   })
 }
 
-// Build a complete, neutral synopsis article from data we already have (event summary + the outlets
-// covering the story and their headlines) — used when the agent is unavailable (e.g. its daily quota
-// is spent). It reads as a real multi-paragraph article, attributes framing to specific named
-// outlets (which the detail page linkifies), and always ends cleanly. Self-heal later replaces it.
+// Clean fallback used ONLY when the Recursiv agent is unavailable (daily quota spent): a short but
+// COMPLETE neutral write-up from the event summary — trimmed to whole sentences so it never ends
+// mid-word — plus one line of context. No outlet-headline citations (those read like a link dump and
+// truncate badly). The agent's real article replaces this on the next self-heal pass.
 export function buildSynthesizedBody(story: StoryCluster, leadOverride?: string): string {
-  const lead = (leadOverride || story.summary || story.title || "").trim()
-  const covering = (story.coveringArticles || []).filter((article) => article.outlet && article.headline)
+  const lead = cleanToSentences(leadOverride || story.summary || story.title || "")
   const paragraphs: string[] = []
-
   if (lead) paragraphs.push(lead)
-
-  if (covering.length) {
-    const count = story.articleCount || covering.length
-    paragraphs.push(
-      `The story is being covered by ${count.toLocaleString()} outlet${count === 1 ? "" : "s"} across the spectrum. ` +
-        `${covering[0].outlet} reported “${trimHeadline(covering[0].headline)}.”` +
-        (covering[1] ? ` ${covering[1].outlet} framed it as “${trimHeadline(covering[1].headline)}.”` : ""),
-    )
-
-    // Weave the remaining outlets' framings, a few per paragraph, varying the verbs.
-    const verbs = ["reported", "noted", "described it as", "led with", "highlighted", "characterized it as"]
-    const rest = covering.slice(2, 12)
-    for (let index = 0; index < rest.length; index += 2) {
-      const pair = rest.slice(index, index + 2)
-      const sentence = pair
-        .map((article, offset) => {
-          const verb = verbs[(index + offset) % verbs.length]
-          return `${article.outlet} ${verb} “${trimHeadline(article.headline)}.”`
-        })
-        .join(" ")
-      paragraphs.push(sentence)
-    }
-
-    const topics = story.concepts.slice(0, 4).join(", ")
-    paragraphs.push(
-      `Coverage spans ${count.toLocaleString()} outlet${count === 1 ? "" : "s"}${topics ? `, touching on ${topics}` : ""}. ` +
-        `Reporting continues to develop; this summary draws on how the participating outlets are currently framing the story.`,
-    )
-  } else if (story.concepts.length) {
-    paragraphs.push(
-      `This developing story relates to ${story.concepts.slice(0, 4).join(", ")}. ` +
-        `Additional sourced detail is being compiled as more outlets weigh in.`,
-    )
+  const topics = story.concepts.slice(0, 4).filter(Boolean)
+  const count = story.articleCount || (story.coveringArticles || []).length
+  if (topics.length) {
+    const scope = count ? ` It has drawn coverage across roughly ${count.toLocaleString()} report${count === 1 ? "" : "s"} so far.` : ""
+    paragraphs.push(`The story centers on ${joinList(topics)}.${scope}`)
   }
-
   return paragraphs.filter(Boolean).join("\n\n")
 }
 
-function trimHeadline(headline: string): string {
-  const clean = headline.replace(/\s+/g, " ").replace(/["“”]+/g, "").trim()
-  return clean.length > 160 ? `${clean.slice(0, 157).trim()}…` : clean
+function joinList(items: string[]): string {
+  if (items.length <= 1) return items[0] || ""
+  if (items.length === 2) return `${items[0]} and ${items[1]}`
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`
+}
+
+// Trim text to a whole number of sentences (never mid-word/mid-sentence), so the event-summary lead
+// in a fallback body always ends cleanly.
+function cleanToSentences(text: string, max = 1100): string {
+  let s = (text || "").replace(/\s+/g, " ").trim()
+  if (!s) return ""
+  if (s.length > max) s = s.slice(0, max)
+  const idx = Math.max(s.lastIndexOf(". "), s.lastIndexOf("! "), s.lastIndexOf("? "))
+  if (idx > 60) return s.slice(0, idx + 1).trim()
+  if (!/[.!?]["”']?$/.test(s)) return s.replace(/\s+\S*$/, "").trim()
+  return s.trim()
 }
 
 type TopStoriesRow = { items?: unknown }
