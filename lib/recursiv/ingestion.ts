@@ -17,6 +17,7 @@ import {
   fetchRecursivFringeStories,
   buildSynthesizedBody,
   isMainstreamAbsent,
+  dedupeNearDuplicateStories,
   agentQuotaAvailable,
   mapWithConcurrency,
   type StoryCluster,
@@ -1265,9 +1266,11 @@ async function runRollingStorySync(opts: {
     merged.push(processedByUri.get(story.uri) || normalizeBody({ ...story, lane: opts.lane }))
   }
   // Lane-specific gate (e.g. the fringe lane drops anything the mainstream picked up), applied after
-  // coverage is known. Then keep the freshest up to the rolling limit, and converge images.
+  // coverage is known. Then collapse duplicate clusters of the same real-world story (newsapi emits
+  // several per story), keep the freshest up to the rolling limit, and converge images.
   const filtered = opts.postFilter ? merged.filter(opts.postFilter) : merged
-  const ranked = filtered.sort((left, right) => (right.eventDate || "").localeCompare(left.eventDate || "")).slice(0, limit)
+  const sorted = filtered.sort((left, right) => (right.eventDate || "").localeCompare(left.eventDate || ""))
+  const ranked = dedupeNearDuplicateStories(sorted).slice(0, limit)
   const stories = await refreshLowRelevanceImages(ranked)
   const totalCoverage = stories.reduce((sum, story) => sum + (story.articleCount || 0), 0)
 

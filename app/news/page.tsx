@@ -13,7 +13,7 @@ import {
   type ClaimSourceLink,
 } from "@/lib/recursiv/content"
 import { maybeStartNewsRefresh } from "@/lib/recursiv/news-refresh"
-import { fetchRecursivTopStories, fetchRecursivFringeStories, type StoryCluster } from "@/lib/story-clusters"
+import { fetchRecursivTopStories, fetchRecursivFringeStories, dedupeNearDuplicateStories, type StoryCluster } from "@/lib/story-clusters"
 import { cn } from "@/lib/utils"
 import {
   WORLDWIRE_LANES,
@@ -267,7 +267,7 @@ function StoryClusterSection({
 
 export default async function NewsPage() {
   const refreshKickoff = maybeStartNewsRefresh("news-page").catch(() => null)
-  const [dossiers, topicFeeds, worldwire, topStories, fringeStories] = await Promise.all([
+  const [dossiers, topicFeeds, worldwire, topStoriesRaw, fringeStoriesRaw] = await Promise.all([
     fetchRecursivClaimDossiers({ limit: 48 }).then((items) => items || []),
     fetchLiveArticlesByTopic({ allowProviderFallbacks: false, limitPerTopic: 10 }).catch(() => ({})),
     fetchRecursivWorldwireItems({ limitPerLane: 120 }).then((items) => items || []),
@@ -275,6 +275,10 @@ export default async function NewsPage() {
     fetchRecursivFringeStories({ limit: 36 }).catch(() => [] as StoryCluster[]),
   ])
   void refreshKickoff
+  // Collapse duplicate clusters of the same real-world story (newsapi emits several per story),
+  // and drop any fringe story that's really the same as a top story (cross-section dedup).
+  const topStories = dedupeNearDuplicateStories(topStoriesRaw)
+  const fringeStories = dedupeNearDuplicateStories(fringeStoriesRaw, topStories)
 
   const dossierItems = dossiers.flatMap((dossier) =>
     dossier.sourceLinks.slice(0, 6).map((source, index) => sourceItemFromDossier(dossier, source, index)).filter(isNewsBoardItem),

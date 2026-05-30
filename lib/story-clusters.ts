@@ -263,6 +263,73 @@ export async function fetchFringeEvents(options: { limit?: number; sinceDays?: n
   return stories
 }
 
+// ── De-duplicate story clusters ──────────────────────────────────────────────────────────────
+// newsapi.ai often emits SEVERAL event clusters for the same real-world story (different uris, so
+// uri-dedup misses them) and the agent writes a different headline for each — so headline-word
+// overlap alone is too weak. We combine three signals: identical headline, near-identical concept
+// sets, and shared key concepts + some headline overlap. Keeps the first (newest) of each group.
+const STORY_TITLE_STOPWORDS = new Set([
+  "the", "a", "an", "and", "or", "but", "for", "with", "from", "that", "this", "into", "over",
+  "after", "before", "amid", "as", "at", "by", "in", "of", "on", "to", "up", "out", "off",
+  "opinion", "watch", "live", "new", "first", "last", "rare", "set", "rises", "peaks", "is", "are",
+  "his", "her", "its", "their", "they", "it", "he", "she", "will", "may", "says", "said",
+])
+
+function normalizedHeadline(story: StoryCluster): string {
+  return (story.headline || story.title || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()
+}
+
+function titleSignatureWords(story: StoryCluster): Set<string> {
+  const words = new Set<string>()
+  for (const word of normalizedHeadline(story).split(/\s+/)) {
+    if (word.length > 2 && !STORY_TITLE_STOPWORDS.has(word)) words.add(word)
+  }
+  return words
+}
+
+function conceptSet(story: StoryCluster): Set<string> {
+  return new Set((story.concepts || []).map((concept) => concept.toLowerCase().trim()).filter(Boolean))
+}
+
+export function areSameStoryCluster(a: StoryCluster, b: StoryCluster): boolean {
+  const ha = normalizedHeadline(a)
+  const hb = normalizedHeadline(b)
+  if (ha.length > 8 && ha === hb) return true // same headline (e.g. a syndicated op-ed)
+
+  // Need ≥2 shared key entities AND meaningful headline overlap — concept overlap alone falsely
+  // merges distinct stories that share small identical concept sets (e.g. two unrelated earnings
+  // reports both tagged the same generic entities). Validated against live data: catches every real
+  // duplicate (McGregor/Micromoon/syndicated op-eds/language-variant clusters) with no false merges.
+  const ca = conceptSet(a)
+  const cb = conceptSet(b)
+  if (ca.size >= 2 && cb.size) {
+    const shared = [...ca].filter((concept) => cb.has(concept)).length
+    if (shared >= 2) {
+      const union = new Set([...ca, ...cb]).size
+      const jaccard = union ? shared / union : 0
+      const wa = titleSignatureWords(a)
+      const wb = titleSignatureWords(b)
+      const wShared = [...wa].filter((word) => wb.has(word)).length
+      const wRatio = Math.min(wa.size, wb.size) ? wShared / Math.min(wa.size, wb.size) : 0
+      if (wRatio >= 0.4) return true // shared entities + strong headline overlap → same story
+      if (jaccard >= 0.85 && wShared >= 2) return true // identical entity set + overlapping headline
+    }
+  }
+  return false
+}
+
+export function dedupeNearDuplicateStories(stories: StoryCluster[], against: StoryCluster[] = []): StoryCluster[] {
+  const kept: StoryCluster[] = [...against]
+  const out: StoryCluster[] = []
+  for (const story of stories) {
+    if (!story?.uri) continue
+    if (kept.some((other) => other.uri !== story.uri && areSameStoryCluster(other, story))) continue
+    kept.push(story)
+    out.push(story)
+  }
+  return out
+}
+
 // Run an async mapper over items with a bounded number of concurrent workers. Used to keep large
 // batches (10x stories) from hammering the agent / newsapi.ai / Openverse all at once.
 export async function mapWithConcurrency<T, R>(
