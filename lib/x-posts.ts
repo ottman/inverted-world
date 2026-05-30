@@ -666,6 +666,23 @@ async function fetchXApiSearch(query: string, topicId: string, token: string) {
   })
 }
 
+// Fetch a few recent tweets about an arbitrary story (for story detail pages). Uses the X recent-
+// search API when a bearer token is configured; returns [] otherwise so the page can fall back to a
+// plain X live-search link. The underlying fetch is cached (revalidate), so views don't hammer X.
+export async function fetchStoryTweets(query: string, limit = 6): Promise<ViralXPost[]> {
+  const token =
+    process.env.X_BEARER_TOKEN ||
+    process.env.X_API_BEARER_TOKEN ||
+    process.env.TWITTER_BEARER_TOKEN ||
+    process.env.TWITTER_API_BEARER_TOKEN
+  const trimmed = (query || "").trim()
+  if (!token || !trimmed) return [] satisfies ViralXPost[]
+  const posts = await fetchXApiSearch(`${trimmed} lang:en -is:retweet -is:reply`, "story", token).catch(
+    () => [] satisfies ViralXPost[],
+  )
+  return [...posts].sort((a, b) => (b.score || 0) - (a.score || 0)).slice(0, Math.max(1, Math.min(limit, 12)))
+}
+
 async function fetchXApiPosts(topicId: string, limit: number) {
   const token =
     process.env.X_BEARER_TOKEN ||

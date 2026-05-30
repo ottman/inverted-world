@@ -2,9 +2,10 @@
 import type { Metadata } from "next"
 import type { ReactNode } from "react"
 import { notFound } from "next/navigation"
-import { ArrowLeft, ArrowUpRight, Radio } from "lucide-react"
+import { ArrowLeft, ArrowUpRight, MessageSquare, Radio } from "lucide-react"
 import { archiveSurface, InvertedPageShell } from "@/components/inverted-page-shell"
 import { fetchRecursivTopStory } from "@/lib/story-clusters"
+import { fetchStoryTweets } from "@/lib/x-posts"
 import { cn } from "@/lib/utils"
 
 export const dynamic = "force-dynamic"
@@ -52,6 +53,12 @@ export default async function StoryPage({ params }: { params: Promise<{ id: stri
     .map((p) => p.trim())
     .filter(Boolean)
   const covering = story.coveringArticles || []
+
+  // Tweets about this story: search X on the story's key entities. Empty when no X token is
+  // configured — the page still links to a live X search of the same terms.
+  const tweetQuery = (story.concepts.slice(0, 3).join(" ") || story.headline || story.title).trim()
+  const tweets = await fetchStoryTweets(tweetQuery, 6).catch(() => [])
+  const xSearchUrl = `https://x.com/search?q=${encodeURIComponent(tweetQuery)}&f=live`
 
   // Every story shows an image: the rights-cleared Openverse photo when present, else the branded mark.
   const hasRealImage = Boolean(story.image?.url)
@@ -142,6 +149,9 @@ export default async function StoryPage({ params }: { params: Promise<{ id: stri
       <article className={cn("grid gap-5 p-5 sm:p-7", archiveSurface)}>
         <header className="grid gap-3 border-b border-[#f4efe2]/10 pb-5">
           <div className="flex flex-wrap items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#df2f2f]">
+            {story.category ? (
+              <span className="bg-[#df2f2f] px-2 py-0.5 text-[#fff8e6]">{story.category}</span>
+            ) : null}
             <Radio className="h-4 w-4" />
             <span>{story.articleCount.toLocaleString()} articles covering this story</span>
             {story.eventDate ? <span className="text-[#f4efe2]/46">· {story.eventDate}</span> : null}
@@ -212,6 +222,50 @@ export default async function StoryPage({ params }: { params: Promise<{ id: stri
             </ul>
           </section>
         ) : null}
+
+        <section className="grid gap-3 border-t border-[#f4efe2]/10 pt-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#df2f2f]">
+              <MessageSquare className="h-4 w-4" /> On X
+            </h2>
+            <a
+              href={xSearchUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/58 transition hover:text-[#df2f2f]"
+            >
+              Follow the conversation <ArrowUpRight className="h-3.5 w-3.5" />
+            </a>
+          </div>
+          {tweets.length ? (
+            <ul className="grid gap-2">
+              {tweets.map((tweet) => (
+                <li key={tweet.id}>
+                  <a
+                    href={tweet.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group grid gap-1 bg-[#050504]/40 p-3 transition hover:bg-[#050504]/64"
+                  >
+                    <span className="flex items-center gap-2 text-xs font-semibold text-[#df2f2f]/90">
+                      {tweet.authorName || (tweet.username ? `@${tweet.username}` : "On X")}
+                      {tweet.username ? <span className="text-[#f4efe2]/40">@{tweet.username}</span> : null}
+                    </span>
+                    <span className="text-sm leading-6 text-[#fff8e6]/90">{tweet.text}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm leading-6 text-[#f4efe2]/56">
+              See what people are saying about this story{" "}
+              <a href={xSearchUrl} target="_blank" rel="noopener noreferrer" className="text-[#df2f2f] underline underline-offset-2">
+                on X
+              </a>
+              .
+            </p>
+          )}
+        </section>
       </article>
     </InvertedPageShell>
   )

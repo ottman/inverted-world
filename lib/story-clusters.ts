@@ -21,6 +21,7 @@ export type StoryCluster = {
   summary: string
   articleCount: number
   concepts: string[]
+  category?: string // top news category (e.g. "Politics", "World", "Sports") from Event Registry
   eventDate?: string
   imageUrl?: string
   // Enriched by the agent step (lib/story-clusters generation):
@@ -45,6 +46,46 @@ type RawEvent = {
   eventDate?: string
   images?: string[]
   concepts?: Array<{ label?: Record<string, string> }>
+  categories?: Array<{ label?: string; wgt?: number }>
+}
+
+// Map Event Registry's verbose dmoz top-levels to clean news labels; news/* labels are already clean.
+const CATEGORY_LABEL_MAP: Record<string, string> = {
+  society: "World",
+  business: "Business",
+  science: "Science",
+  sports: "Sports",
+  arts: "Culture",
+  health: "Health",
+  recreation: "Lifestyle",
+  computers: "Technology",
+  shopping: "Business",
+  home: "Lifestyle",
+}
+
+// Pick the single best human-readable category for a story. Prefer the highest-weight `news/*`
+// label (Politics/Sports/Technology/…), else map the heaviest dmoz top-level to a clean name.
+function tidyCategoryLabel(label: string): string {
+  const cleaned = label
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .replace(/\b(And|Of|The|For|In|On)\b/g, (w) => w.toLowerCase())
+  // Shorten a couple of long Event Registry leaves to crisp badge labels.
+  if (/arts and entertainment/i.test(cleaned)) return "Entertainment"
+  if (/^environment\b/i.test(cleaned)) return "Environment"
+  return cleaned
+}
+
+function extractEventCategory(categories?: Array<{ label?: string; wgt?: number }>): string | undefined {
+  if (!categories?.length) return undefined
+  const byWeight = [...categories].sort((a, b) => (b.wgt || 0) - (a.wgt || 0))
+  const news = byWeight.find((category) => /^news\//i.test(category.label || ""))
+  if (news?.label) {
+    const leaf = news.label.split("/").filter(Boolean).pop() || ""
+    if (leaf) return tidyCategoryLabel(leaf)
+  }
+  const topLevel = (byWeight[0]?.label || "").split("/").filter(Boolean)[1]?.toLowerCase()
+  if (topLevel) return CATEGORY_LABEL_MAP[topLevel] || tidyCategoryLabel(topLevel)
+  return undefined
 }
 
 function engText(value: Record<string, string> | string | undefined): string {
@@ -97,6 +138,7 @@ export async function fetchNewsApiEvents(options: { limit?: number; sinceDays?: 
           minArticlesInEvent: minArticles,
           includeEventConcepts: true,
           includeEventSummary: true,
+          includeEventCategories: true,
           eventImageCount: 1,
           apiKey,
         }),
@@ -127,6 +169,7 @@ export async function fetchNewsApiEvents(options: { limit?: number; sinceDays?: 
         summary,
         articleCount: event.totalArticleCount || 0,
         concepts,
+        category: extractEventCategory(event.categories),
         eventDate: event.eventDate,
         imageUrl: Array.isArray(event.images) ? event.images[0] : undefined,
       })
@@ -219,6 +262,7 @@ export async function fetchFringeEvents(options: { limit?: number; sinceDays?: n
           minArticlesInEvent: 3,
           includeEventConcepts: true,
           includeEventSummary: true,
+          includeEventCategories: true,
           eventImageCount: 1,
           apiKey,
         }),
@@ -253,6 +297,7 @@ export async function fetchFringeEvents(options: { limit?: number; sinceDays?: n
         summary,
         articleCount,
         concepts,
+        category: extractEventCategory(event.categories),
         eventDate: event.eventDate,
         imageUrl: Array.isArray(event.images) ? event.images[0] : undefined,
         lane: "fringe",

@@ -1249,8 +1249,9 @@ async function runRollingStorySync(opts: {
   const processedByUri = new Map(processed.map((story) => [story.uri, story]))
 
   // For any kept (not-reprocessed) story that doesn't have a real agent body yet, (re)synthesize a
-  // complete article from its stored coverage right here — free, no network — so stories never
-  // render as a stub that "cuts off" a few lines in, even while the agent quota is spent.
+  // complete article from its stored coverage — free, no network — so stories never render as a stub
+  // that "cuts off" a few lines in, even while the agent quota is spent.
+  const candidateByUri = new Map(candidates.map((event) => [event.uri, event]))
   const normalizeBody = (story: StoryCluster): StoryCluster =>
     story.bodySource === "agent"
       ? story
@@ -1270,7 +1271,14 @@ async function runRollingStorySync(opts: {
   // several per story), keep the freshest up to the rolling limit, and converge images.
   const filtered = opts.postFilter ? merged.filter(opts.postFilter) : merged
   const sorted = filtered.sort((left, right) => (right.eventDate || "").localeCompare(left.eventDate || ""))
-  const ranked = dedupeNearDuplicateStories(sorted).slice(0, limit)
+  // Backfill categories from the freshly-discovered events (free) so stored stories pick them up
+  // without a costly per-story re-fetch.
+  const ranked = dedupeNearDuplicateStories(sorted)
+    .slice(0, limit)
+    .map((story) => {
+      const category = candidateByUri.get(story.uri)?.category || story.category
+      return category === story.category ? story : { ...story, category }
+    })
   const stories = await refreshLowRelevanceImages(ranked)
   const totalCoverage = stories.reduce((sum, story) => sum + (story.articleCount || 0), 0)
 

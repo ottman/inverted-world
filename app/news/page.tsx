@@ -220,7 +220,7 @@ function StoryClusterSection({
   stories: StoryCluster[]
 }) {
   return (
-    <section className={cn("grid gap-3 p-3", archiveSurface)}>
+    <section className={cn("mt-6 grid gap-3 border-t-2 border-[#df2f2f]/45 p-3 pt-4", archiveSurface)}>
       <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[#f4efe2]/10 pb-3">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#df2f2f]">{eyebrow}</p>
@@ -244,6 +244,11 @@ function StoryClusterSection({
                   className="h-full w-full object-cover opacity-90 transition group-hover:opacity-100"
                 />
               </div>
+            ) : null}
+            {story.category ? (
+              <span className="w-fit bg-[#df2f2f]/90 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#fff8e6]">
+                {story.category}
+              </span>
             ) : null}
             <h3 className="iw-serif text-3xl font-bold leading-[1.0] text-[#fff8e6] transition group-hover:text-[#df2f2f] sm:text-4xl">
               {story.headline || story.title}
@@ -345,7 +350,7 @@ export default async function NewsPage() {
       ) : null}
 
       {lead ? (
-        <section className={cn("grid gap-3 p-3 xl:grid-cols-[minmax(0,1.12fr)_minmax(260px,0.7fr)_minmax(260px,0.7fr)]", archiveSurface)}>
+        <section className={cn("mt-6 grid gap-3 p-3 xl:grid-cols-[minmax(0,1.12fr)_minmax(260px,0.7fr)_minmax(260px,0.7fr)]", archiveSurface)}>
           <ExternalHeadline item={lead} size="lead" />
           <NewsRail title="Just in" count={`${boardItems.length} today`} items={flashItems.slice(0, 10)} />
           <NewsRail title="Heat" count={`${sourceCount} sources`} items={flashItems.slice(10, 20)} />
