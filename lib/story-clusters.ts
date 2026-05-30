@@ -66,7 +66,7 @@ const CATEGORY_LABEL_MAP: Record<string, string> = {
 
 // Pick the single best human-readable category for a story. Prefer the highest-weight `news/*`
 // label (Politics/Sports/Technology/…), else map the heaviest dmoz top-level to a clean name.
-function tidyCategoryLabel(label: string): string {
+export function tidyCategoryLabel(label: string): string {
   const cleaned = label
     .replace(/\b\w/g, (c) => c.toUpperCase())
     .replace(/\b(And|Of|The|For|In|On)\b/g, (w) => w.toLowerCase())

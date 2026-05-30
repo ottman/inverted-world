@@ -13,7 +13,8 @@ import {
   type ClaimSourceLink,
 } from "@/lib/recursiv/content"
 import { maybeStartNewsRefresh } from "@/lib/recursiv/news-refresh"
-import { fetchRecursivTopStories, fetchRecursivFringeStories, dedupeNearDuplicateStories, type StoryCluster } from "@/lib/story-clusters"
+import { fetchRecursivTopStories, fetchRecursivFringeStories, dedupeNearDuplicateStories, tidyCategoryLabel, type StoryCluster } from "@/lib/story-clusters"
+import { StoryCategoryBoard, type StoryCardData } from "@/components/story-category-board"
 import { cn } from "@/lib/utils"
 import {
   WORLDWIRE_LANES,
@@ -208,66 +209,18 @@ const MAX_PER_HOST_PER_LANE = Math.max(1, Math.min(Math.trunc(Number(process.env
 // Hard cap on how many articles any single outlet contributes to the whole board ("a couple").
 const NEWS_MAX_PER_OUTLET = Math.max(1, Math.min(Math.trunc(Number(process.env.NEWS_MAX_PER_OUTLET)) || 2, 6))
 
-function StoryClusterSection({
-  eyebrow,
-  title,
-  note,
-  stories,
-}: {
-  eyebrow: string
-  title: string
-  note: string
-  stories: StoryCluster[]
-}) {
-  return (
-    <section className={cn("mt-6 grid gap-3 border-t-2 border-[#df2f2f]/45 p-3 pt-4", archiveSurface)}>
-      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[#f4efe2]/10 pb-3">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#df2f2f]">{eyebrow}</p>
-          <h2 className="iw-serif text-4xl leading-none text-[#fff8e6]">{title}</h2>
-        </div>
-        <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/46">{note}</div>
-      </div>
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {stories.map((story) => (
-          <a
-            key={story.uri}
-            href={`/news/story/${encodeURIComponent(story.uri)}`}
-            className="group flex flex-col gap-2 bg-[#050504]/40 p-4 transition hover:bg-[#050504]/66"
-          >
-            {story.image?.url ? (
-              <div className="-mx-4 -mt-4 mb-1 aspect-[16/9] overflow-hidden bg-black/40">
-                <img
-                  src={story.image.url}
-                  alt=""
-                  loading="lazy"
-                  className="h-full w-full object-cover object-top opacity-90 transition group-hover:opacity-100"
-                />
-              </div>
-            ) : null}
-            {story.category ? (
-              <span className="w-fit bg-[#df2f2f]/90 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#fff8e6]">
-                {story.category}
-              </span>
-            ) : null}
-            <h3 className="iw-serif text-3xl font-bold leading-[1.0] text-[#fff8e6] transition group-hover:text-[#df2f2f] sm:text-4xl">
-              {story.headline || story.title}
-            </h3>
-            <p className="text-sm leading-6 text-[#f4efe2]/72">{story.synopsis || story.summary}</p>
-            <div className="mt-auto flex flex-wrap items-center gap-2 pt-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/46">
-              <span className="text-[#df2f2f]">{story.articleCount.toLocaleString()} articles covering</span>
-              {story.coveringArticles?.length ? <span>· {story.coveringArticles.length}+ outlets</span> : null}
-              {story.concepts.slice(0, 3).map((concept) => (
-                <span key={concept} className="bg-black/30 px-2 py-1">
-                  {concept}
-                </span>
-              ))}
-            </div>
-          </a>
-        ))}
-      </div>
-    </section>
-  )
+function toCardData(story: StoryCluster): StoryCardData {
+  return {
+    uri: story.uri,
+    headline: story.headline || story.title,
+    synopsis: story.synopsis || story.summary,
+    // Re-tidy at render so older rows stored before the label cleanup merge with current ones.
+    category: story.category ? tidyCategoryLabel(story.category) : undefined,
+    articleCount: story.articleCount,
+    outletCount: story.coveringArticles?.length || 0,
+    concepts: story.concepts.slice(0, 3),
+    imageUrl: story.image?.url,
+  }
 }
 
 export default async function NewsPage() {
@@ -332,20 +285,20 @@ export default async function NewsPage() {
       {laneGroups.length ? <NewsCategoryStrip groups={laneGroups} /> : null}
 
       {topStories.length ? (
-        <StoryClusterSection
+        <StoryCategoryBoard
           eyebrow="Top Stories"
           title="What everyone's talking about"
           note={`${topStories.length} stories · clustered across the spectrum`}
-          stories={topStories}
+          cards={topStories.map(toCardData)}
         />
       ) : null}
 
       {fringeStories.length ? (
-        <StoryClusterSection
+        <StoryCategoryBoard
           eyebrow="Mainstream Blackout"
           title="What nobody's talking about"
           note={`${fringeStories.length} stories the major outlets aren't covering`}
-          stories={fringeStories}
+          cards={fringeStories.map(toCardData)}
         />
       ) : null}
 
