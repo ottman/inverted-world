@@ -15,6 +15,8 @@ export type StoryCardData = {
   outletCount: number
   concepts: string[]
   imageUrl?: string
+  lane?: string // "tales" gets evergreen styling/copy instead of "N articles covering"
+  hasVideo?: boolean // show a ▶ marker when an embedded video is present
 }
 
 // A themed set (Blackout / Weird / Comedy / Pop & Music / Viral) that sits alongside the mainstream
@@ -127,8 +129,17 @@ function StoryCard({ card }: { card: StoryCardData }) {
       </h3>
       <p className="text-sm leading-6 text-[#f4efe2]/72">{card.synopsis}</p>
       <div className="mt-auto flex flex-wrap items-center gap-2 pt-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/46">
-        <span className="text-[#df2f2f]">{card.articleCount.toLocaleString()} articles covering</span>
-        {card.outletCount ? <span>· {card.outletCount}+ outlets</span> : null}
+        {card.lane === "tales" ? (
+          <>
+            <span className="text-[#df2f2f]">{card.hasVideo ? "▶ Video" : "Inverted World"}</span>
+            {card.outletCount ? <span>· {card.outletCount} sources</span> : null}
+          </>
+        ) : (
+          <>
+            <span className="text-[#df2f2f]">{card.articleCount.toLocaleString()} articles covering</span>
+            {card.outletCount ? <span>· {card.outletCount}+ outlets</span> : null}
+          </>
+        )}
         {card.concepts.map((concept) => (
           <span key={concept} className="bg-black/30 px-2 py-1">
             {concept}

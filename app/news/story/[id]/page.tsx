@@ -105,6 +105,19 @@ export default async function StoryPage({ params }: { params: Promise<{ id: stri
     articleBody: story.body || story.synopsis || undefined,
     ...(story.image?.url ? { image: [story.image.url] } : {}),
     ...(story.eventDate ? { datePublished: story.eventDate, dateModified: story.eventDate } : {}),
+    ...(story.video?.id
+      ? {
+          video: {
+            "@type": "VideoObject",
+            name: (story.video.title || story.headline || story.title).slice(0, 110),
+            description: story.synopsis || story.summary || undefined,
+            ...(story.video.thumbnail ? { thumbnailUrl: [story.video.thumbnail] } : {}),
+            embedUrl: `https://www.youtube.com/embed/${story.video.id}`,
+            contentUrl: `https://www.youtube.com/watch?v=${story.video.id}`,
+            ...(story.eventDate ? { uploadDate: story.eventDate } : {}),
+          },
+        }
+      : {}),
     mainEntityOfPage: { "@type": "WebPage", "@id": canonicalUrl },
     keywords: story.concepts.length ? story.concepts.join(", ") : undefined,
     publisher: {
@@ -137,8 +150,14 @@ export default async function StoryPage({ params }: { params: Promise<{ id: stri
               <span className="bg-[#df2f2f] px-2 py-0.5 text-[#fff8e6]">{story.category}</span>
             ) : null}
             <Radio className="h-4 w-4" />
-            <span>{story.articleCount.toLocaleString()} articles covering this story</span>
-            {story.eventDate ? <span className="text-[#f4efe2]/46">· {story.eventDate}</span> : null}
+            {story.lane === "tales" ? (
+              <span>Inverted World file{story.video?.id ? " · video" : ""}</span>
+            ) : (
+              <span>{story.articleCount.toLocaleString()} articles covering this story</span>
+            )}
+            {story.lane !== "tales" && story.eventDate ? (
+              <span className="text-[#f4efe2]/46">· {story.eventDate}</span>
+            ) : null}
           </div>
           <h1 className="iw-serif text-4xl font-bold leading-[1.02] text-[#fff8e6] sm:text-6xl">
             {story.headline || story.title}
@@ -179,6 +198,34 @@ export default async function StoryPage({ params }: { params: Promise<{ id: stri
           ) : null}
         </figure>
 
+        {story.video?.id ? (
+          <figure className="grid gap-1">
+            <div className="aspect-video overflow-hidden bg-black/60">
+              <iframe
+                src={`https://www.youtube-nocookie.com/embed/${story.video.id}?rel=0`}
+                title={story.video.title || story.headline || story.title}
+                className="h-full w-full"
+                loading="lazy"
+                allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerPolicy="strict-origin-when-cross-origin"
+                allowFullScreen
+              />
+            </div>
+            <figcaption className="flex flex-wrap items-center gap-1 text-[10px] uppercase tracking-[0.12em] text-[#f4efe2]/40">
+              <span className="text-[#df2f2f]">▶ {story.video.title || "Watch"}</span>
+              {story.video.author ? <span>· {story.video.author}</span> : null}
+              <a
+                href={`https://www.youtube.com/watch?v=${story.video.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-auto transition hover:text-[#df2f2f]"
+              >
+                Watch on YouTube
+              </a>
+            </figcaption>
+          </figure>
+        ) : null}
+
         <div className="iw-serif grid gap-5 text-xl leading-9 text-[#f4efe2]/88">
           {paragraphs.length ? (
             paragraphs.map((paragraph, index) => <p key={index}>{paragraph}</p>)
@@ -212,7 +259,7 @@ export default async function StoryPage({ params }: { params: Promise<{ id: stri
         {covering.length ? (
           <section className="grid gap-3 border-t border-[#f4efe2]/10 pt-5">
             <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-[#df2f2f]">
-              Who is covering this ({covering.length}+ outlets)
+              {story.lane === "tales" ? `Evidence & links (${covering.length})` : `Who is covering this (${covering.length}+ outlets)`}
             </h2>
             <ul className="grid gap-2">
               {covering.map((article) => (

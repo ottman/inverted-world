@@ -16,6 +16,7 @@ import {
   fetchRecursivTopStories,
   fetchRecursivFringeStories,
   fetchRecursivThemedStories,
+  fetchRecursivTalesStories,
   dedupeNearDuplicateStories,
   tidyCategoryLabel,
   type StoryCluster,
@@ -226,13 +227,16 @@ function toCardData(story: StoryCluster): StoryCardData {
     outletCount: story.coveringArticles?.length || 0,
     concepts: story.concepts.slice(0, 3),
     imageUrl: story.image?.url,
+    lane: story.lane,
+    hasVideo: Boolean(story.video?.id),
   }
 }
 
 export default async function NewsPage() {
   const refreshKickoff = maybeStartNewsRefresh("news-page").catch(() => null)
-  const [topStoriesRaw, fringeStoriesRaw, weirdRaw, comedyRaw, popRaw, viralRaw] = await Promise.all([
+  const [topStoriesRaw, talesRaw, fringeStoriesRaw, weirdRaw, comedyRaw, popRaw, viralRaw] = await Promise.all([
     fetchRecursivTopStories({ limit: 160 }).catch(() => [] as StoryCluster[]),
+    fetchRecursivTalesStories({ limit: 220 }).catch(() => [] as StoryCluster[]),
     fetchRecursivFringeStories({ limit: 36 }).catch(() => [] as StoryCluster[]),
     fetchRecursivThemedStories("weird", { limit: 40 }).catch(() => [] as StoryCluster[]),
     fetchRecursivThemedStories("comedy", { limit: 40 }).catch(() => [] as StoryCluster[]),
@@ -241,10 +245,13 @@ export default async function NewsPage() {
   ])
   void refreshKickoff
 
-  // De-dupe within each section AND across sections — a story shows in only the first section it
-  // qualifies for, so nothing repeats down the page.
+  // The main feed = breaking-news clusters PLUS the evergreen Inverted World tales, merged so the
+  // tales bulk out /news under their own categories (UAP, Cryptids, …) right alongside the news.
+  // De-dupe within each section AND across sections — a story shows once.
   const topStories = dedupeNearDuplicateStories(topStoriesRaw)
-  const seen: StoryCluster[] = [...topStories]
+  const talesStories = dedupeNearDuplicateStories(talesRaw)
+  const mainFeed = [...topStories, ...talesStories]
+  const seen: StoryCluster[] = [...mainFeed]
   const claim = (raw: StoryCluster[]) => {
     const deduped = dedupeNearDuplicateStories(raw, seen)
     seen.push(...deduped)
@@ -280,7 +287,7 @@ export default async function NewsPage() {
       heroTitle="News"
       heroDescription=""
     >
-      {topStories.length ? <NewsFeed topCards={topStories.map(toCardData)} themes={themes} /> : null}
+      {mainFeed.length ? <NewsFeed topCards={mainFeed.map(toCardData)} themes={themes} /> : null}
     </InvertedPageShell>
   )
 }

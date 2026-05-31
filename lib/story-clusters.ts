@@ -15,11 +15,21 @@ const STORY_SPAM_PATTERN =
 
 export type CoveringArticle = { outlet: string; headline: string; url: string }
 
+// An embedded video (a YouTube clip validated via keyless oEmbed) shown inside a tale article.
+export type StoryVideo = {
+  id: string // YouTube video id
+  title?: string // from oEmbed
+  author?: string // channel name, from oEmbed
+  thumbnail?: string // from oEmbed
+  query?: string // the search that surfaces this clip (fallback "watch on YouTube" link)
+}
+
 export type StoryCluster = {
   uri: string
   title: string
   summary: string
   articleCount: number
+  socialScore?: number // Event Registry social-share weight — the "viral" signal (0 when unknown)
   concepts: string[]
   category?: string // top news category (e.g. "Politics", "World", "Sports") from Event Registry
   eventDate?: string
@@ -33,19 +43,25 @@ export type StoryCluster = {
   imageQuery?: string // AI-crafted visual search terms for a rights-cleared image
   image?: RightsClearedImage // rights-cleared (CC/PD) image via Openverse
   imageChecked?: boolean // a relevance-scored image lookup has been attempted (don't retry forever)
-  // The actual outlets + their headlines covering this story (newsapi.ai event articles):
+  // The actual outlets + their headlines covering this story (newsapi.ai event articles).
+  // For tales (lane === "tales") this holds the primary-source / proof links instead.
   coveringArticles?: CoveringArticle[]
-  // Which themed set this story belongs to (mainstream, fringe, weird, comedy, pop, viral).
+  // Which themed set this story belongs to (mainstream, fringe, weird, comedy, pop, viral, tales).
   lane?: StoryLane
+  // Evergreen "tales" extras (lane === "tales"): an embedded viral video, evergreen flag.
+  video?: StoryVideo
+  evergreen?: boolean // true for tales — an evergreen piece, not a rolling news cluster
 }
 
-export type StoryLane = "top" | "fringe" | "weird" | "comedy" | "pop" | "viral"
+export type StoryLane = "top" | "fringe" | "weird" | "comedy" | "pop" | "viral" | "tales"
 
 type RawEvent = {
   uri?: string
   title?: Record<string, string> | string
   summary?: Record<string, string> | string
   totalArticleCount?: number
+  socialScore?: number
+  wgt?: number
   eventDate?: string
   images?: string[]
   concepts?: Array<{ label?: Record<string, string> }>
@@ -142,6 +158,7 @@ export async function fetchNewsApiEvents(options: { limit?: number; sinceDays?: 
           includeEventConcepts: true,
           includeEventSummary: true,
           includeEventCategories: true,
+          includeEventSocialScore: true, // the "viral" signal used for strategic selection
           eventImageCount: 1,
           apiKey,
         }),
@@ -171,6 +188,7 @@ export async function fetchNewsApiEvents(options: { limit?: number; sinceDays?: 
         title,
         summary,
         articleCount: event.totalArticleCount || 0,
+        socialScore: typeof event.socialScore === "number" ? event.socialScore : undefined,
         concepts,
         category: extractEventCategory(event.categories),
         eventDate: event.eventDate,
@@ -232,6 +250,112 @@ const FRINGE_TITLE_PATTERN =
 // Beat terms also match entertainment ("Alien action film", "superhero" movies); drop those.
 const FRINGE_EXCLUDE_PATTERN =
   /\b(film|movie|trailer|box office|sequel|prequel|superhero|web series|tv series|season \d|episode|album|single|song|actor|actress|bollywood|hollywood|netflix|premiere|red carpet|casting|biopic)\b/i
+
+// ── Strategic selection: spend the agent's (token-costly) body-writing on the stories that matter ──
+// most to Inverted World — the most VIRAL and most ON-BRAND — instead of the first N by recency.
+// Scoring is FREE: it only reads signals already on each event (social-share weight, coverage, and a
+// keyword/concept match against the IW beat lexicon). No agent tokens are spent ranking.
+const IW_RELEVANCE_PATTERN = new RegExp(FRINGE_TITLE_PATTERN.source, "gi")
+const STRATEGIC_RELEVANCE_WEIGHT = Math.max(
+  0,
+  Math.min(Number(process.env.STRATEGIC_RELEVANCE_WEIGHT) || 0.55, 1),
+)
+
+// 0..1 — how on-brand a story is for Inverted World (distinct beat-term hits in title/summary/concepts).
+export function scoreInvertedWorldRelevance(story: Pick<StoryCluster, "title" | "summary" | "concepts">): number {
+  const hay = `${story.title || ""} ${story.summary || ""} ${(story.concepts || []).join(" ")}`.toLowerCase()
+  const matches = hay.match(IW_RELEVANCE_PATTERN)
+  const distinct = matches ? new Set(matches.map((m) => m.replace(/[\s.-]/g, ""))).size : 0
+  return Math.min(1, distinct / 3) // 3+ distinct beat terms ⇒ fully on-brand
+}
+
+// 0..1 — viral footprint. Prefer social-share weight; fall back to coverage breadth (log-scaled so a
+// handful of huge stories don't dwarf everything).
+export function scoreVirality(story: Pick<StoryCluster, "socialScore" | "articleCount">): number {
+  const social = story.socialScore || 0
+  const coverage = story.articleCount || 0
+  const s = social > 0 ? Math.min(1, Math.log10(social + 1) / 4) : 0 // ~10k social weight ⇒ 1.0
+  const c = Math.min(1, Math.log10(coverage + 1) / 2.7) // ~500 articles ⇒ ~1.0
+  return Math.max(s, c * 0.85)
+}
+
+// Combined priority: viral × on-brand. Higher = more deserving of the agent's body-writing this run.
+export function scoreStrategicValue(story: StoryCluster): number {
+  const relevance = scoreInvertedWorldRelevance(story)
+  const virality = scoreVirality(story)
+  return STRATEGIC_RELEVANCE_WEIGHT * relevance + (1 - STRATEGIC_RELEVANCE_WEIGHT) * virality
+}
+
+// Bias the top-stories candidate POOL toward Inverted World by pulling currently-clustered events that
+// match the IW beat concepts, sorted by social engagement (the viral ones). Unlike the fringe lane,
+// this does NOT require mainstream-absence — an on-brand story that IS getting coverage still belongs
+// in the main feed. One extra getEvents call per run; merged into the broad pull, then ranked.
+export async function fetchInvertedWorldRelevantEvents(options: { limit?: number; sinceDays?: number } = {}): Promise<StoryCluster[]> {
+  const apiKey = process.env.NEWSAPI_AI_KEY
+  if (!apiKey) return []
+  const limit = Math.max(1, Math.min(options.limit ?? 40, 80))
+  const sinceDays = Math.max(1, Math.min(options.sinceDays ?? 3, 14))
+  const dateStart = new Date(Date.now() - sinceDays * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  const stories: StoryCluster[] = []
+  const seen = new Set<string>()
+  for (let page = 1; page <= 2 && stories.length < limit; page += 1) {
+    let response: Response
+    try {
+      response = await fetch(NEWSAPI_AI_EVENTS_ENDPOINT, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          action: "getEvents",
+          resultType: "events",
+          conceptUri: FRINGE_CONCEPT_URIS,
+          conceptOper: "or",
+          eventsSortBy: "socialScore",
+          eventsCount: NEWSAPI_EVENTS_PAGE_SIZE,
+          eventsPage: page,
+          lang: "eng",
+          dateStart,
+          minArticlesInEvent: 5,
+          includeEventConcepts: true,
+          includeEventSummary: true,
+          includeEventCategories: true,
+          includeEventSocialScore: true,
+          eventImageCount: 1,
+          apiKey,
+        }),
+        signal: AbortSignal.timeout(15000),
+        next: { revalidate: 600 },
+      })
+    } catch {
+      break
+    }
+    if (!response.ok) break
+    const data = (await response.json().catch(() => null)) as { events?: { results?: RawEvent[] } } | null
+    const events = data?.events?.results || []
+    if (!events.length) break
+    for (const event of events) {
+      if (stories.length >= limit) break
+      const title = engText(event.title)
+      const summary = engText(event.summary)
+      const concepts = (event.concepts || []).map((concept) => engText(concept.label)).filter(Boolean).slice(0, 6)
+      if (!event.uri || seen.has(event.uri) || !isQualityStory(title, summary, concepts)) continue
+      if (FRINGE_EXCLUDE_PATTERN.test(`${title} ${summary}`)) continue
+      seen.add(event.uri)
+      stories.push({
+        uri: event.uri,
+        title,
+        summary,
+        articleCount: event.totalArticleCount || 0,
+        socialScore: typeof event.socialScore === "number" ? event.socialScore : undefined,
+        concepts,
+        category: extractEventCategory(event.categories),
+        eventDate: event.eventDate,
+        imageUrl: Array.isArray(event.images) ? event.images[0] : undefined,
+      })
+    }
+    if (events.length < NEWSAPI_EVENTS_PAGE_SIZE) break
+  }
+  return stories
+}
 
 export async function fetchFringeEvents(options: { limit?: number; sinceDays?: number; maxArticles?: number } = {}): Promise<StoryCluster[]> {
   const apiKey = process.env.NEWSAPI_AI_KEY
@@ -817,6 +941,14 @@ export async function fetchRecursivThemedStories(lane: ThemedLane, options: { li
   return stories.map((story) => ({ ...story, lane })).filter((story) => keepThemedStory(lane, story))
 }
 
+// Evergreen "Inverted World tales" set — UAP, cryptids, declassified files, ancient mysteries, etc.
+// Generated once (not a rolling news sync), stored in its own source, merged into the /news feed.
+export const TALES_STORY_SOURCE = "tales-stories"
+export async function fetchRecursivTalesStories(options: { limit?: number } = {}): Promise<StoryCluster[]> {
+  const stories = await fetchStorySnapshot(TALES_STORY_SOURCE, Math.max(1, Math.min(options.limit ?? 200, 400)))
+  return stories.map((story) => ({ ...story, lane: "tales" as const, evergreen: true }))
+}
+
 function safeParseStories(value: string): StoryCluster[] {
   try {
     const parsed = JSON.parse(value)
@@ -880,6 +1012,7 @@ export async function fetchEventCoverage(eventUri: string, limit = 18): Promise<
 export async function fetchRecursivTopStory(id: string): Promise<StoryCluster | null> {
   const sets = await Promise.all([
     fetchRecursivTopStories({ limit: 250 }),
+    fetchRecursivTalesStories({ limit: 400 }).catch(() => [] as StoryCluster[]),
     fetchRecursivFringeStories({ limit: 120 }).catch(() => [] as StoryCluster[]),
     fetchRecursivThemedStories("weird", { limit: 80 }).catch(() => [] as StoryCluster[]),
     fetchRecursivThemedStories("comedy", { limit: 80 }).catch(() => [] as StoryCluster[]),

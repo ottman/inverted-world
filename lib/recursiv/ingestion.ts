@@ -10,6 +10,8 @@ import { fetchLiveArticlesForTopic } from "@/lib/live-articles"
 import { fetchMediaSeedItemsForSync, mediaItemMetadata } from "@/lib/media-library"
 import {
   fetchNewsApiEvents,
+  fetchInvertedWorldRelevantEvents,
+  scoreStrategicValue,
   fetchFringeEvents,
   fetchWeirdEvents,
   fetchComedyEvents,
@@ -27,7 +29,10 @@ import {
   agentQuotaAvailable,
   mapWithConcurrency,
   NARRATIVE_VERSION,
+  TALES_STORY_SOURCE,
+  fetchRecursivTalesStories,
   type StoryCluster,
+  type StoryVideo,
   type ThemedLane,
 } from "@/lib/story-clusters"
 import { fetchStoryThumbnail, imageRelevanceTerms, type RightsClearedImage } from "@/lib/openverse"
@@ -1235,6 +1240,9 @@ async function runRollingStorySync(opts: {
   existingFetcher: (limit: number) => Promise<StoryCluster[]>
   discover: (discoveryLimit: number) => Promise<StoryCluster[]>
   postFilter?: (story: StoryCluster) => boolean
+  // Strategic selection: when set, the per-run agent budget (maxNew) is spent on the highest-scoring
+  // candidates instead of the most recent — so tokens go to the most viral / on-brand stories.
+  prioritize?: (story: StoryCluster) => number
 }) {
   const limit = Math.max(1, Math.min(opts.limit ?? opts.defaultLimit, 250))
   const maxNew = Math.max(1, Math.min(opts.maxNew ?? (opts.rebuild ? limit : opts.defaultMaxNew), limit))
@@ -1256,7 +1264,11 @@ async function runRollingStorySync(opts: {
   const newEvents = candidates.filter((event) => !existingByUri.has(event.uri))
   const staleStories = existing.filter((story) => !hasFullStoryBody(story))
   const repairTargets = staleStories.length && (await agentQuotaAvailable()) ? staleStories : []
-  const toProcess = [...newEvents, ...repairTargets].slice(0, maxNew)
+  // Strategic selection: spend the agent budget on the highest-value candidates first (most viral /
+  // on-brand), not the most recent. New events always win the budget over repairs; both are ranked.
+  const rankByValue = (rows: StoryCluster[]) =>
+    opts.prioritize ? [...rows].sort((left, right) => opts.prioritize!(right) - opts.prioritize!(left)) : rows
+  const toProcess = [...rankByValue(newEvents), ...rankByValue(repairTargets)].slice(0, maxNew)
   const processed = (await enrichFreshTopStories(toProcess)).map((story) => ({ ...story, lane: opts.lane }))
   const processedByUri = new Map(processed.map((story) => [story.uri, story]))
 
@@ -1329,9 +1341,20 @@ export async function syncTopStoriesToRecursiv(options: { limit?: number; sinceD
     maxNew: options.maxNew,
     rebuild: options.rebuild,
     summaryText: "Top story clusters across the spectrum (newsapi.ai Events).",
-    generatedBy: "newsapi-ai-events-v2-rolling",
+    generatedBy: "newsapi-ai-events-v3-strategic",
     existingFetcher: (limit) => fetchRecursivTopStories({ limit }),
-    discover: (discoveryLimit) => fetchNewsApiEvents({ limit: discoveryLimit, sinceDays: options.sinceDays ?? 2 }),
+    // Bias the candidate pool toward Inverted World: the broad "top news" pull PLUS an on-brand,
+    // socially-viral pull (UAP/cover-up/surveillance/… concepts), merged + de-duped.
+    discover: async (discoveryLimit) => {
+      const [broad, onBrand] = await Promise.all([
+        fetchNewsApiEvents({ limit: discoveryLimit, sinceDays: options.sinceDays ?? 2 }),
+        fetchInvertedWorldRelevantEvents({ limit: 40, sinceDays: options.sinceDays ?? 3 }).catch(() => [] as StoryCluster[]),
+      ])
+      const seen = new Set(broad.map((story) => story.uri))
+      return [...broad, ...onBrand.filter((story) => !seen.has(story.uri))]
+    },
+    // Spend the hourly agent budget on the most viral × most on-brand candidates first.
+    prioritize: scoreStrategicValue,
   })
 }
 
@@ -1465,6 +1488,146 @@ export async function reimageAllStoredSets(): Promise<Record<string, unknown>> {
     }))
   }
   return results
+}
+
+// ── Evergreen "Inverted World tales" ───────────────────────────────────────────────────────────
+// Authored by THIS session's subagents (Claude) — NOT the rate-limited Recursiv chat agent — then
+// enriched here with a viral YouTube clip (validated via keyless oEmbed) + a relevant/AI image, and
+// stored as the evergreen "tales-stories" source that /news merges into the main feed.
+export type TaleArticleInput = {
+  slug: string
+  category: string
+  headline: string
+  synopsis: string
+  body: string
+  concepts: string[]
+  imageQuery?: string
+  videoCandidates?: string[] // candidate YouTube video ids, most-relevant first
+  videoQuery?: string // fallback "watch on YouTube" search query
+  primarySources?: Array<{ title?: string; url: string; outlet?: string }>
+}
+
+const TALES_ENRICH_CONCURRENCY = 6
+
+// Validate a YouTube video id via the keyless oEmbed endpoint: returns real title/author/thumbnail
+// when the clip exists AND is embeddable, else null. No API key, no search-quota cost.
+async function validateYouTubeVideo(id: string, query?: string): Promise<StoryVideo | null> {
+  const clean = (id || "").trim()
+  if (!/^[A-Za-z0-9_-]{11}$/.test(clean)) return null
+  const url = `https://www.youtube.com/oembed?url=${encodeURIComponent(`https://www.youtube.com/watch?v=${clean}`)}&format=json`
+  const res = await fetch(url, { signal: AbortSignal.timeout(8000), headers: { "user-agent": "InvertedWorld/1.0" } }).catch(() => null)
+  if (!res || !res.ok) return null
+  const data = (await res.json().catch(() => null)) as { title?: string; author_name?: string; thumbnail_url?: string } | null
+  if (!data || !data.title) return null
+  return { id: clean, title: data.title, author: data.author_name, thumbnail: data.thumbnail_url, query }
+}
+
+async function firstValidVideo(candidates: string[] | undefined, query?: string): Promise<StoryVideo | undefined> {
+  for (const id of candidates || []) {
+    const v = await validateYouTubeVideo(id, query)
+    if (v) return v
+  }
+  return undefined
+}
+
+function talesHostLabel(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "")
+  } catch {
+    return "source"
+  }
+}
+
+function slugifyTale(slug: string, fallback: string): string {
+  const base = (slug || fallback || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 72)
+  return base || "tale"
+}
+
+// Build StoryClusters from generated tale articles: validate a viral video (oEmbed), fetch a relevant
+// or AI image, attach proof links as coveringArticles, then store the evergreen tales-stories set.
+// Default merge mode keeps existing tales + adds/replaces by uri; rebuild replaces the whole set.
+export async function buildTalesStoriesToRecursiv(
+  articles: TaleArticleInput[],
+  options: { rebuild?: boolean; eventDate?: string } = {},
+): Promise<{ stored: number; added: number; withVideo: number; withImage: number }> {
+  const eventDate = options.eventDate || new Date().toISOString().slice(0, 10)
+  const existing = options.rebuild ? [] : await fetchRecursivTalesStories({ limit: 400 }).catch(() => [] as StoryCluster[])
+  const existingByUri = new Map(existing.map((story) => [story.uri, story]))
+
+  const built = await mapWithConcurrency(
+    articles.filter((article) => article && article.headline && article.body),
+    TALES_ENRICH_CONCURRENCY,
+    async (article) => {
+      const slug = slugifyTale(article.slug, article.headline)
+      const uri = `tale-${slug}`
+      const concepts = (article.concepts || []).map((concept) => (concept || "").trim()).filter(Boolean).slice(0, 8)
+      const sources = (article.primarySources || []).filter((source) => source && typeof source.url === "string" && /^https?:\/\//.test(source.url))
+      const coveringArticles = sources.slice(0, 10).map((source) => ({
+        outlet: (source.outlet || talesHostLabel(source.url)).slice(0, 48),
+        headline: (source.title || source.outlet || talesHostLabel(source.url)).slice(0, 160),
+        url: source.url,
+      }))
+      const [video, image] = await Promise.all([
+        firstValidVideo(article.videoCandidates, article.videoQuery),
+        fetchStoryThumbnail(
+          [article.imageQuery, concepts.slice(0, 2).join(" "), concepts[0], article.headline.split(/\s+/).slice(0, 5).join(" ")],
+          imageRelevanceTerms([article.headline, ...concepts]),
+          article.imageQuery || `${article.headline}, ${concepts.slice(0, 3).join(", ")}`,
+        ).catch(() => null),
+      ])
+      const story: StoryCluster = {
+        uri,
+        title: article.headline,
+        summary: article.synopsis,
+        headline: article.headline,
+        synopsis: article.synopsis,
+        body: article.body,
+        bodySource: "agent",
+        narrativeVersion: NARRATIVE_VERSION,
+        concepts,
+        category: (article.category || "Tales").trim(),
+        articleCount: coveringArticles.length,
+        coveringArticles,
+        eventDate,
+        lane: "tales",
+        evergreen: true,
+        imageQuery: article.imageQuery,
+        image: image || undefined,
+        imageChecked: true,
+        video,
+      }
+      return story
+    },
+  )
+
+  // Merge: this batch wins over existing by uri; keep prior tales not in this batch.
+  const merged = new Map<string, StoryCluster>(existingByUri)
+  let added = 0
+  for (const story of built) {
+    if (!merged.has(story.uri)) added += 1
+    merged.set(story.uri, story)
+  }
+  const stories = [...merged.values()]
+  const withVideo = stories.filter((story) => story.video?.id).length
+  const withImage = stories.filter((story) => story.image?.url).length
+
+  const { sdk, config } = getInvertedWorldDatabase()
+  await sdk.databases.query({
+    project_id: config.projectId,
+    database_name: config.databaseName,
+    sql: `INSERT INTO coverage_snapshots (topic_id, query, source, items, summary, velocity_score, metadata)
+      VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7::jsonb)`,
+    params: [
+      TALES_STORY_SOURCE,
+      TALES_STORY_SOURCE,
+      TALES_STORY_SOURCE,
+      JSON.stringify(stories),
+      "Evergreen Inverted World tales (UAP, cryptids, declassified, ancient mysteries, the paranormal).",
+      String(stories.length),
+      JSON.stringify({ generatedBy: "tales-subagents-v1", storyCount: stories.length, added, withVideo, withImage }),
+    ],
+  })
+  return { stored: stories.length, added, withVideo, withImage }
 }
 
 export async function syncWorldwireCoverageToRecursiv(options: { limitPerLane?: number } = {}) {
