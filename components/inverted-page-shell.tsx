@@ -190,7 +190,8 @@ function BreakingTicker({ items }: { items?: BreakingItem[] }) {
     .map((item) => ({ ...item, title: cleanTickerTitle(item.title) }))
   const marqueeItems = [...visibleItems, ...visibleItems]
   const tickerCharacterCount = visibleItems.reduce((sum, item) => sum + item.title.length + (item.source?.length || 0) + 18, 0)
-  const tickerDurationSeconds = Math.max(10, Math.round(tickerCharacterCount * 0.04608))
+  // 0.055296 = 0.04608 * 1.2 — 20% slower marquee than the original tuning.
+  const tickerDurationSeconds = Math.max(12, Math.round(tickerCharacterCount * 0.055296))
 
   return (
     <div>
