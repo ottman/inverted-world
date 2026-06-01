@@ -20,16 +20,21 @@ export function CategoryNav({
   items,
   className,
   ariaLabel,
+  scroll,
 }: {
   items: CategoryNavItem[]
   className?: string
   ariaLabel?: string
+  scroll?: boolean // single-line, side-to-side scroll (used for the mobile strip)
 }) {
   return (
     <nav
       aria-label={ariaLabel}
       className={cn(
-        "iw-serif flex flex-wrap items-baseline gap-x-5 gap-y-1.5 text-lg font-normal leading-tight tracking-normal sm:text-xl",
+        "iw-serif flex items-baseline gap-x-5 gap-y-1.5 text-lg font-normal tracking-normal sm:text-xl",
+        scroll
+          ? "flex-nowrap overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          : "flex-wrap leading-tight",
         className,
       )}
     >

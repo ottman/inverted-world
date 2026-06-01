@@ -121,8 +121,11 @@ export function InvertedPageShell({
       <div className="relative z-10">
         <header
           className={cn(
-            "sticky top-0 z-30 bg-[#070706]/24 backdrop-blur-[2px] transition-colors",
-            liveStatus.isLive && "bg-[#180404]/46 shadow-[0_1px_0_rgba(223,47,47,0.42)]",
+            "sticky top-0 z-30 backdrop-blur-md transition-colors lg:backdrop-blur-[2px]",
+            // Darker/more opaque header on mobile; the lighter translucent look stays on desktop.
+            liveStatus.isLive
+              ? "bg-[#180404]/90 shadow-[0_1px_0_rgba(223,47,47,0.42)] lg:bg-[#180404]/46"
+              : "bg-[#070706]/92 lg:bg-[#070706]/24",
           )}
         >
           <BreakingTicker items={tickerItems} />

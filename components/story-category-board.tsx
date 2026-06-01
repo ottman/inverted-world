@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { archiveSurface } from "@/components/inverted-page-shell"
+import { CategoryNav } from "@/components/category-nav"
 import { cn } from "@/lib/utils"
 
 // Lightweight per-card data — deliberately excludes the heavy story `body`/coverage so the whole
@@ -56,8 +57,9 @@ export function NewsFeed({ topCards, themes }: { topCards: StoryCardData[]; them
     return { kind: "all" }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- read once for the initial filter
   }, [])
-  // The header dropdowns now drive category/theme selection via the URL; the feed reflects it.
-  const [selection] = useState<Selection>(initialSelection)
+  // Desktop uses the header dropdowns (via the URL); mobile uses the side-scrolling strip below,
+  // which sets the selection directly.
+  const [selection, setSelection] = useState<Selection>(initialSelection)
 
   const { cards, title } = useMemo(() => {
     if (selection.kind === "theme") {
@@ -72,6 +74,31 @@ export function NewsFeed({ topCards, themes }: { topCards: StoryCardData[]; them
 
   return (
     <section className={cn("grid gap-4 p-3 pt-4", archiveSurface)}>
+      {/* Mobile only: a side-to-side scrolling category strip (the header dropdowns cover desktop). */}
+      <CategoryNav
+        ariaLabel="News categories"
+        scroll
+        className="-mx-1 border-b border-[#f4efe2]/10 px-1 pb-2 lg:hidden"
+        items={[
+          { key: "all", label: "All", count: topCards.length, active: selection.kind === "all", onClick: () => setSelection({ kind: "all" }) },
+          ...categories.map((category) => ({
+            key: category.name,
+            label: category.name,
+            count: category.count,
+            active: selection.kind === "category" && selection.name === category.name,
+            onClick: () => setSelection({ kind: "category", name: category.name }),
+          })),
+          ...themes.map((theme) => ({
+            key: theme.key,
+            label: theme.chip,
+            count: theme.cards.length,
+            accent: true,
+            active: selection.kind === "theme" && selection.key === theme.key,
+            onClick: () => setSelection({ kind: "theme", key: theme.key }),
+          })),
+        ]}
+      />
+
       <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-[#f4efe2]/10 pb-2">
         <h2 className="iw-serif text-4xl leading-none text-[#fff8e6]">{title}</h2>
         <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#f4efe2]/46">{cards.length} stories</span>

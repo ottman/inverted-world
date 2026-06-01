@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { ArrowUpRight, Play, RefreshCw, Youtube } from "lucide-react"
 import { archiveSurface, InvertedPageShell } from "@/components/inverted-page-shell"
+import { CategoryNav } from "@/components/category-nav"
 import { channelProfile, topics, type ChannelVideo } from "@/data/inverted-world"
 import { cn } from "@/lib/utils"
 import type { DeepArchiveResponse } from "@/lib/deep-archive"
@@ -178,6 +179,13 @@ export function ArchiveOnlyPage({
         </aside>
       </section>
 
+      {/* Mobile only: side-to-side scrolling topic strip (desktop uses the header dropdown). */}
+      <CategoryNav
+        ariaLabel="Topics"
+        scroll
+        className="mt-4 border-y border-[#f4efe2]/10 py-3 lg:hidden"
+        items={topics.map((topic) => ({ key: topic.id, label: topic.title, href: `#topic-${topic.id}` }))}
+      />
 
       <div className="mt-6 grid gap-6">
         {topics.map((topic) => {
