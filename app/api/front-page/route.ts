@@ -79,7 +79,7 @@ function dedupeBreakingItems(items: Array<{ title: string; href: string; source?
     result.push(item)
   }
 
-  return result.slice(0, 32)
+  return result.slice(0, 50)
 }
 
 function storyTickerItem(story: StoryCluster, fallbackSource: string) {
@@ -106,13 +106,13 @@ async function breakingItemsFromStories() {
   // "Last updated" = the most recent time we added a top story (the last successful hourly run).
   const lastUpdated = topRaw.reduce((max, story) => (story.addedAt && story.addedAt > max ? story.addedAt : max), "")
   const news = sortByRecency(topRaw)
-    .slice(0, 22)
+    .slice(0, 34)
     .map((story) => storyTickerItem(story, "Breaking News"))
     .filter(Boolean)
   const tales = talesRaw.filter((story) => story.headline || story.title)
   const start = tales.length ? (new Date().getUTCHours() * 7) % tales.length : 0
   const rotatedTales = [...tales.slice(start), ...tales.slice(0, start)]
-    .slice(0, 10)
+    .slice(0, 16)
     .map((story) => storyTickerItem(story, "Tales"))
     .filter(Boolean)
   // Interleave 2 news : 1 tale so both are visible as the marquee scrolls.

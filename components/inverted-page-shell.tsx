@@ -83,7 +83,7 @@ export function InvertedPageShell({
         const data = (await response.json()) as { breakingItems?: BreakingItem[]; lastUpdated?: string }
         const nextItems = (data.breakingItems || [])
           .filter((item) => item?.title && item?.href)
-          .slice(0, 32)
+          .slice(0, 50)
         if (active && nextItems.length) setSiteBreakingItems(nextItems)
         if (active && data.lastUpdated) setLastUpdated(data.lastUpdated)
       } catch {
@@ -186,7 +186,7 @@ function BreakingTicker({ items }: { items?: BreakingItem[] }) {
     { title: "Latest Inverted World videos", href: "/", source: "Videos" },
   ]
   const visibleItems = (items?.length ? items : fallbackItems)
-    .slice(0, 32)
+    .slice(0, 50)
     .map((item) => ({ ...item, title: cleanTickerTitle(item.title) }))
   const marqueeItems = [...visibleItems, ...visibleItems]
   const tickerCharacterCount = visibleItems.reduce((sum, item) => sum + item.title.length + (item.source?.length || 0) + 18, 0)
@@ -211,7 +211,7 @@ function BreakingTicker({ items }: { items?: BreakingItem[] }) {
                   rel={external ? "noopener noreferrer" : undefined}
                   className="group flex shrink-0 items-center gap-2 text-[11px] uppercase tracking-[0.1em] text-[#f4efe2]/62 transition hover:text-[#fff8e6]"
                 >
-                  <span className="max-w-[72vw] truncate sm:max-w-[420px]">{item.title}</span>
+                  <span className="whitespace-nowrap">{item.title}</span>
                   {item.source && <span className="text-[#df2f2f]/70">{item.source}</span>}
                 </a>
               )
