@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { ArrowUpRight, Play, RefreshCw, Youtube } from "lucide-react"
 import { archiveSurface, InvertedPageShell } from "@/components/inverted-page-shell"
+import { CategoryNav } from "@/components/category-nav"
 import { channelProfile, topics, type ChannelVideo, type ContentTopic } from "@/data/inverted-world"
 import { cn } from "@/lib/utils"
 import type { DeepArchiveResponse } from "@/lib/deep-archive"
@@ -229,25 +230,17 @@ function TopicIndex({
   summaries: Array<{ topic: ContentTopic; videoCount: number }>
 }) {
   return (
-    <section className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-      {summaries.map(({ topic, videoCount }) => (
-        <a
-          key={topic.id}
-          href={`#topic-${topic.id}`}
-          className="group grid min-h-[132px] content-between bg-[#050504]/38 p-3 transition hover:bg-black/62"
-        >
-          <span>
-            <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-[#df2f2f]">
-              {topic.title}
-            </span>
-            <span className="mt-2 block text-xs leading-5 text-[#f4efe2]/58">{topic.signal}</span>
-          </span>
-          <span className="mt-4 text-[10px] font-semibold uppercase tracking-[0.11em] text-[#f4efe2]/42 group-hover:text-[#fff8e6]">
-            {videoCount} videos
-          </span>
-        </a>
-      ))}
-    </section>
+    <div className="mt-4 border-y border-[#f4efe2]/10 py-3">
+      <CategoryNav
+        ariaLabel="Topics"
+        items={summaries.map(({ topic, videoCount }) => ({
+          key: topic.id,
+          label: topic.title,
+          count: videoCount,
+          href: `#topic-${topic.id}`,
+        }))}
+      />
+    </div>
   )
 }
 

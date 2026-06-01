@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react"
 import { archiveSurface } from "@/components/inverted-page-shell"
+import { CategoryNav } from "@/components/category-nav"
 import { cn } from "@/lib/utils"
 
 // Lightweight per-card data — deliberately excludes the heavy story `body`/coverage so the whole
@@ -57,36 +58,27 @@ export function NewsFeed({ topCards, themes }: { topCards: StoryCardData[]; them
 
   return (
     <section className={cn("grid gap-4 p-3 pt-4", archiveSurface)}>
-      <nav
-        className="grid gap-2 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6"
-        aria-label="News sections and categories"
-      >
-        <CategoryCard
-          label="All"
-          count={topCards.length}
-          active={selection.kind === "all"}
-          onClick={() => setSelection({ kind: "all" })}
-        />
-        {categories.map((category) => (
-          <CategoryCard
-            key={category.name}
-            label={category.name}
-            count={category.count}
-            active={selection.kind === "category" && selection.name === category.name}
-            onClick={() => setSelection({ kind: "category", name: category.name })}
-          />
-        ))}
-        {themes.map((theme) => (
-          <CategoryCard
-            key={theme.key}
-            label={theme.chip}
-            count={theme.cards.length}
-            active={selection.kind === "theme" && selection.key === theme.key}
-            onClick={() => setSelection({ kind: "theme", key: theme.key })}
-            accent
-          />
-        ))}
-      </nav>
+      <CategoryNav
+        ariaLabel="News sections and categories"
+        items={[
+          { key: "all", label: "All", count: topCards.length, active: selection.kind === "all", onClick: () => setSelection({ kind: "all" }) },
+          ...categories.map((category) => ({
+            key: category.name,
+            label: category.name,
+            count: category.count,
+            active: selection.kind === "category" && selection.name === category.name,
+            onClick: () => setSelection({ kind: "category", name: category.name }),
+          })),
+          ...themes.map((theme) => ({
+            key: theme.key,
+            label: theme.chip,
+            count: theme.cards.length,
+            accent: true,
+            active: selection.kind === "theme" && selection.key === theme.key,
+            onClick: () => setSelection({ kind: "theme", key: theme.key }),
+          })),
+        ]}
+      />
 
       <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-[#f4efe2]/10 pb-2">
         <h2 className="iw-serif text-4xl leading-none text-[#fff8e6]">{title}</h2>
@@ -147,54 +139,5 @@ function StoryCard({ card }: { card: StoryCardData }) {
         ))}
       </div>
     </a>
-  )
-}
-
-// A single category tile — the homepage topic-index card look (red uppercase label + count), but it
-// filters the feed instead of jumping to a section. Themed sections get the red accent fill.
-function CategoryCard({
-  label,
-  count,
-  active,
-  onClick,
-  accent,
-}: {
-  label: string
-  count: number
-  active: boolean
-  onClick: () => void
-  accent?: boolean
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={cn(
-        "group grid min-h-[84px] content-between p-3 text-left transition",
-        active
-          ? "bg-[#df2f2f]"
-          : accent
-            ? "bg-[#df2f2f]/12 hover:bg-[#df2f2f]/24"
-            : "bg-[#050504]/38 hover:bg-black/62",
-      )}
-    >
-      <span
-        className={cn(
-          "block text-[11px] font-semibold uppercase leading-4 tracking-[0.14em]",
-          active ? "text-[#fff8e6]" : accent ? "text-[#fff8e6]/90" : "text-[#df2f2f]",
-        )}
-      >
-        {label}
-      </span>
-      <span
-        className={cn(
-          "mt-3 text-[10px] font-semibold uppercase tracking-[0.11em]",
-          active ? "text-[#fff8e6]/80" : "text-[#f4efe2]/46 group-hover:text-[#fff8e6]/80",
-        )}
-      >
-        {count} {count === 1 ? "story" : "stories"}
-      </span>
-    </button>
   )
 }
