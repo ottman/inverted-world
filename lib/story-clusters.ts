@@ -965,10 +965,31 @@ export async function fetchRecursivThemedStories(lane: ThemedLane, options: { li
 
 // Evergreen "Inverted World tales" set — UAP, cryptids, declassified files, ancient mysteries, etc.
 // Generated once (not a rolling news sync), stored in its own source, merged into the /news feed.
+// Stored ONE TALE PER ROW: the protected direct-DB writer isn't always available, and the REST
+// write path caps a single JSON value at ~8KB — too small for a 178-story blob — so each tale is its
+// own coverage_snapshots row. We read every row and flatten, de-duped by uri (newest row wins).
 export const TALES_STORY_SOURCE = "tales-stories"
 export async function fetchRecursivTalesStories(options: { limit?: number } = {}): Promise<StoryCluster[]> {
-  const stories = await fetchStorySnapshot(TALES_STORY_SOURCE, Math.max(1, Math.min(options.limit ?? 200, 400)))
-  return stories.map((story) => ({ ...story, lane: "tales" as const, evergreen: true }))
+  const limit = Math.max(1, Math.min(options.limit ?? 200, 400))
+  const rows = await queryInvertedWorldDatabase<TopStoriesRow>(
+    `SELECT items FROM coverage_snapshots
+     WHERE source = $1
+     ORDER BY captured_at DESC, created_at DESC
+     LIMIT 600`,
+    [TALES_STORY_SOURCE],
+  )
+  const seen = new Set<string>()
+  const stories: StoryCluster[] = []
+  for (const row of rows || []) {
+    const raw = row?.items
+    const items = typeof raw === "string" ? safeParseStories(raw) : Array.isArray(raw) ? (raw as StoryCluster[]) : []
+    for (const story of items) {
+      if (!story?.uri || seen.has(story.uri) || !(story.headline || story.title)) continue
+      seen.add(story.uri)
+      stories.push({ ...story, lane: "tales" as const, evergreen: true })
+    }
+  }
+  return stories.slice(0, limit)
 }
 
 function safeParseStories(value: string): StoryCluster[] {

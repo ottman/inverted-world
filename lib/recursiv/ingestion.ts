@@ -31,7 +31,6 @@ import {
   mapWithConcurrency,
   NARRATIVE_VERSION,
   TALES_STORY_SOURCE,
-  fetchRecursivTalesStories,
   type StoryCluster,
   type StoryVideo,
   type ThemedLane,
@@ -1568,10 +1567,8 @@ function slugifyTale(slug: string, fallback: string): string {
 export async function buildTalesStoriesToRecursiv(
   articles: TaleArticleInput[],
   options: { rebuild?: boolean; eventDate?: string } = {},
-): Promise<{ stored: number; added: number; withVideo: number; withImage: number }> {
+): Promise<{ stored: number; added: number; withVideo: number; withImage: number; failed: number }> {
   const eventDate = options.eventDate || new Date().toISOString().slice(0, 10)
-  const existing = options.rebuild ? [] : await fetchRecursivTalesStories({ limit: 400 }).catch(() => [] as StoryCluster[])
-  const existingByUri = new Map(existing.map((story) => [story.uri, story]))
 
   const built = await mapWithConcurrency(
     articles.filter((article) => article && article.headline && article.body),
@@ -1619,34 +1616,51 @@ export async function buildTalesStoriesToRecursiv(
     },
   )
 
-  // Merge: this batch wins over existing by uri; keep prior tales not in this batch.
-  const merged = new Map<string, StoryCluster>(existingByUri)
-  let added = 0
-  for (const story of built) {
-    if (!merged.has(story.uri)) added += 1
-    merged.set(story.uri, story)
-  }
-  const stories = [...merged.values()]
-  const withVideo = stories.filter((story) => story.video?.id).length
-  const withImage = stories.filter((story) => story.image?.url).length
+  const withVideo = built.filter((story) => story.video?.id).length
+  const withImage = built.filter((story) => story.image?.url).length
 
+  // Store ONE ROW PER TALE: the REST write path caps a single JSON value at ~8KB, so we can't pack
+  // all of them into one snapshot blob like the news sets. Each tale is its own coverage_snapshots
+  // row (~7KB), and fetchRecursivTalesStories reads + flattens every row.
   const { sdk, config } = getInvertedWorldDatabase()
-  await sdk.databases.query({
-    project_id: config.projectId,
-    database_name: config.databaseName,
-    sql: `INSERT INTO coverage_snapshots (topic_id, query, source, items, summary, velocity_score, metadata)
-      VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7::jsonb)`,
-    params: [
-      TALES_STORY_SOURCE,
-      TALES_STORY_SOURCE,
-      TALES_STORY_SOURCE,
-      JSON.stringify(stories),
-      "Evergreen Inverted World tales (UAP, cryptids, declassified, ancient mysteries, the paranormal).",
-      String(stories.length),
-      JSON.stringify({ generatedBy: "tales-subagents-v1", storyCount: stories.length, added, withVideo, withImage }),
-    ],
+  if (options.rebuild) {
+    await sdk.databases
+      .query({
+        project_id: config.projectId,
+        database_name: config.databaseName,
+        sql: `DELETE FROM coverage_snapshots WHERE source = $1`,
+        params: [TALES_STORY_SOURCE],
+      })
+      .catch((error) => console.warn("[tales] rebuild delete failed", error instanceof Error ? error.message : error))
+  }
+  let stored = 0
+  const failures: string[] = []
+  await mapWithConcurrency(built, 4, async (story) => {
+    await sdk.databases
+      .query({
+        project_id: config.projectId,
+        database_name: config.databaseName,
+        sql: `INSERT INTO coverage_snapshots (topic_id, query, source, items, summary, velocity_score, metadata)
+          VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7::jsonb)`,
+        params: [
+          TALES_STORY_SOURCE,
+          story.uri,
+          TALES_STORY_SOURCE,
+          JSON.stringify([story]),
+          (story.headline || story.title || "").slice(0, 180),
+          String(story.articleCount || 0),
+          JSON.stringify({ generatedBy: "tales-subagents-v1", uri: story.uri, hasVideo: Boolean(story.video?.id), hasImage: Boolean(story.image?.url) }),
+        ],
+      })
+      .then(() => {
+        stored += 1
+      })
+      .catch((error) => {
+        failures.push(story.uri)
+        console.warn("[tales] row insert failed", story.uri, error instanceof Error ? error.message : error)
+      })
   })
-  return { stored: stories.length, added, withVideo, withImage }
+  return { stored, added: stored, withVideo, withImage, failed: failures.length }
 }
 
 export async function syncWorldwireCoverageToRecursiv(options: { limitPerLane?: number } = {}) {
