@@ -262,12 +262,17 @@ const STRATEGIC_RELEVANCE_WEIGHT = Math.max(
   Math.min(Number(process.env.STRATEGIC_RELEVANCE_WEIGHT) || 0.55, 1),
 )
 
-// 0..1 — how on-brand a story is for Inverted World (distinct beat-term hits in title/summary/concepts).
-export function scoreInvertedWorldRelevance(story: Pick<StoryCluster, "title" | "summary" | "concepts">): number {
+// Count of DISTINCT Inverted World beat terms in a story's title/summary/concepts. One incidental
+// hit (e.g. "cia" in a generic politics story) ≠ on-brand; two or more signals a real IW story.
+export function invertedWorldBeatHits(story: Pick<StoryCluster, "title" | "summary" | "concepts">): number {
   const hay = `${story.title || ""} ${story.summary || ""} ${(story.concepts || []).join(" ")}`.toLowerCase()
   const matches = hay.match(IW_RELEVANCE_PATTERN)
-  const distinct = matches ? new Set(matches.map((m) => m.replace(/[\s.-]/g, ""))).size : 0
-  return distinct === 0 ? 0 : Math.min(1, 0.55 + distinct * 0.25) // even one beat term reads as on-brand
+  return matches ? new Set(matches.map((m) => m.replace(/[\s.-]/g, ""))).size : 0
+}
+
+// 0..1 — how on-brand a story is for Inverted World.
+export function scoreInvertedWorldRelevance(story: Pick<StoryCluster, "title" | "summary" | "concepts">): number {
+  return Math.min(1, invertedWorldBeatHits(story) / 3) // 3+ distinct beat terms ⇒ fully on-brand
 }
 
 // 0..1 — viral footprint. Prefer social-share weight; fall back to coverage breadth (log-scaled so a
@@ -321,12 +326,16 @@ export function arrangeFeed(stories: StoryCluster[]): StoryCluster[] {
     const days = Math.max(0, (now - t) / 86_400_000)
     return Math.max(0, 1 - days / 4)
   }
+  // Tales + the fringe set are on-brand by curation. Mainstream news only counts as Inverted World
+  // when it hits the beat lexicon at least TWICE — one incidental keyword isn't enough.
   const isOnBrand = (story: StoryCluster) =>
-    story.lane === "tales" || story.lane === "fringe" || scoreInvertedWorldRelevance(story) > 0
+    story.lane === "tales" || story.lane === "fringe" || invertedWorldBeatHits(story) >= 2
   const onBrandRelevance = (story: StoryCluster) =>
-    story.lane === "tales" || story.lane === "fringe" ? 0.95 : scoreInvertedWorldRelevance(story)
+    story.lane === "tales" || story.lane === "fringe" ? 0.9 : scoreInvertedWorldRelevance(story)
+  // Relevance-led so the genuinely on-brand stories surface above merely-viral ones; virality + recency
+  // order things within a similar on-brand tier.
   const onBrandScore = (story: StoryCluster) =>
-    0.55 * onBrandRelevance(story) + 0.3 * scoreVirality(story) + 0.15 * recency(story)
+    0.62 * onBrandRelevance(story) + 0.24 * scoreVirality(story) + 0.14 * recency(story)
 
   const onBrand = stories.filter(isOnBrand).sort((a, b) => onBrandScore(b) - onBrandScore(a))
   const breaking = stories.filter((s) => !isOnBrand(s)).sort((a, b) => scoreVirality(b) - scoreVirality(a))
