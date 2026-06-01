@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { createPortal } from "react-dom"
 import { ChevronDown, Menu, X } from "lucide-react"
 import { topics } from "@/data/inverted-world"
 import { cn } from "@/lib/utils"
@@ -71,7 +72,9 @@ export function SiteNav() {
       >
         <Menu className="h-7 w-7" />
       </button>
-      {open && <MobileMenu onClose={() => setOpen(false)} />}
+      {/* Portal to <body> so the fixed overlay escapes the header's backdrop-filter containing block
+          (otherwise it'd be clipped to the header and the page bleeds through). */}
+      {open && typeof document !== "undefined" && createPortal(<MobileMenu onClose={() => setOpen(false)} />, document.body)}
     </>
   )
 }
