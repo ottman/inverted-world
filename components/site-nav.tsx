@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { createPortal } from "react-dom"
+import Image from "next/image"
 import { ChevronDown, Menu, X } from "lucide-react"
 import { topics } from "@/data/inverted-world"
 import { cn } from "@/lib/utils"
@@ -122,7 +123,9 @@ function MobileMenu({ onClose }: { onClose: () => void }) {
   return (
     <div style={{ backgroundColor: "#080808" }} className="fixed inset-0 z-50 lg:hidden">
       <div className="flex items-center justify-between px-4 py-4">
-        <span className="iw-serif text-2xl text-[#fff8e6]">Menu</span>
+        <a href="/" onClick={onClose} aria-label="inverted.world home" className="flex items-center">
+          <Image src="/images/inverted-world-banner-logo.png" alt="Inverted World" width={1229} height={203} className="h-8 w-auto" />
+        </a>
         <button type="button" aria-label="Close menu" onClick={onClose} className="p-1 text-[#f4efe2]/80 hover:text-[#df2f2f]">
           <X className="h-7 w-7" />
         </button>

@@ -308,6 +308,21 @@ export function sortByRecency(stories: StoryCluster[]): StoryCluster[] {
   })
 }
 
+// Feed ranking for /news: lead with the most VIRAL × most ON-BRAND (Inverted World) stories rather
+// than generic news, with a recency nudge so the top still rotates — and because the score includes
+// a virality term, a genuinely huge breaking story still surfaces even if it isn't on-brand.
+export function sortForFeed(stories: StoryCluster[]): StoryCluster[] {
+  const now = Date.now()
+  const recency = (story: StoryCluster) => {
+    const t = story.addedAt ? Date.parse(story.addedAt) : NaN
+    if (!Number.isFinite(t)) return 0.4
+    const days = Math.max(0, (now - t) / 86_400_000)
+    return Math.max(0, 1 - days / 3) // 1 today → 0 after ~3 days
+  }
+  const score = (story: StoryCluster) => scoreStrategicValue(story) * 0.78 + recency(story) * 0.22
+  return [...stories].sort((a, b) => score(b) - score(a))
+}
+
 // Bias the top-stories candidate POOL toward Inverted World by pulling currently-clustered events that
 // match the IW beat concepts, sorted by social engagement (the viral ones). Unlike the fringe lane,
 // this does NOT require mainstream-absence — an on-brand story that IS getting coverage still belongs
