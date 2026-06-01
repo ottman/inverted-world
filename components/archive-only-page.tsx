@@ -3,8 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { ArrowUpRight, Play, RefreshCw, Youtube } from "lucide-react"
 import { archiveSurface, InvertedPageShell } from "@/components/inverted-page-shell"
-import { CategoryNav } from "@/components/category-nav"
-import { channelProfile, topics, type ChannelVideo, type ContentTopic } from "@/data/inverted-world"
+import { channelProfile, topics, type ChannelVideo } from "@/data/inverted-world"
 import { cn } from "@/lib/utils"
 import type { DeepArchiveResponse } from "@/lib/deep-archive"
 import { youtubeEmbedUrl } from "@/lib/youtube-embed"
@@ -75,14 +74,6 @@ export function ArchiveOnlyPage({
   const leadVideoShouldAutoplay = Boolean(leadVideoKey && autoplayVideoKey === leadVideoKey)
   const leadVideoEmbedUrl = videoEmbedUrl(leadVideo, leadVideoShouldAutoplay)
   const selectedTopic = topics.find((topic) => topic.id === leadVideo?.topicId) || topics[0]
-  const topicSummaries = useMemo(
-    () =>
-      topics.map((topic) => ({
-        topic,
-        videoCount: videosByTopic.get(topic.id)?.length ?? 0,
-      })),
-    [videosByTopic],
-  )
 
   useEffect(() => {
     if (!pendingScrollKey || pendingScrollKey !== leadVideoKey) return
@@ -187,7 +178,6 @@ export function ArchiveOnlyPage({
         </aside>
       </section>
 
-      <TopicIndex summaries={topicSummaries} />
 
       <div className="mt-6 grid gap-6">
         {topics.map((topic) => {
@@ -222,26 +212,6 @@ function videoEmbedUrl(video?: ChannelVideo, autoplay = false) {
     source: video?.embedUrl || video?.href || channelProfile.youtubeUploadsEmbedUrl,
     autoplay,
   })
-}
-
-function TopicIndex({
-  summaries,
-}: {
-  summaries: Array<{ topic: ContentTopic; videoCount: number }>
-}) {
-  return (
-    <div className="mt-4 border-y border-[#f4efe2]/10 py-3">
-      <CategoryNav
-        ariaLabel="Topics"
-        items={summaries.map(({ topic, videoCount }) => ({
-          key: topic.id,
-          label: topic.title,
-          count: videoCount,
-          href: `#topic-${topic.id}`,
-        }))}
-      />
-    </div>
-  )
 }
 
 function VideoGrid({

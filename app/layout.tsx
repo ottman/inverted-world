@@ -26,7 +26,10 @@ export const metadata: Metadata = {
   ],
   generator: 'Recursiv',
   icons: {
-    icon: '/icon.svg',
+    // Same image as the SEO / social share card.
+    icon: '/images/inverted-world-logo.jpg',
+    shortcut: '/images/inverted-world-logo.jpg',
+    apple: '/images/inverted-world-logo.jpg',
   },
   openGraph: {
     title: siteTitle,

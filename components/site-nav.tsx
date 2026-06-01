@@ -90,7 +90,7 @@ function DesktopDropdown({ item }: { item: NavItem }) {
           wide ? "w-[640px]" : "w-64",
         )}
       >
-        <div className={cn("border border-[#f4efe2]/12 bg-[#0b0b0a]/96 p-4 shadow-2xl backdrop-blur", wide ? "grid grid-cols-3 gap-4" : "grid gap-1")}>
+        <div className={cn("border border-[#f4efe2]/12 bg-[#070706]/97 p-4 shadow-2xl backdrop-blur-md", wide ? "grid grid-cols-3 gap-4" : "grid gap-1")}>
           {item.groups!.map((group) => (
             <div key={group.title} className="grid content-start gap-1">
               <p className="mb-1 text-[10px] font-sans font-semibold uppercase tracking-[0.16em] text-[#df2f2f]">{group.title}</p>
