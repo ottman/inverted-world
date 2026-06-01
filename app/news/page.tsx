@@ -18,7 +18,7 @@ import {
   fetchRecursivThemedStories,
   fetchRecursivTalesStories,
   dedupeNearDuplicateStories,
-  sortForFeed,
+  arrangeFeed,
   tidyCategoryLabel,
   type StoryCluster,
 } from "@/lib/story-clusters"
@@ -249,9 +249,11 @@ export default async function NewsPage() {
   // The main feed = breaking-news clusters PLUS the evergreen Inverted World tales, merged so the
   // tales bulk out /news under their own categories (UAP, Cryptids, …) right alongside the news.
   // De-dupe within each section AND across sections — a story shows once.
-  const topStories = sortForFeed(dedupeNearDuplicateStories(topStoriesRaw))
+  const topStories = dedupeNearDuplicateStories(topStoriesRaw)
   const talesStories = dedupeNearDuplicateStories(talesRaw)
-  const mainFeed = [...topStories, ...talesStories]
+  // Lead with Inverted-World-themed content (tales + on-brand news), max-viral-first, with the
+  // biggest breaking stories interleaved so high-impact news still shows up near the top.
+  const mainFeed = arrangeFeed([...topStories, ...talesStories])
   const seen: StoryCluster[] = [...mainFeed]
   const claim = (raw: StoryCluster[]) => {
     const deduped = dedupeNearDuplicateStories(raw, seen)

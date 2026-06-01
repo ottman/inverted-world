@@ -267,7 +267,7 @@ export function scoreInvertedWorldRelevance(story: Pick<StoryCluster, "title" | 
   const hay = `${story.title || ""} ${story.summary || ""} ${(story.concepts || []).join(" ")}`.toLowerCase()
   const matches = hay.match(IW_RELEVANCE_PATTERN)
   const distinct = matches ? new Set(matches.map((m) => m.replace(/[\s.-]/g, ""))).size : 0
-  return Math.min(1, distinct / 3) // 3+ distinct beat terms ⇒ fully on-brand
+  return distinct === 0 ? 0 : Math.min(1, 0.55 + distinct * 0.25) // even one beat term reads as on-brand
 }
 
 // 0..1 — viral footprint. Prefer social-share weight; fall back to coverage breadth (log-scaled so a
@@ -308,19 +308,37 @@ export function sortByRecency(stories: StoryCluster[]): StoryCluster[] {
   })
 }
 
-// Feed ranking for /news: lead with the most VIRAL × most ON-BRAND (Inverted World) stories rather
-// than generic news, with a recency nudge so the top still rotates — and because the score includes
-// a virality term, a genuinely huge breaking story still surfaces even if it isn't on-brand.
-export function sortForFeed(stories: StoryCluster[]): StoryCluster[] {
+// Arrange the /news feed so it leads with Inverted-World-themed content, max-viral-first, with the
+// biggest BREAKING stories interleaved so high-impact news still gets in. Tales + the fringe ("what
+// nobody's talking about") set are on-brand by definition; mainstream news is on-brand only if it
+// hits the IW beat lexicon. We rank the on-brand bucket by viral×relevance×recency and the breaking
+// bucket by pure virality, then weave 3 on-brand : 1 breaking.
+export function arrangeFeed(stories: StoryCluster[]): StoryCluster[] {
   const now = Date.now()
   const recency = (story: StoryCluster) => {
     const t = story.addedAt ? Date.parse(story.addedAt) : NaN
-    if (!Number.isFinite(t)) return 0.4
+    if (!Number.isFinite(t)) return 0.5
     const days = Math.max(0, (now - t) / 86_400_000)
-    return Math.max(0, 1 - days / 3) // 1 today → 0 after ~3 days
+    return Math.max(0, 1 - days / 4)
   }
-  const score = (story: StoryCluster) => scoreStrategicValue(story) * 0.78 + recency(story) * 0.22
-  return [...stories].sort((a, b) => score(b) - score(a))
+  const isOnBrand = (story: StoryCluster) =>
+    story.lane === "tales" || story.lane === "fringe" || scoreInvertedWorldRelevance(story) > 0
+  const onBrandRelevance = (story: StoryCluster) =>
+    story.lane === "tales" || story.lane === "fringe" ? 0.95 : scoreInvertedWorldRelevance(story)
+  const onBrandScore = (story: StoryCluster) =>
+    0.55 * onBrandRelevance(story) + 0.3 * scoreVirality(story) + 0.15 * recency(story)
+
+  const onBrand = stories.filter(isOnBrand).sort((a, b) => onBrandScore(b) - onBrandScore(a))
+  const breaking = stories.filter((s) => !isOnBrand(s)).sort((a, b) => scoreVirality(b) - scoreVirality(a))
+
+  const out: StoryCluster[] = []
+  let i = 0
+  let j = 0
+  while (i < onBrand.length || j < breaking.length) {
+    for (let k = 0; k < 3 && i < onBrand.length; k += 1) out.push(onBrand[i++])
+    if (j < breaking.length) out.push(breaking[j++])
+  }
+  return out
 }
 
 // Bias the top-stories candidate POOL toward Inverted World by pulling currently-clustered events that
