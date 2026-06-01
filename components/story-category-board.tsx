@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import { archiveSurface } from "@/components/inverted-page-shell"
 import { CategoryNav } from "@/components/category-nav"
 import { cn } from "@/lib/utils"
@@ -43,7 +44,20 @@ export function NewsFeed({ topCards, themes }: { topCards: StoryCardData[]; them
     return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([name, count]) => ({ name, count }))
   }, [topCards])
 
-  const [selection, setSelection] = useState<Selection>({ kind: "all" })
+  // Initial filter from the URL so the header dropdown links (/news?category=… or ?theme=…) land
+  // on the right section.
+  const params = useSearchParams()
+  const initialSelection = useMemo<Selection>(() => {
+    const theme = params.get("theme")
+    if (theme && themes.some((t) => t.key === theme)) return { kind: "theme", key: theme }
+    const category = params.get("category")
+    if (category && categories.some((c) => c.name.toLowerCase() === category.toLowerCase())) {
+      return { kind: "category", name: categories.find((c) => c.name.toLowerCase() === category.toLowerCase())!.name }
+    }
+    return { kind: "all" }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- read once for the initial filter
+  }, [])
+  const [selection, setSelection] = useState<Selection>(initialSelection)
 
   const { cards, title } = useMemo(() => {
     if (selection.kind === "theme") {

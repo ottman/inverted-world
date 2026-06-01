@@ -282,10 +282,10 @@ export default async function NewsPage() {
 
   return (
     <InvertedPageShell
-      eyebrow="News"
-      title="News"
+      eyebrow="Scanning the web 24/7"
+      title="Breaking News"
       breakingItems={breakingItems}
-      heroTitle="News"
+      heroTitle="Breaking News"
       heroDescription=""
     >
       {mainFeed.length ? <NewsFeed topCards={mainFeed.map(toCardData)} themes={themes} /> : null}

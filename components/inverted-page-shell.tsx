@@ -5,6 +5,7 @@ import { useEffect, useState } from "react"
 import Image from "next/image"
 import { ExternalLink, Facebook, Instagram, Radio, Youtube } from "lucide-react"
 import Waves from "@/components/Waves"
+import { SiteNav } from "@/components/site-nav"
 import { socialLinks, topics } from "@/data/inverted-world"
 import { cn } from "@/lib/utils"
 
@@ -45,6 +46,7 @@ export function InvertedPageShell({
 }) {
   const [liveStatus, setLiveStatus] = useState<LiveStatus>({ isLive: false })
   const [siteBreakingItems, setSiteBreakingItems] = useState<BreakingItem[]>([])
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null)
   const longHeroTitle = heroTitle.length > 56
   const suppliedBreakingItems = breakingItems?.length ? breakingItems : undefined
   const tickerItems = dedupeTickerItems([...(siteBreakingItems || []), ...(suppliedBreakingItems || [])])
@@ -78,11 +80,12 @@ export function InvertedPageShell({
       try {
         const response = await fetch("/api/front-page", { cache: "no-store" })
         if (!response.ok) return
-        const data = (await response.json()) as { breakingItems?: BreakingItem[] }
+        const data = (await response.json()) as { breakingItems?: BreakingItem[]; lastUpdated?: string }
         const nextItems = (data.breakingItems || [])
           .filter((item) => item?.title && item?.href)
           .slice(0, 32)
         if (active && nextItems.length) setSiteBreakingItems(nextItems)
+        if (active && data.lastUpdated) setLastUpdated(data.lastUpdated)
       } catch {
         // The static fallback below keeps navigation available.
       }
@@ -123,26 +126,18 @@ export function InvertedPageShell({
           )}
         >
           <BreakingTicker items={tickerItems} />
-          <div className="mx-auto grid max-w-7xl gap-3 px-3 py-3 sm:px-6 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-center lg:px-8">
-            <a className="flex min-w-0 items-center justify-center gap-3 justify-self-center lg:justify-self-auto" href="/" aria-label="inverted.world home">
+          <div className="mx-auto flex max-w-7xl items-center gap-4 px-3 py-3 sm:px-6 lg:gap-8 lg:px-8">
+            <a className="flex shrink-0 items-center gap-3" href="/" aria-label="inverted.world home">
               <Image
                 src="/images/inverted-world-banner-logo.png"
                 alt="inverted.world"
                 width={1229}
                 height={203}
                 priority
-                className="h-10 w-auto max-w-[76vw] shrink sm:h-11 sm:max-w-none"
+                className="h-10 w-auto max-w-[58vw] shrink sm:h-11 sm:max-w-none"
               />
             </a>
-            <nav className="iw-serif flex w-full items-center justify-center gap-6 text-lg font-normal leading-none tracking-normal text-[#f4efe2]/70 lg:gap-8 lg:text-xl">
-              <a className="shrink-0 transition hover:text-[#df2f2f]" href="/archive">
-                Tales
-              </a>
-              <a className="shrink-0 transition hover:text-[#df2f2f]" href="/news">
-                Breaking News
-              </a>
-            </nav>
-            <div className="hidden lg:block" aria-hidden="true" />
+            <SiteNav />
           </div>
         </header>
 
@@ -176,7 +171,7 @@ export function InvertedPageShell({
           {children}
         </main>
 
-        <SimpleFooter />
+        <SimpleFooter lastUpdated={lastUpdated} />
       </div>
     </div>
   )
@@ -249,9 +244,30 @@ function cleanTickerTitle(value: string) {
   return title || value
 }
 
-function SimpleFooter() {
+function LastUpdatedDot({ lastUpdated }: { lastUpdated: string | null }) {
+  if (!lastUpdated) return null
+  const t = new Date(lastUpdated).getTime()
+  if (Number.isNaN(t)) return null
+  const mins = Math.max(0, Math.round((Date.now() - t) / 60000))
+  const fresh = mins <= 90 // a healthy hourly cadence
+  const ok = mins <= 180
+  const color = fresh ? "#34d399" : ok ? "#f59e0b" : "#df2f2f"
+  const rel = mins < 1 ? "just now" : mins < 60 ? `${mins} min ago` : `${Math.round(mins / 60)}h ago`
+  return (
+    <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#f4efe2]/56" title={`Site last updated ${rel}`}>
+      <span className="relative grid h-2.5 w-2.5 place-items-center">
+        {fresh && <span className="absolute h-2.5 w-2.5 rounded-full opacity-40 motion-safe:animate-ping" style={{ backgroundColor: color }} />}
+        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
+      </span>
+      Last updated {rel}
+    </div>
+  )
+}
+
+function SimpleFooter({ lastUpdated }: { lastUpdated: string | null }) {
   return (
     <footer className="relative z-10 mx-auto mt-8 flex max-w-7xl flex-col items-center gap-4 px-3 py-8 text-center text-[#f4efe2]/56 sm:px-6 lg:px-8">
+      <LastUpdatedDot lastUpdated={lastUpdated} />
       <div className="flex justify-center">
         <Image
           src="/images/inverted-world-banner-logo.png"

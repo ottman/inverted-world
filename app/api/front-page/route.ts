@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic"
 
 // Per-instance 60s cache for the ticker items: the client polls every minute, and without this each
 // poll would re-read the ~1.5MB top-stories snapshot + the tale rows. Bounds it to one read/minute.
-let tickerCache: { at: number; items: Array<{ title: string; href: string; source?: string }> } | null = null
+let tickerCache: { at: number; items: Array<{ title: string; href: string; source?: string }>; lastUpdated: string } | null = null
 
 type FrontPageSectionItem = {
   id?: unknown
@@ -96,11 +96,15 @@ function storyTickerItem(story: StoryCluster, fallbackSource: string) {
 // evergreen tales, so it reflects exactly what's on /news. The tale window rotates by the hour so the
 // ticker varies through the day instead of always showing the same handful.
 async function breakingItemsFromStories() {
-  if (tickerCache && Date.now() - tickerCache.at < 60_000) return tickerCache.items
+  if (tickerCache && Date.now() - tickerCache.at < 60_000) {
+    return { items: tickerCache.items, lastUpdated: tickerCache.lastUpdated }
+  }
   const [topRaw, talesRaw] = await Promise.all([
     fetchRecursivTopStories({ limit: 60 }).catch(() => [] as StoryCluster[]),
     fetchRecursivTalesStories({ limit: 90 }).catch(() => [] as StoryCluster[]),
   ])
+  // "Last updated" = the most recent time we added a top story (the last successful hourly run).
+  const lastUpdated = topRaw.reduce((max, story) => (story.addedAt && story.addedAt > max ? story.addedAt : max), "")
   const news = sortByRecency(topRaw)
     .slice(0, 22)
     .map((story) => storyTickerItem(story, "Breaking News"))
@@ -121,8 +125,9 @@ async function breakingItemsFromStories() {
     if (ti < rotatedTales.length) mixed.push(rotatedTales[ti++])
   }
   const items = dedupeBreakingItems(mixed)
-  if (items.length) tickerCache = { at: Date.now(), items }
-  return items
+  const resolved = lastUpdated || new Date().toISOString()
+  if (items.length) tickerCache = { at: Date.now(), items, lastUpdated: resolved }
+  return { items, lastUpdated: resolved }
 }
 
 function breakingItemsFromEdition(edition: FrontPageEdition | null | undefined) {
@@ -141,7 +146,7 @@ function breakingItemsFromEdition(edition: FrontPageEdition | null | undefined) 
 
 export async function GET() {
   const refreshKickoff = maybeStartNewsRefresh("front-page-api").catch(() => null)
-  const [frontPage, pipeline, storyItems] = await Promise.all([
+  const [frontPage, pipeline, story] = await Promise.all([
     getLatestRecursivFrontPageEditionWithSource(),
     getLatestRecursivPipelineRun(),
     breakingItemsFromStories(),
@@ -149,10 +154,11 @@ export async function GET() {
   void refreshKickoff
   const edition = frontPage?.edition ?? null
   // The ticker is breaking-news clusters + tales; fall back to the legacy edition only if those are empty.
-  const breakingItems = storyItems.length ? storyItems : breakingItemsFromEdition(edition)
+  const breakingItems = story.items.length ? story.items : breakingItemsFromEdition(edition)
 
   return NextResponse.json({
     generatedAt: new Date().toISOString(),
+    lastUpdated: story.lastUpdated,
     sourceMode: frontPage?.sourceMode ?? "unavailable",
     edition,
     breakingItems,
