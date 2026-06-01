@@ -33,6 +33,7 @@ export type StoryCluster = {
   concepts: string[]
   category?: string // top news category (e.g. "Politics", "World", "Sports") from Event Registry
   eventDate?: string
+  addedAt?: string // ISO timestamp of when WE first added this story — the real recency for ordering
   imageUrl?: string
   // Enriched by the agent step (lib/story-clusters generation):
   headline?: string
@@ -284,6 +285,27 @@ export function scoreStrategicValue(story: StoryCluster): number {
   const relevance = scoreInvertedWorldRelevance(story)
   const virality = scoreVirality(story)
   return STRATEGIC_RELEVANCE_WEIGHT * relevance + (1 - STRATEGIC_RELEVANCE_WEIGHT) * virality
+}
+
+// Order the feed by REAL recency, newest first. Event Registry dates forward-looking news to the
+// event's (often FUTURE) date, which — sorted naively — pins those stories to the top forever and
+// buries genuinely-new ones (the "stale feed" bug). So we order by when WE added the story
+// (`addedAt`), clamping any future event date to today, then break ties by the viral signal.
+export function sortByRecency(stories: StoryCluster[]): StoryCluster[] {
+  const today = new Date().toISOString().slice(0, 10)
+  const day = (s: StoryCluster) => {
+    const d = (s.eventDate || "").slice(0, 10)
+    return d && d <= today ? d : today // clamp a future event date down to today
+  }
+  const added = (s: StoryCluster) => s.addedAt || `${day(s)}T00:00:00.000Z`
+  const viral = (s: StoryCluster) => s.socialScore || s.articleCount || 0
+  return [...stories].sort((a, b) => {
+    const byDay = day(b).localeCompare(day(a))
+    if (byDay) return byDay
+    const byAdded = added(b).localeCompare(added(a))
+    if (byAdded) return byAdded
+    return viral(b) - viral(a)
+  })
 }
 
 // Bias the top-stories candidate POOL toward Inverted World by pulling currently-clustered events that

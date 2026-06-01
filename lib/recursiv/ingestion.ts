@@ -12,6 +12,7 @@ import {
   fetchNewsApiEvents,
   fetchInvertedWorldRelevantEvents,
   scoreStrategicValue,
+  sortByRecency,
   fetchFringeEvents,
   fetchWeirdEvents,
   fetchComedyEvents,
@@ -1281,20 +1282,39 @@ async function runRollingStorySync(opts: {
       ? story
       : { ...story, body: buildSynthesizedBody(story), bodySource: "synth" as const }
 
+  // Stamp `addedAt` (real recency) so genuinely-new stories surface at the top instead of being
+  // buried under stories that Event Registry dated to a FUTURE event date. New events get the run
+  // timestamp; kept stories preserve their prior addedAt; legacy rows without one are backfilled from
+  // their (future-clamped) event day so they slot in sensibly the first time.
+  const runStamp = new Date().toISOString()
+  const todayKey = runStamp.slice(0, 10)
+  const clampDay = (story: StoryCluster) => {
+    const day = (story.eventDate || "").slice(0, 10)
+    return day && day <= todayKey ? day : todayKey
+  }
+  const newEventUris = new Set(newEvents.map((event) => event.uri))
+  const stampAddedAt = (story: StoryCluster): StoryCluster => {
+    if (story.addedAt) return story
+    const priorAddedAt = existingByUri.get(story.uri)?.addedAt
+    if (priorAddedAt) return { ...story, addedAt: priorAddedAt }
+    const addedAt = newEventUris.has(story.uri) ? runStamp : `${clampDay(story)}T00:00:00.000Z`
+    return { ...story, addedAt }
+  }
+
   // Merge: a freshly-processed story always wins over its prior version; keep the freshest up to the
-  // rolling limit and drop the oldest beyond it. Final display order is newest-first.
+  // rolling limit and drop the oldest beyond it. Final display order is newest-added first.
   const merged: StoryCluster[] = []
   const seen = new Set<string>()
   for (const story of [...processed, ...existing]) {
     if (!story?.uri || seen.has(story.uri)) continue
     seen.add(story.uri)
-    merged.push(processedByUri.get(story.uri) || normalizeBody({ ...story, lane: opts.lane }))
+    merged.push(stampAddedAt(processedByUri.get(story.uri) || normalizeBody({ ...story, lane: opts.lane })))
   }
   // Lane-specific gate (e.g. the fringe lane drops anything the mainstream picked up), applied after
   // coverage is known. Then collapse duplicate clusters of the same real-world story (newsapi emits
   // several per story), keep the freshest up to the rolling limit, and converge images.
   const filtered = opts.postFilter ? merged.filter(opts.postFilter) : merged
-  const sorted = filtered.sort((left, right) => (right.eventDate || "").localeCompare(left.eventDate || ""))
+  const sorted = sortByRecency(filtered)
   // Backfill categories from the freshly-discovered events (free) so stored stories pick them up
   // without a costly per-story re-fetch.
   const ranked = dedupeNearDuplicateStories(sorted)
@@ -1306,7 +1326,6 @@ async function runRollingStorySync(opts: {
   const stories = await refreshLowRelevanceImages(ranked)
   const totalCoverage = stories.reduce((sum, story) => sum + (story.articleCount || 0), 0)
 
-  const newEventUris = new Set(newEvents.map((event) => event.uri))
   const newThisRun = processed.filter((story) => newEventUris.has(story.uri)).length
   const healedThisRun = processed.length - newThisRun
   const fullBodies = stories.filter(hasFullStoryBody).length
