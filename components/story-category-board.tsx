@@ -69,7 +69,7 @@ export function NewsFeed({ topCards, themes }: { topCards: StoryCardData[]; them
     if (selection.kind === "category") {
       return { cards: topCards.filter((card) => card.category === selection.name), title: selection.name }
     }
-    return { cards: topCards, title: "What everyone's talking about" }
+    return { cards: topCards, title: "Today in the Inverted World" }
   }, [selection, topCards, themes])
 
   return (
