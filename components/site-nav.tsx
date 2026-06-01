@@ -90,7 +90,10 @@ function DesktopDropdown({ item }: { item: NavItem }) {
           wide ? "w-[640px]" : "w-64",
         )}
       >
-        <div className={cn("border border-[#f4efe2]/12 bg-[#070706]/97 p-4 shadow-2xl backdrop-blur-md", wide ? "grid grid-cols-3 gap-4" : "grid gap-1")}>
+        <div
+          style={{ backgroundColor: "#080808" }}
+          className={cn("border border-[#f4efe2]/12 p-4 shadow-2xl", wide ? "grid grid-cols-3 gap-4" : "grid gap-1")}
+        >
           {item.groups!.map((group) => (
             <div key={group.title} className="grid content-start gap-1">
               <p className="mb-1 text-[10px] font-sans font-semibold uppercase tracking-[0.16em] text-[#df2f2f]">{group.title}</p>
@@ -114,7 +117,7 @@ function DesktopDropdown({ item }: { item: NavItem }) {
 function MobileMenu({ onClose }: { onClose: () => void }) {
   const [expanded, setExpanded] = useState<string | null>(null)
   return (
-    <div className="fixed inset-0 z-50 bg-[#070706]/96 backdrop-blur lg:hidden">
+    <div style={{ backgroundColor: "#080808" }} className="fixed inset-0 z-50 lg:hidden">
       <div className="flex items-center justify-between px-4 py-4">
         <span className="iw-serif text-2xl text-[#fff8e6]">Menu</span>
         <button type="button" aria-label="Close menu" onClick={onClose} className="p-1 text-[#f4efe2]/80 hover:text-[#df2f2f]">
