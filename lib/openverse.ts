@@ -175,7 +175,7 @@ export async function fetchBestRelevantOpenverseImage(
 // prompt (Pollinations caches by URL), so it's stable to store and reload.
 const POLLINATIONS_ENDPOINT = "https://image.pollinations.ai/prompt/"
 export function aiThumbnailImage(prompt: string): RightsClearedImage | null {
-  const trimmed = (prompt || "").replace(/\s+/g, " ").trim().slice(0, 190)
+  const trimmed = (prompt || "").replace(/\s+/g, " ").trim().slice(0, 340)
   if (!trimmed) return null
   // Generated FROM the story, so it's always on-topic. Styled cinematic-editorial: credible for both
   // breaking-news clusters and eerie "tales" without reading as clip-art. No text/watermark/caption.
