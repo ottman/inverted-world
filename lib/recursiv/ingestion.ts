@@ -23,6 +23,7 @@ import {
   fetchRecursivTopStories,
   fetchRecursivFringeStories,
   fetchRecursivThemedStories,
+  fetchRecursivTalesStories,
   THEMED_STORY_SOURCES,
   buildSynthesizedBody,
   isMainstreamAbsent,
@@ -36,6 +37,7 @@ import {
   type ThemedLane,
 } from "@/lib/story-clusters"
 import { fetchStoryThumbnail, imageRelevanceTerms, type RightsClearedImage } from "@/lib/openverse"
+import { imageOverrideFor } from "@/lib/recursiv/image-overrides"
 import { generatedSvgThumbnail } from "@/lib/generated-thumbnail"
 import { createRecursivServerClient } from "@/lib/recursiv/client"
 import { executeDirectInvertedWorldDatabaseSql, hasDirectInvertedWorldDatabase } from "@/lib/recursiv/database"
@@ -1141,7 +1143,9 @@ const COVERAGE_CONCURRENCY = 5
 const IMAGE_CONCURRENCY = 8
 const IMAGE_REFRESH_PER_RUN = 40
 
-// Cascade of Openverse search queries for a story, most-specific first.
+// Cascade of Openverse search queries for a story, most-specific first. Leads with the curated
+// imageQuery, then concept (entity) names — which are far better image-search terms than the
+// clickbait headline — and only falls back to headline words last.
 function imageQueryCascade(story: StoryCluster): Array<string | undefined> {
   return [
     story.imageQuery,
@@ -1152,11 +1156,19 @@ function imageQueryCascade(story: StoryCluster): Array<string | undefined> {
   ]
 }
 
-// Prompt for the AI-image fallback — describe the story so the generated picture is on-topic.
+// The story's distinctive subject words (concept/entity names) — the "anchors" a candidate photo MUST
+// touch to be trusted, so a coincidental keyword hit on a peripheral word can't qualify.
+function imageAnchors(story: StoryCluster): string[] {
+  return imageRelevanceTerms(story.concepts)
+}
+
+// Prompt for the AI-image fallback — a concrete VISUAL scene from the curated query + concept entities
+// (the actual subjects), NOT the clickbait headline text (which makes the generator render words).
 function imageAiPrompt(story: StoryCluster): string {
-  const subject = story.imageQuery?.trim() || story.headline?.trim() || story.title.trim()
-  const context = story.concepts.slice(0, 3).filter(Boolean).join(", ")
-  return context ? `${subject}, ${context}` : subject
+  const query = story.imageQuery?.trim()
+  const concepts = story.concepts.slice(0, 4).filter(Boolean).join(", ")
+  const subject = query || concepts || (story.headline || story.title || "").trim()
+  return concepts && subject !== concepts ? `${subject}, ${concepts}` : subject
 }
 
 // Re-pick images for stories whose current picture isn't clearly relevant to the article (older rows
@@ -1165,21 +1177,23 @@ function imageAiPrompt(story: StoryCluster): string {
 // a dud. Bounded per run + marked `imageChecked` so it converges. Both Openverse and the Pollinations
 // AI fallback are free + keyless, so this costs no agent quota — only HTTP.
 async function refreshLowRelevanceImages(stories: StoryCluster[]): Promise<StoryCluster[]> {
-  // Any story whose picture still isn't relevant. We no longer skip `imageChecked` rows: the AI
-  // fallback guarantees a refresh reaches relevance>=1, so a re-pick can only improve a stuck dud and
-  // never loops. Bounded per run so the hourly cron converges the whole set over a few passes.
-  const needs = stories.filter((story) => ((story.image?.relevance) || 0) < 1).slice(0, IMAGE_REFRESH_PER_RUN)
-  if (!needs.length) return stories
-  const attempted = new Set(needs.map((story) => story.uri))
+  // Any story whose picture isn't TRUSTED (genuinely depicts the subject). The AI fallback always
+  // returns a trusted, on-topic image, so a re-pick can only improve a stuck dud and never loops.
+  // Curated overrides are applied first (and don't count against the per-run cap). Bounded per run so
+  // the hourly cron converges the whole set over a few passes.
+  const needs = stories.filter((story) => !imageOverrideFor(story.uri) && !story.image?.trusted).slice(0, IMAGE_REFRESH_PER_RUN)
   const better = new Map<string, RightsClearedImage>()
   await mapWithConcurrency(needs, IMAGE_CONCURRENCY, async (story) => {
     const terms = imageRelevanceTerms([story.title, ...story.concepts])
-    const image = await fetchStoryThumbnail(imageQueryCascade(story), terms, imageAiPrompt(story)).catch(() => null)
-    if (image && (image.relevance || 0) > ((story.image?.relevance) || 0)) better.set(story.uri, image)
+    const image = await fetchStoryThumbnail(imageQueryCascade(story), terms, imageAiPrompt(story), imageAnchors(story)).catch(() => null)
+    if (image) better.set(story.uri, image)
   })
-  return stories.map((story) =>
-    attempted.has(story.uri) ? { ...story, image: better.get(story.uri) || story.image, imageChecked: true } : story,
-  )
+  return stories.map((story) => {
+    const override = imageOverrideFor(story.uri)
+    if (override) return { ...story, image: override, imageChecked: true }
+    if (better.has(story.uri)) return { ...story, image: better.get(story.uri), imageChecked: true }
+    return story
+  })
 }
 
 // A story has a real agent-written body (not the synthesized/summary interim). Used to pick which
@@ -1207,13 +1221,14 @@ async function enrichFreshTopStories(events: StoryCluster[]): Promise<StoryClust
   })
   const narrated = await generateStoryNarratives(withCoverage)
   return mapWithConcurrency(narrated, IMAGE_CONCURRENCY, async (story) => {
-    // A relevance-scored rights-cleared photo when one clearly matches the story's own terms;
-    // otherwise an AI-generated, on-topic image — so a story never shows an irrelevant "dud".
+    // A curated override wins; else a TRUSTED rights-cleared photo when one genuinely depicts the
+    // subject; else an AI-generated, on-topic image — so a story never shows an irrelevant "dud".
+    const override = imageOverrideFor(story.uri)
+    if (override) return { ...story, image: override, imageChecked: true }
     const relevanceTerms = imageRelevanceTerms([story.title, ...story.concepts])
-    const image = await fetchStoryThumbnail(imageQueryCascade(story), relevanceTerms, imageAiPrompt(story)).catch(() => null)
-    // Keep the better of the fresh pick vs. whatever we already had (don't downgrade on a miss).
-    const prior = story.image
-    const next = image && (!prior || (image.relevance || 0) >= (prior.relevance || 0)) ? image : prior
+    const image = await fetchStoryThumbnail(imageQueryCascade(story), relevanceTerms, imageAiPrompt(story), imageAnchors(story)).catch(() => null)
+    // Prefer a trusted fresh pick; only keep the prior image if the fresh attempt failed entirely.
+    const next = image || story.image
     return { ...story, image: next || undefined }
   })
 }
@@ -1456,16 +1471,21 @@ async function reimageStoredSet(
 ): Promise<{ source: string; stored: number; refreshed: number }> {
   const stories = await fetcher().catch(() => [] as StoryCluster[])
   if (!stories.length) return { source, stored: 0, refreshed: 0 }
-  const duds = stories.filter((story) => ((story.image?.relevance) || 0) < 1)
+  // Re-pick every story that isn't already TRUSTED (covers older rows scored under the looser, pre-
+  // anchor logic). Curated overrides are applied first and always win.
+  const duds = stories.filter((story) => !imageOverrideFor(story.uri) && !story.image?.trusted)
   const better = new Map<string, RightsClearedImage>()
   await mapWithConcurrency(duds, IMAGE_CONCURRENCY, async (story) => {
     const terms = imageRelevanceTerms([story.title, ...story.concepts])
-    const image = await fetchStoryThumbnail(imageQueryCascade(story), terms, imageAiPrompt(story)).catch(() => null)
-    if (image && (image.relevance || 0) > ((story.image?.relevance) || 0)) better.set(story.uri, image)
+    const image = await fetchStoryThumbnail(imageQueryCascade(story), terms, imageAiPrompt(story), imageAnchors(story)).catch(() => null)
+    if (image) better.set(story.uri, image)
   })
-  const updated = stories.map((story) =>
-    better.has(story.uri) ? { ...story, image: better.get(story.uri), imageChecked: true } : story,
-  )
+  const updated = stories.map((story) => {
+    const override = imageOverrideFor(story.uri)
+    if (override) return { ...story, image: override, imageChecked: true }
+    if (better.has(story.uri)) return { ...story, image: better.get(story.uri), imageChecked: true }
+    return story
+  })
   const totalCoverage = updated.reduce((sum, story) => sum + (story.articleCount || 0), 0)
   const { sdk, config } = getInvertedWorldDatabase()
   await sdk.databases.query({
@@ -1486,7 +1506,46 @@ async function reimageStoredSet(
   return { source, stored: updated.length, refreshed: better.size }
 }
 
-// One-shot re-image of every stored set (top, fringe, and the four themed lanes). Free — no newsapi.
+// Re-image the evergreen tales set. Tales are stored ONE ROW PER TALE (each ~7KB, under the REST
+// 8KB-per-value cap), so — unlike the news snapshots — we UPDATE each row's `items` in place rather
+// than rewriting one big blob. Re-picks any tale whose picture isn't trusted, applies curated
+// overrides first, and leaves trusted rows untouched. Free: Openverse + Pollinations only.
+async function reimageTalesStories(): Promise<{ source: string; stored: number; refreshed: number; overridden: number }> {
+  const stories = await fetchRecursivTalesStories({ limit: 500 }).catch(() => [] as StoryCluster[])
+  if (!stories.length) return { source: TALES_STORY_SOURCE, stored: 0, refreshed: 0, overridden: 0 }
+  const { sdk, config } = getInvertedWorldDatabase()
+  let refreshed = 0
+  let overridden = 0
+  await mapWithConcurrency(stories, IMAGE_CONCURRENCY, async (story) => {
+    const override = imageOverrideFor(story.uri)
+    let nextImage: RightsClearedImage | undefined = story.image
+    if (override) {
+      nextImage = override
+    } else if (!story.image?.trusted) {
+      const terms = imageRelevanceTerms([story.title, ...story.concepts])
+      const picked = await fetchStoryThumbnail(imageQueryCascade(story), terms, imageAiPrompt(story), imageAnchors(story)).catch(() => null)
+      if (picked) nextImage = picked
+    }
+    if (!nextImage || nextImage === story.image) return
+    const updated: StoryCluster = { ...story, image: nextImage, imageChecked: true }
+    await sdk.databases
+      .query({
+        project_id: config.projectId,
+        database_name: config.databaseName,
+        sql: `UPDATE coverage_snapshots SET items = $1::jsonb WHERE source = $2 AND query = $3`,
+        params: [JSON.stringify([updated]), TALES_STORY_SOURCE, story.uri],
+      })
+      .then(() => {
+        if (override) overridden += 1
+        else refreshed += 1
+      })
+      .catch((error) => console.warn("[tales-reimage] update failed", story.uri, error instanceof Error ? error.message : error))
+  })
+  return { source: TALES_STORY_SOURCE, stored: stories.length, refreshed, overridden }
+}
+
+// One-shot re-image of every stored set (top, fringe, the four themed lanes, and the tales set).
+// Free — no newsapi quota, only Openverse + the keyless Pollinations AI fallback.
 export async function reimageAllStoredSets(): Promise<Record<string, unknown>> {
   const lanes: ThemedLane[] = ["weird", "comedy", "pop", "viral"]
   const jobs: Array<{ source: string; fetcher: () => Promise<StoryCluster[]>; summary: string; by: string }> = [
@@ -1505,6 +1564,10 @@ export async function reimageAllStoredSets(): Promise<Record<string, unknown>> {
       error: error instanceof Error ? error.message : String(error),
     }))
   }
+  // Tales use a different storage shape (one row per tale) so they get their own in-place re-imager.
+  results[TALES_STORY_SOURCE] = await reimageTalesStories().catch((error) => ({
+    error: error instanceof Error ? error.message : String(error),
+  }))
   return results
 }
 
@@ -1585,11 +1648,13 @@ export async function buildTalesStoriesToRecursiv(
       }))
       const [video, image] = await Promise.all([
         firstValidVideo(article.videoCandidates, article.videoQuery),
-        fetchStoryThumbnail(
-          [article.imageQuery, concepts.slice(0, 2).join(" "), concepts[0], article.headline.split(/\s+/).slice(0, 5).join(" ")],
-          imageRelevanceTerms([article.headline, ...concepts]),
-          article.imageQuery || `${article.headline}, ${concepts.slice(0, 3).join(", ")}`,
-        ).catch(() => null),
+        imageOverrideFor(uri) ||
+          fetchStoryThumbnail(
+            [article.imageQuery, concepts.slice(0, 2).join(" "), concepts[0], article.headline.split(/\s+/).slice(0, 5).join(" ")],
+            imageRelevanceTerms([article.headline, ...concepts]),
+            article.imageQuery || `${article.headline}, ${concepts.slice(0, 3).join(", ")}`,
+            imageRelevanceTerms(concepts),
+          ).catch(() => null),
       ])
       const story: StoryCluster = {
         uri,

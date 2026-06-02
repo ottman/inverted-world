@@ -11,7 +11,8 @@ export type RightsClearedImage = {
   attribution?: string
   sourceUrl?: string
   creator?: string
-  relevance?: number // how many story terms matched the image title/tags (0 = generic)
+  relevance?: number // weighted match strength of the image's title/tags vs the story (0 = generic)
+  trusted?: boolean // the picture genuinely depicts the story's subject (anchor term + ≥2 hits, no stock cruft)
 }
 
 type OpenverseResult = {
@@ -30,27 +31,60 @@ const IMAGE_STOPWORDS = new Set([
   "the", "and", "for", "with", "from", "that", "this", "after", "into", "over", "under", "amid",
   "says", "say", "said", "new", "news", "report", "reports", "latest", "update", "live", "watch",
   "video", "day", "week", "year", "first", "more", "than", "what", "who", "how", "why", "when",
+  // 3-letter fillers — kept out so short ACRONYMS (ufo, cia, fbi, tnt, nsa, ai) still count as terms.
+  "are", "was", "has", "had", "his", "her", "its", "our", "out", "off", "via", "per", "but", "not",
+  "you", "all", "any", "can", "did", "get", "got", "let", "may", "now", "one", "two", "see", "too",
+  "use", "way", "his", "him", "she", "they", "them", "were", "have", "been", "will", "just", "amid",
 ])
 
-// Significant lowercased terms from a story used to judge image relevance.
+// Significant lowercased terms from a story used to judge image relevance. Keeps 3-char tokens so
+// acronyms (UFO, CIA, TNT, FBI) — which are often the whole subject — aren't silently dropped.
 export function imageRelevanceTerms(parts: Array<string | undefined>): string[] {
   const terms = new Set<string>()
   for (const part of parts) {
     for (const raw of (part || "").toLowerCase().split(/[^a-z0-9]+/)) {
-      if (raw.length > 3 && !IMAGE_STOPWORDS.has(raw)) terms.add(raw)
+      if (raw.length >= 3 && !IMAGE_STOPWORDS.has(raw)) terms.add(raw)
     }
   }
   return [...terms]
 }
 
-function relevanceScore(result: OpenverseResult, terms: string[]): number {
-  if (!terms.length) return 0
-  const haystack = `${result.title || ""} ${(result.tags || []).map((tag) => tag?.name || "").join(" ")}`.toLowerCase()
-  let matched = 0
+// Stock-photo signals: when these dominate an image's title/tags it's almost never the actual
+// subject of a news story or tale (it's a birthday cake, a costume, a logo, a recipe). Heavily
+// penalized so a single coincidental keyword match can't pull in an obviously-wrong picture.
+const STOCK_CRUFT = new Set([
+  "cake", "birthday", "wedding", "bridal", "party", "recipe", "cooking", "baking", "dessert",
+  "costume", "cosplay", "fancydress", "halloween", "tattoo", "selfie", "portrait", "headshot",
+  "fashion", "model", "modeling", "runway", "cartoon", "clipart", "logo", "icon", "emoji", "meme",
+  "greeting", "postcard", "stamp", "coin", "banknote", "toy", "figurine", "plush", "lego", "doll",
+  "knitting", "crochet", "embroidery", "scrapbook", "sticker", "wallpaper", "template", "mockup",
+])
+
+// Score an image's RELEVANCE to a story by how its title/tags overlap the story's terms — title
+// matches count double (the title describes the subject; tags are noisier), an "anchor" hit (one of
+// the story's distinctive subject words) is rewarded, and stock-photo cruft is heavily penalized.
+// `trusted` means the picture genuinely depicts the subject: an anchor matched, ≥2 total term hits,
+// and no dominating cruft — the bar a photo must clear to be used instead of an on-topic AI image.
+function scoreRelevance(
+  result: OpenverseResult,
+  terms: string[],
+  anchors: string[],
+): { relevance: number; trusted: boolean } {
+  const title = (result.title || "").toLowerCase()
+  const tagList = (result.tags || []).map((tag) => (tag?.name || "").toLowerCase())
+  const tagStr = tagList.join(" ")
+  let titleHits = 0
+  let tagHits = 0
   for (const term of terms) {
-    if (haystack.includes(term)) matched += 1
+    if (title.includes(term)) titleHits += 1
+    else if (tagStr.includes(term)) tagHits += 1
   }
-  return matched
+  const anchorHit = anchors.some((anchor) => title.includes(anchor) || tagStr.includes(anchor))
+  const cruft = [...STOCK_CRUFT].some((word) => title.includes(word) || tagList.includes(word))
+  let relevance = titleHits * 2 + tagHits + (anchorHit ? 2 : 0)
+  if (cruft) relevance -= 4
+  const trusted = anchorHit && titleHits + tagHits >= 2 && !cruft
+  return { relevance, trusted }
 }
 
 function licenseScore(result: OpenverseResult): number {
@@ -63,7 +97,7 @@ function licenseScore(result: OpenverseResult): number {
   return score
 }
 
-function toRightsClearedImage(result: OpenverseResult, relevance: number): RightsClearedImage {
+function toRightsClearedImage(result: OpenverseResult, relevance: number, trusted: boolean): RightsClearedImage {
   const license = `${result.license || ""} ${result.license_version || ""}`.trim()
   const noAttribution = /^(cc0|pdm)\b/i.test(license)
   return {
@@ -73,6 +107,7 @@ function toRightsClearedImage(result: OpenverseResult, relevance: number): Right
     sourceUrl: result.foreign_landing_url,
     creator: result.creator,
     relevance,
+    trusted,
   }
 }
 
@@ -101,15 +136,18 @@ async function searchOpenverse(query: string): Promise<OpenverseResult[]> {
 
 // Search Openverse across a cascade of queries, score every candidate by relevance-to-the-story
 // (then license/format), and return the single best match. `relevanceTerms` are the story's key
-// words; an image that mentions more of them in its title/tags wins. Returns the best available even
-// at relevance 0 so a story is never left imageless, but the `relevance` field lets callers tell.
+// words and `anchors` its distinctive subject words (entity/concept names). An image that mentions
+// more of them — especially in its title — wins. Returns the best available even at relevance 0 so a
+// story is never left imageless; the `relevance`/`trusted` fields let callers tell a real match from
+// a coincidental keyword hit (and fall back to an on-topic AI image when nothing is trusted).
 export async function fetchBestRelevantOpenverseImage(
   queries: Array<string | undefined>,
   relevanceTerms: string[] = [],
+  anchors: string[] = [],
 ): Promise<RightsClearedImage | null> {
   const seenQueries = new Set<string>()
   const seenUrls = new Set<string>()
-  let best: { result: OpenverseResult; relevance: number; score: number } | null = null
+  let best: { result: OpenverseResult; relevance: number; trusted: boolean; score: number } | null = null
 
   for (const raw of queries) {
     const q = (raw || "").trim()
@@ -120,15 +158,16 @@ export async function fetchBestRelevantOpenverseImage(
       const key = (result.url || "").toLowerCase()
       if (seenUrls.has(key)) continue
       seenUrls.add(key)
-      const relevance = relevanceScore(result, relevanceTerms)
-      const score = relevance * 100 + licenseScore(result)
-      if (!best || score > best.score) best = { result, relevance, score }
+      const { relevance, trusted } = scoreRelevance(result, relevanceTerms, anchors)
+      // Trust dominates ranking, then weighted relevance, then license/format.
+      const score = (trusted ? 100000 : 0) + relevance * 100 + licenseScore(result)
+      if (!best || score > best.score) best = { result, relevance, trusted, score }
     }
-    // Stop early once we have a solidly-relevant match (≥2 story terms) to save calls.
-    if (best && best.relevance >= 2) break
+    // Stop early once we have a trusted match (genuinely depicts the subject) to save calls.
+    if (best && best.trusted) break
   }
 
-  return best ? toRightsClearedImage(best.result, best.relevance) : null
+  return best ? toRightsClearedImage(best.result, best.relevance, best.trusted) : null
 }
 
 // AI-generated thumbnail via Pollinations (free, keyless text-to-image) — used when no rights-cleared
@@ -136,28 +175,33 @@ export async function fetchBestRelevantOpenverseImage(
 // prompt (Pollinations caches by URL), so it's stable to store and reload.
 const POLLINATIONS_ENDPOINT = "https://image.pollinations.ai/prompt/"
 export function aiThumbnailImage(prompt: string): RightsClearedImage | null {
-  const trimmed = (prompt || "").replace(/\s+/g, " ").trim().slice(0, 180)
+  const trimmed = (prompt || "").replace(/\s+/g, " ").trim().slice(0, 190)
   if (!trimmed) return null
-  const styled = `${trimmed}, editorial news photograph, photojournalistic, realistic, cinematic lighting, no text, no watermark`
+  // Generated FROM the story, so it's always on-topic. Styled cinematic-editorial: credible for both
+  // breaking-news clusters and eerie "tales" without reading as clip-art. No text/watermark/caption.
+  const styled = `${trimmed}. Cinematic editorial photograph, photorealistic, atmospheric, dramatic natural lighting, high detail, documentary framing, no text, no watermark, no caption, no border`
   const url = `${POLLINATIONS_ENDPOINT}${encodeURIComponent(styled)}?width=1024&height=576&nologo=true&model=flux`
-  return { url, license: "AI-generated", relevance: 99 }
+  return { url, license: "AI-generated", relevance: 99, trusted: true }
 }
 
-// Best thumbnail for a story: a relevance-scored rights-cleared photo when one clearly matches
-// (>=1 of the story's key terms in its title/tags), otherwise an AI-generated image. Never a dud.
+// Best thumbnail for a story: a rights-cleared photo ONLY when one genuinely depicts the subject
+// (`trusted` — an anchor term matched, ≥2 hits, no stock cruft), otherwise an on-topic AI image.
+// This is what stops a coincidental single-keyword match (e.g. a birthday cake for a UFO story) from
+// ever being shown: anything short of a trusted photo loses to a picture generated from the story.
 export async function fetchStoryThumbnail(
   queries: Array<string | undefined>,
   relevanceTerms: string[],
   aiPrompt: string,
+  anchors: string[] = [],
 ): Promise<RightsClearedImage | null> {
-  const photo = await fetchBestRelevantOpenverseImage(queries, relevanceTerms).catch(() => null)
-  if (photo && (photo.relevance || 0) >= 1) return photo
+  const photo = await fetchBestRelevantOpenverseImage(queries, relevanceTerms, anchors).catch(() => null)
+  if (photo && photo.trusted) return photo
   return aiThumbnailImage(aiPrompt) || photo
 }
 
 // Back-compat: cascade queries with no relevance signal (returns the first rights-cleared hit).
 export async function fetchOpenverseImageFromQueries(queries: Array<string | undefined>): Promise<RightsClearedImage | null> {
-  return fetchBestRelevantOpenverseImage(queries, [])
+  return fetchBestRelevantOpenverseImage(queries, [], [])
 }
 
 // Single-query convenience (best rights-cleared result for the query).
