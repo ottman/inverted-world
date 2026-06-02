@@ -1141,7 +1141,7 @@ const TOP_STORIES_DEFAULT_LIMIT = 160
 const TOP_STORIES_MAX_NEW_PER_RUN = 48
 const COVERAGE_CONCURRENCY = 5
 const IMAGE_CONCURRENCY = 8
-const IMAGE_REFRESH_PER_RUN = 40
+const IMAGE_REFRESH_PER_RUN = 250 // heal the whole news backlog in one cron run (re-pick is free HTTP)
 
 // Cascade of Openverse search queries for a story, most-specific first. Leads with the curated
 // imageQuery, then concept (entity) names — which are far better image-search terms than the

@@ -20,6 +20,11 @@ const OVERRIDES: Record<string, ImageOverride> = {
     aiPrompt:
       "A tall winged humanoid figure with glowing red eyes standing in fog near abandoned WWII concrete munition igloos in a wooded West Virginia clearing at dusk, eerie, ominous",
   },
+  // News story (UFO briefings to pastors) — was matched to an AFL football birthday cake; pin the scene.
+  "eng-11704469": {
+    aiPrompt:
+      "A metallic flying saucer hovering in a glowing overcast sky above a small white country church at dusk, a group of people gathered in the churchyard looking up in awe and dread, ominous, cinematic",
+  },
   // ── Vision-audit corrections (86 tales: 42 mismatch + 44 weak) ──────────────────────────────────
   "tale-amelia-earhart-disappearance": { aiPrompt: "Amelia Earhart in flight jacket standing beside her silver Lockheed Electra 10E on a 1937 airfield at dusk, propellers and tail markings visible, vintage documentary photo, no text" },
   "tale-atencion-numbers-station-court": { aiPrompt: "Photoreal vintage shortwave radio receiver glowing in a dark room at night, dial lit, headphones on a table, lone Cuban numbers-station transmitter tower outside, eerie clandestine mood, no text" },
