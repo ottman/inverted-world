@@ -299,12 +299,15 @@ const JOBS = [
   },
   {
     name: "inverted-world-top-stories",
-    cron: "0 * * * *",
+    // Reduced hourly -> every 3h to fit the newsapi.ai (Event Registry) monthly token quota.
+    // This is the heaviest consumer (discovery + per-story coverage). Bump back up after upgrade.
+    cron: "0 */3 * * *",
     endpoint: "/api/recursiv/jobs/top-stories?async=1",
   },
   {
     name: "inverted-world-under-covered-stories",
-    cron: "30 * * * *",
+    // Reduced hourly -> every 6h for the same quota reason.
+    cron: "30 */6 * * *",
     endpoint: "/api/recursiv/jobs/under-covered-stories?async=1",
   },
   {

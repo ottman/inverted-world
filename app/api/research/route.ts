@@ -13,6 +13,12 @@ export const runtime = "nodejs"
 const RESEARCH_BODY_LIMIT_BYTES = 16_384
 const RESEARCH_POST_RATE_LIMIT = { max: 10, windowMs: 60_000 }
 const RESEARCH_CONVERSATION_DAILY_LIMIT = { max: 60, windowMs: 24 * 60 * 60_000 }
+// Token-burn guards (the research agent runs a paid Gemini model on the Recursiv side):
+// - per-IP daily cap so one client can't burn the budget by spinning up new conversations
+// - GLOBAL daily cap = a hard ceiling on total agent calls/day across all users. Tune these up
+//   as the plan/budget grows.
+const RESEARCH_IP_DAILY_LIMIT = { max: 20, windowMs: 24 * 60 * 60_000 }
+const RESEARCH_GLOBAL_DAILY_LIMIT = { max: 300, windowMs: 24 * 60 * 60_000 }
 
 type ResearchLink = {
   title: string
@@ -560,6 +566,16 @@ async function checkResearchBudget(clientId: string, conversationId?: string) {
     checkRecursivRateLimit(durableRateLimitKey("research", "ip", clientHash), RESEARCH_POST_RATE_LIMIT, {
       route: "research",
       scope: "ip-minute",
+    }),
+    // Per-IP daily cap — closes the "open a new conversation to reset the 60/day" bypass.
+    checkRecursivRateLimit(durableRateLimitKey("research", "ip-day", clientHash), RESEARCH_IP_DAILY_LIMIT, {
+      route: "research",
+      scope: "ip-day",
+    }),
+    // GLOBAL daily ceiling on total agent calls — the hard token-burn cap across all users.
+    checkRecursivRateLimit(durableRateLimitKey("research", "global"), RESEARCH_GLOBAL_DAILY_LIMIT, {
+      route: "research",
+      scope: "global-day",
     }),
     conversationId
       ? checkRecursivRateLimit(durableRateLimitKey("research", "conversation", conversationId), RESEARCH_CONVERSATION_DAILY_LIMIT, {
