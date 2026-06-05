@@ -37,14 +37,14 @@ const nextConfig = {
               "default-src 'self'",
               // 'unsafe-inline' covers Next.js hydration + Tailwind/inline styles (no nonce pipeline yet).
               // va.vercel-scripts.com = Vercel Analytics. Add ad/script domains here when wiring Ads.
-              "script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com",
+              "script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com https://pagead2.googlesyndication.com https://adservice.google.com https://www.googletagservices.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               // Rights-cleared images come from arbitrary CC/PD hosts + Pollinations; allow any https + data.
               "img-src 'self' data: https:",
               "media-src 'self' https:",
               "font-src 'self' data: https://fonts.gstatic.com",
-              "connect-src 'self' https://va.vercel-scripts.com",
-              "frame-src 'self' https://www.youtube-nocookie.com https://www.youtube.com",
+              "connect-src 'self' https://va.vercel-scripts.com https://pagead2.googlesyndication.com",
+              "frame-src 'self' https://www.youtube-nocookie.com https://www.youtube.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com",
               "object-src 'none'",
               "base-uri 'self'",
               "form-action 'self'",

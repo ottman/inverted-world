@@ -49,6 +49,7 @@ const NAV: NavItem[] = [
   },
   { label: "Research", href: "/research" },
   { label: "Games", href: "/games" },
+  { label: "Plus", href: "/plus" },
 ]
 
 export function SiteNav() {

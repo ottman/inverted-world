@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Analytics } from '@vercel/analytics/next'
+import { AdSenseLoader } from '@/components/ads/adsense-loader'
 import './globals.css'
 
 const siteTitle = 'Inverted World'
@@ -67,6 +68,7 @@ export default function RootLayout({
       <body>
         {children}
         <Analytics />
+        <AdSenseLoader />
       </body>
     </html>
   )
