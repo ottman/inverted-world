@@ -1211,12 +1211,9 @@ function hasFullStoryBody(story: StoryCluster): boolean {
 async function enrichFreshTopStories(events: StoryCluster[]): Promise<StoryCluster[]> {
   if (!events.length) return []
   const withCoverage = await mapWithConcurrency(events, COVERAGE_CONCURRENCY, async (event) => {
-    let coveringArticles = await fetchEventCoverage(event.uri).catch(() => [])
-    if (!coveringArticles.length) {
-      await new Promise((resolve) => setTimeout(resolve, 400))
-      coveringArticles = await fetchEventCoverage(event.uri).catch(() => [])
-    }
-    // When re-processing a story (self-heal) and the re-fetch comes back empty, keep what it had.
+    // Single coverage fetch only — the retry doubled getEvent spend on empty-coverage events, which
+    // the ~5,000 tokens/month newsapi budget can't afford. Keep prior coverage if this comes back empty.
+    const coveringArticles = await fetchEventCoverage(event.uri).catch(() => [])
     return { ...event, coveringArticles: coveringArticles.length ? coveringArticles : event.coveringArticles || [] }
   })
   const narrated = await generateStoryNarratives(withCoverage)

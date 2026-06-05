@@ -1,6 +1,38 @@
 import { createRecursivServerClient } from "@/lib/recursiv/client"
 import { queryInvertedWorldDatabase } from "@/lib/recursiv/database"
+import { checkRecursivRateLimit, durableRateLimitKey } from "@/lib/recursiv/rate-limit"
 import type { RightsClearedImage } from "@/lib/openverse"
+
+// ── newsapi.ai (Event Registry) daily request budget ─────────────────────────────────────────────
+// The plan allows ~5,000 tokens/month. To stay in range WITHOUT starving the daily refresh, cap
+// requests per DAY (resets daily): ~150/day × 30 ≈ 4,500/month — the site updates every day but
+// never blows the month. Each getEvents/getEvent counts as one request. SOFT, not a hard kill:
+// fails OPEN if the durable counter is unavailable so a transient DB blip can't freeze updates.
+const NEWSAPI_DAILY_BUDGET = { max: 150, windowMs: 24 * 60 * 60_000 }
+let newsApiBudgetSpentUntil = 0
+async function newsApiRequestAllowed(): Promise<boolean> {
+  if (Date.now() < newsApiBudgetSpentUntil) return false
+  try {
+    const result = await checkRecursivRateLimit(durableRateLimitKey("newsapi", "requests", "day"), NEWSAPI_DAILY_BUDGET, {
+      route: "newsapi",
+      scope: "daily-requests",
+    })
+    if (result.ok === false) {
+      newsApiBudgetSpentUntil = result.resetAt && result.resetAt > Date.now() ? result.resetAt : Date.now() + 60 * 60_000
+      return false
+    }
+    return true
+  } catch {
+    return true // fail-open: keep the daily refresh alive if the durable counter is unreachable
+  }
+}
+
+// Budget-gated fetch to the Event Registry API. Throws when the daily budget is spent, so each call
+// site's existing try/catch degrades gracefully (discovery loops break, coverage returns empty).
+async function newsApiFetch(endpoint: string, init: RequestInit): Promise<Response> {
+  if (!(await newsApiRequestAllowed())) throw new Error("newsapi-daily-budget-exhausted")
+  return fetch(endpoint, init)
+}
 
 // Story clusters via newsapi.ai (Event Registry) "Events": each event is the same story
 // clustered across many outlets, with a coverage count. We fetch recent significant events,
@@ -144,7 +176,7 @@ export async function fetchNewsApiEvents(options: { limit?: number; sinceDays?: 
   for (let page = 1; page <= maxPages && stories.length < limit; page += 1) {
     let response: Response
     try {
-      response = await fetch(NEWSAPI_AI_EVENTS_ENDPOINT, {
+      response = await newsApiFetch(NEWSAPI_AI_EVENTS_ENDPOINT, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -365,7 +397,7 @@ export async function fetchInvertedWorldRelevantEvents(options: { limit?: number
   for (let page = 1; page <= 2 && stories.length < limit; page += 1) {
     let response: Response
     try {
-      response = await fetch(NEWSAPI_AI_EVENTS_ENDPOINT, {
+      response = await newsApiFetch(NEWSAPI_AI_EVENTS_ENDPOINT, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -437,7 +469,7 @@ export async function fetchFringeEvents(options: { limit?: number; sinceDays?: n
   for (let page = 1; page <= 4 && stories.length < limit * 2; page += 1) {
     let response: Response
     try {
-      response = await fetch(NEWSAPI_AI_EVENTS_ENDPOINT, {
+      response = await newsApiFetch(NEWSAPI_AI_EVENTS_ENDPOINT, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -646,7 +678,7 @@ async function fetchThemedEvents(config: ThemedConfig, options: { limit?: number
   for (let page = 1; page <= 4 && stories.length < limit * 2; page += 1) {
     let response: Response
     try {
-      response = await fetch(NEWSAPI_AI_EVENTS_ENDPOINT, {
+      response = await newsApiFetch(NEWSAPI_AI_EVENTS_ENDPOINT, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -1053,7 +1085,7 @@ export async function fetchEventCoverage(eventUri: string, limit = 18): Promise<
   if (!apiKey || !eventUri) return []
   let response: Response
   try {
-    response = await fetch(NEWSAPI_AI_EVENT_ENDPOINT, {
+    response = await newsApiFetch(NEWSAPI_AI_EVENT_ENDPOINT, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
