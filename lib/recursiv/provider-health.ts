@@ -410,7 +410,7 @@ function checkConfiguredProviders() {
     configuredOnly("courtlistener", Boolean(process.env.COURTLISTENER_API_TOKEN)),
     configuredOnly("documentcloud", Boolean(process.env.DOCUMENTCLOUD_API_TOKEN)),
     configuredOnly("newsapi", Boolean(process.env.NEWS_API_KEY)),
-    configuredOnly("cron-secret", Boolean(process.env.CRON_SECRET)),
+    // Don't surface the auth secret's configuration status in a health report (even behind auth).
     configuredOnly("recursiv-agent", Boolean(process.env.RECURSIV_AGENT_ID)),
   ]
 }

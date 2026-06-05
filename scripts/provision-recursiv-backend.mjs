@@ -322,7 +322,8 @@ const JOBS = [
   },
   {
     name: "inverted-world-claim-dossiers",
-    cron: "45 */6 * * *",
+    // Staggered off themed-stories (also :45) to avoid concurrent writers on coverage_snapshots.
+    cron: "50 */6 * * *",
     endpoint: "/api/recursiv/jobs/claim-dossiers?async=1",
   },
   {

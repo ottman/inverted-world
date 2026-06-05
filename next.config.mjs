@@ -31,7 +31,26 @@ const nextConfig = {
       {
         source: "/:path*",
         headers: [
-          { key: "Content-Security-Policy", value: "base-uri 'self'; object-src 'none'; frame-ancestors 'self'" },
+          {
+            key: "Content-Security-Policy",
+            value: [
+              "default-src 'self'",
+              // 'unsafe-inline' covers Next.js hydration + Tailwind/inline styles (no nonce pipeline yet).
+              // va.vercel-scripts.com = Vercel Analytics. Add ad/script domains here when wiring Ads.
+              "script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              // Rights-cleared images come from arbitrary CC/PD hosts + Pollinations; allow any https + data.
+              "img-src 'self' data: https:",
+              "media-src 'self' https:",
+              "font-src 'self' data: https://fonts.gstatic.com",
+              "connect-src 'self' https://va.vercel-scripts.com",
+              "frame-src 'self' https://www.youtube-nocookie.com https://www.youtube.com",
+              "object-src 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
+              "frame-ancestors 'self'",
+            ].join("; "),
+          },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
           { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },

@@ -1,3 +1,5 @@
+import { isSafePublicUrl } from "@/lib/url-guard"
+
 const FIRECRAWL_TIMEOUT_MS = 9000
 const JINA_TIMEOUT_MS = 9000
 const MAX_EXCERPT_CHARS = 1200
@@ -108,6 +110,8 @@ async function extractWithJina(url: string): Promise<ExtractedSourceText | null>
 
 export async function extractSourceText(url: string): Promise<ExtractedSourceText | null> {
   if (!url.startsWith("http://") && !url.startsWith("https://")) return null
+  // SSRF guard: never let an attacker-supplied source URL make the server fetch internal hosts.
+  if (!(await isSafePublicUrl(url))) return null
 
   const firecrawl = await extractWithFirecrawl(url).catch(() => null)
   if (firecrawl) return firecrawl

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { authorizeRecursivJob } from "@/lib/recursiv/job-auth"
+import { checkRateLimit, rateLimitResponse, requestClientId } from "@/lib/api-security"
 
 type JobResult = Record<string, unknown>
 
@@ -28,6 +29,14 @@ export async function runRecursivJob<T>(
 ) {
   const unauthorized = authorizeRecursivJob(request)
   if (unauthorized) return unauthorized
+
+  // Defense-in-depth: even an authenticated caller can't hammer the (expensive, spend-triggering)
+  // job endpoints. Legit cron hits each job at most ~hourly, so these caps only bite abuse.
+  const clientId = requestClientId(request)
+  const perClient = checkRateLimit(`job:${job}:${clientId}`, { max: 30, windowMs: 60_000 })
+  if (!perClient.ok) return rateLimitResponse(perClient)
+  const perJob = checkRateLimit(`job-global:${job}`, { max: 60, windowMs: 60_000 })
+  if (!perJob.ok) return rateLimitResponse(perJob)
 
   if (!wantsAsync(request)) {
     const result = await handler()
